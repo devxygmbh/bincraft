@@ -1,0 +1,334 @@
+#' Build R binary packages
+#' @template param-package_name
+#' @template param-tag
+#' @template param-codename
+#' @template param-arch
+#' @template param-platform
+#' @template param-local_build_root
+#' @template param-local_clone_dir
+#' @template param-install_system_dependencies
+#' @template param-deps_verbose
+#' @template param-debug
+#' @template param-archive
+#' @template param-force
+#' @param future_strategy future parallelization strategy
+#' @param future_workers Parallel workers count
+#'
+#' @import progressr
+#' @importFrom future plan
+#' @importFrom future.apply future_mapply
+#' @importFrom progressr with_progress progressor
+#' @importFrom gert git_config_global_set git_clone
+#' @importFrom pak local_install_dev_deps
+#' @importFrom pkgbuild build
+#' @export
+build_binary_package <- function(package_name, tag = NULL, codename = NULL,
+                                 local_build_root = "/root",
+                                 local_clone_dir = "/tmp",
+                                 platform = NULL,
+                                 arch = NULL,
+                                 install_system_dependencies = TRUE,
+                                 deps_verbose = FALSE,
+                                 debug = FALSE,
+                                 force = FALSE,
+                                 archive = TRUE,
+                                 future_strategy = "multisession",
+                                 future_workers = 2) {
+  cli::cli_h2("Preparations ({.pkg {package_name}})")
+  codename <- set_codename(codename)
+
+  # map the 'pak' platform names to the ones used in s3
+  if (is.null(platform)) {
+    platform <- switch(codename,
+      "jammy" = "ubuntu-2204",
+      "noble" = "ubuntu-2404",
+      "rhel9" = "redhat-9",
+      "rhel8" = "redhat-8",
+      "alpine320" = "alpine-320"
+    )
+  }
+
+  if (debug) {
+    cli::cli_alert_warning("DEBUG: codename {codename}.")
+  }
+
+  binary_output_path <- set_bin_path(local_build_root, codename)
+
+  local_bin_path <- set_bin_path(local_build_root = local_build_root, codename)
+
+  # set arch
+  local_arch <- Sys.info()[["machine"]]
+  if (grepl("arm64", local_arch) || grepl("aarch64", local_arch)) {
+    arch <- "arm64"
+  } else if (grepl("amd64", local_arch) || grepl("x86_64", local_arch)) {
+    arch <- "amd64"
+  }
+
+  if (debug) {
+    cli::cli_alert_warning("DEBUG: binary_output_path {binary_output_path}.")
+  }
+
+  dir_out_src <- sprintf("%s/src/contrib/Archive", local_build_root)
+  if (debug) {
+    cli::cli_alert("{.fun build_binary_package}: Creating bin dir {.path {binary_output_path}}.")
+    cli::cli_alert("{.fun build_binary_package}: Creating src dir {.path {dir_out_src}}.")
+  }
+  dir.create(sprintf("%s/Archive", binary_output_path), sprintf("%s/Archive", dir_out_src),
+    recursive = TRUE
+  )
+
+  cli::cli_h2("Installing system dependencies ({.pkg {package_name}})")
+
+  gert::git_config_global_set("advice.detachedHead", "false")
+
+  if (is.null(tag) || tag == "latest") {
+    gert::git_clone(sprintf("https://github.com/cran/%s", package_name),
+      path = sprintf("%s/%s", tempdir(), "tmp1"),
+      verbose = FALSE
+    )
+    # gert cannot sort by date (which is a problem for properly sorting tags like 1.0-10 and others)
+    if (!is.null(tag) && tag == "latest") {
+      tag <- system("git tag --sort=-creatordate | head -1", intern = TRUE)
+    } else {
+      # Retrieve all tags
+      all_tags <- gert::git_tag_list(repo = sprintf("%s/%s", tempdir(), "tmp1"))
+      # filter out tags that start with R- (= non-valid ones)
+      all_tags <- all_tags[!grepl("R-", all_tags$name), ]
+
+      unlink(sprintf("%s/%s", tempdir(), "tmp1"), force = TRUE, recursive = TRUE)
+      tag <- all_tags$name
+    }
+    package_name <- rep(package_name, length(tag))
+  }
+
+  t1 <- Sys.time()
+  cli::cli_h2("Building ({.pkg {package_name[1]}})")
+
+  cli::cli_alert("[{format(Sys.time(), format='%H:%M:%S')}] Building binaries for {.pkg {package_name[1]}} with tags {.field {tag}}.")
+
+  future::plan(future_strategy,
+    workers = future_workers,
+    rscript_startup = quote(options(crayon.enabled = TRUE))
+  )
+
+  # 'cli' is slow -> https://github.com/HenrikBengtsson/progressr/issues/167
+  if (debug) {
+    progressr::handlers("debug")
+  } else {
+    progressr::handlers("progress")
+  }
+  p <- progressr::progressor(along = tag)
+
+  worker_fun <- function(x, y, p, debug) {
+    p(message = sprintf("Building '%s'", y))
+    tryCatch(
+      {
+        dump <- build_single_tag(x, y, binary_output_path, local_clone_dir,
+          platform = platform, arch = arch, debug = debug, force = force,
+          install_system_dependencies = install_system_dependencies,
+          deps_verbose = deps_verbose
+        )
+
+        p(message = sprintf("Done building '%s'", y))
+
+        # if for some reason an underlying error didnt' get caught in the tryCatch calls, we check again here for the existence of the binary file on disk and mark the build as failed if it is not found
+        tarball_name <- sprintf("%s_%s.tar.gz", x, y)
+        if (fs::file_exists(sprintf("%s/%s", local_bin_path, tarball_name))) {
+          cli::cli_alert_success("Successfully built package {.pkg {x}} with tag {.field {y}}.")
+        } else {
+          cli::cli_alert_warning("Error in building package {.pkg {x}} with tag {.field {y}}: Uncommon/unspecific error during build.")
+          store_build_metadata(x, y, platform, error_occurred = TRUE, force = TRUE, arch = arch, error = "Uncommon/unspecific error during build")
+        }
+      },
+      error = function(e) {
+        cli::cli_alert_warning("Error in building package {.pkg {package_name}} with tag {.field {tag}}: {e}")
+        local_clone_dir_single <- sprintf("%s/%s_%s", local_clone_dir, x, y)
+        unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
+        # only stderr contains the important information why the build failed
+        store_build_metadata(x, y, platform, error_occurred = TRUE, arch = arch, force = TRUE, error = e$stderr)
+      }
+    )
+    p(message = sprintf("Finished building %s %s", x, y))
+  }
+
+
+  if (debug) {
+    mapply(worker_fun, package_name, tag, MoreArgs = list(p, debug))
+  } else {
+    future.apply::future_mapply(worker_fun, package_name, tag,
+      future.seed = TRUE, MoreArgs = list(p, debug)
+    )
+  }
+
+  total_build_time <- round(Sys.time() - t1, 2)
+  cli::cli_alert("Execution time ({.pkg {package_name[1]}}) ({length(tag)} tags): {.strong {total_build_time} {units(difftime(Sys.time(), t1))}}.")
+
+  # out <- progressr::with_progress({
+  # p <- progressr::progressor(along = tag)
+  # future.apply::future_mapply(function(x, y) {
+  mapply(function(x, y) {
+    tryCatch(
+      {
+        # p()
+        dump <- upload_single_binary(package_name = x, tag = y, force = force, debug = debug)
+      },
+      error = function(e) {
+        message(sprintf("Error in uploading package %s with tag %s: %s", x, y, e))
+      }
+    )
+    # }, package_name, tag, future.seed = TRUE)
+  }, package_name, tag)
+
+  if (archive) {
+    archive_package(package_name[1], debug = debug)
+  }
+  return(invisible(TRUE))
+}
+
+#' Build binary for a single tag
+#' @template param-package_name
+#' @template param-tag
+#' @template param-arch
+#' @template param-platform
+#' @template param-debug
+#' @template param-local_clone_dir
+#' @template param-install_system_dependencies
+#' @template param-deps_verbose
+#' @template param-force
+#' @template param-binary_output_path
+#'
+#' @importFrom cli cli_alert
+#' @importFrom pkgbuild build
+#' @importFrom fs file_size file_move
+#' @export
+build_single_tag <- function(
+    package_name,
+    tag = NULL,
+    platform,
+    arch,
+    binary_output_path,
+    local_clone_dir,
+    debug = FALSE,
+    force = FALSE,
+    install_system_dependencies = TRUE,
+    deps_verbose = FALSE) {
+  cli::cli_alert("{.fun build_single_tag}: (1/3) Cloning package {.pkg {package_name}} with tag {.field {tag}}.")
+
+  local_clone_dir_single <- sprintf("%s/%s_%s", local_clone_dir, package_name, tag)
+
+  # Using system git here as {gert} does not provide this functionality to checkout a branch by tag
+  system2("git", args = c(
+    "clone", "-q", sprintf("--branch=%s", tag),
+    sprintf("https://github.com/cran/%s", package_name), local_clone_dir_single
+  ))
+
+  ### Install system dependencies
+  if (install_system_dependencies) {
+    tryCatch(
+      {
+        install_package_system_dependencies(package_name, tag, platform, local_clone_dir_single, deps_verbose)
+      },
+      # NB: here we need to use conditionMessage() to extract the actual error - as opposed to using $stderr for errors within the tryCatch used in the future* calls
+      error = function(e) {
+        cli::cli_alert_warning("Error in installing dependencies for package {.pkg {package_name[1]}} with tag {.field {tag[1]}}: {e}")
+        store_build_metadata(package_name[1], tag[1], platform, arch = arch, error_occurred = TRUE, force = TRUE, error = conditionMessage(e))
+        return(TRUE)
+      }
+    )
+  }
+
+  if (file.exists(sprintf("%s/%s_%s.tar.gz", binary_output_path, package_name, tag))) {
+    cli::cli_alert("{.fun build_single_tag}: (2/3) Tarball for package {.pkg {package_name}} with tag {.field {tag}} already exists. Skipping build.")
+  } else {
+    cli::cli_alert("{.fun build_single_tag}: (2/3) Building package {.pkg {package_name}} with tag {.field {tag}}.")
+
+    if (debug) {
+      quiet <- FALSE
+    } else {
+      quiet <- TRUE
+    }
+    t1 <- Sys.time()
+    tryCatch(
+      {
+        if (debug) {
+          message(sprintf("DEBUG1: Printing 'binary_output_path': %s", binary_output_path))
+        }
+        pkgbuild::build(
+          path = sprintf("%s", local_clone_dir_single),
+          binary = TRUE, vignettes = FALSE,
+          dest_path = binary_output_path, quiet = quiet
+        )
+        if (debug) {
+          message(sprintf("DEBUG: Listing dir 'binary_output_path': %s", binary_output_path))
+          print(fs::dir_ls(binary_output_path))
+        }
+      },
+      error = function(e) {
+        cli::cli_alert_warning("Error in starting build command for package {.pkg {package_name}} with tag {.field {tag}}: {e}")
+        local_clone_dir_single <- sprintf("%s/%s_%s", local_clone_dir, package_name, tag)
+        unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
+        store_build_metadata(package_name, tag, platform, arch = arch, error_occurred = TRUE, force = TRUE, error = sprintf("Error trying to initiate pkgbuild - likely a non-valid R package structure. Full error: %s", e))
+        return(invisible(TRUE))
+      }
+    )
+
+    if (any(grepl("alpine", system2("cat", args = c("/etc/os-release"), stdout = TRUE)))) {
+      linux_suffix <- "musl"
+    } else {
+      linux_suffix <- "gnu"
+    }
+
+    # set tarball id for arch
+    local_arch <- Sys.info()[["machine"]]
+    if (grepl("arm64", local_arch) || grepl("aarch64", local_arch)) {
+      tarball_id <- "unknown"
+      tarball_arch <- "aarch64"
+    } else if (grepl("amd64", local_arch) || grepl("x86_64", local_arch)) {
+      tarball_id <- "pc"
+      tarball_arch <- "x86_64"
+    }
+
+    if (!file.exists(sprintf("%s/%s_%s.tar.gz", binary_output_path, package_name, tag))) {
+      if (debug) {
+        cli::cli_alert_info('{.fun build_single_tag}: DEBUG: Moving package from {.path {sprintf("%s/%s_%s_R_%s-%s-linux-%s.tar.gz", binary_output_path, package_name, tag, tarball_arch, tarball_id, linux_suffix)}} to {.path {sprintf("%s/%s_%s.tar.gz", binary_output_path, package_name, tag)}}')
+      }
+      # double-check that file exists (some packages like https://github.com/cran/BACCO/tree/1.0-14 don't include R/ and hence don't procude a valid binary)
+      if (fs::file_exists(sprintf("%s/%s_%s_R_%s-%s-linux-%s.tar.gz", binary_output_path, package_name, tag, tarball_arch, tarball_id, linux_suffix))) {
+        # remove _aarch64-unknown-linux-gnu/musl part in filename
+        fs::file_move(
+          sprintf("%s/%s_%s_R_%s-%s-linux-%s.tar.gz", binary_output_path, package_name, tag, tarball_arch, tarball_id, linux_suffix),
+          sprintf("%s/%s_%s.tar.gz", binary_output_path, package_name, tag)
+        )
+      } else {
+        cli::cli_alert_info('{.fun build_single_tag}: File for package {.pkg {package_name}} {.field {tag}} at {.path {sprintf("%s/%s_%s_R_%s-%s-linux-%s.tar.gz", binary_output_path, package_name, tag, tarball_arch, tarball_id, linux_suffix)}} does not exist - skipping.')
+        if (debug) {
+          message(sprintf("DEBUG: Listing dir 'binary_output_path': %s", binary_output_path))
+          message(fs::dir_ls(binary_output_path))
+        }
+      }
+    } else {
+      cli::cli_alert_warning('{.fun build_single_tag}: Binary {sprintf("%s_%s.tar.gz", package_name, tag)} already exists. Skipping copy.')
+    }
+    unlink(sprintf("%s/%s_%s_R*.tar.gz", binary_output_path, package_name, tag))
+
+    cli::cli_alert("{.fun build_single_tag}: (3/3) Removing {.path {local_clone_dir_single}}.")
+    unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
+
+    total_build_time <- round(as.numeric(difftime(Sys.time(), t1, units = "secs")), 2)
+
+    # bytes to MB in binary format
+    file_size <- round(as.numeric(fs::file_size(sprintf("%s/%s_%s.tar.gz", binary_output_path, package_name, tag))) / (1024^2), 2)
+
+    if (debug) {
+      cli::cli_alert_warning("DEBUG: total_build_time: {total_build_time}")
+      cli::cli_alert_warning("DEBUG: file_size: {file_size}")
+    }
+
+    tarball_name <- sprintf("%s_%s.tar.gz", package_name, tag)
+    if (fs::file_exists(sprintf("%s/%s", binary_output_path, tarball_name))) {
+      store_build_metadata(package_name, tag, platform, arch = arch, error_occurred = FALSE, force = force, build_duration = total_build_time, size = file_size)
+    }
+  }
+
+  return(invisible(TRUE))
+}

@@ -1,0 +1,37 @@
+Package: bincraftR
+Title: Toolbox for building R package binaries on Linux
+Version: 1.0.0
+Authors@R:
+    person("Patrick", "Schratz", , "mail@devxy.io", role = c("aut", "cre"))
+Description: Help to build, archive, remove and update R binary packages
+    for Linux. Supports various Linux distributions.
+License: GPL (>= 3)
+Imports:
+    cli,
+    cranlike,
+    DBI,
+    dplyr,
+    fs,
+    future,
+    future.apply,
+    gert,
+    lubridate,
+    pak,
+    pkgbuild,
+    progressr,
+    purrr,
+    RPostgres,
+    s3fs (>= 0.1.7),
+    stringr,
+    utils,
+    xml2
+Suggests:
+    dbplyr
+Remotes: 
+    pat-s/cranlike@s3,
+    pat-s/desc@description-from-remote
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+SystemRequirements: libgit2 (>= 1.0): libgit2-devel (rpm) or libgit2-dev
+    (deb)
