@@ -7,7 +7,7 @@ steps:
       GITHUB_PAT:
         from_secret: GITHUB_PAT
     commands:
-      - R -q -s -e 'install.packages("pak", repos = sprintf("https://r-lib.github.io/p/pak/stable/%s/%s/%s", .Platform$pkgType, R.Version()$os, R.Version()$arch))'
+      - R -q -s -e 'install.packages("pak")'
       - R -q -e 'options(Ncpus = 4)'
       - R -q -e 'pak::pak()'
       - R -q -e 'pak::pak("rcmdcheck")'
