@@ -1,8 +1,8 @@
 image OS ARCH:
     if echo "{{OS}}" | grep -qi "redhat"; then \
-        docker buildx build --progress plain --build-arg ARCH={{ARCH}} --build-arg GITHUB_PAT="$GITHUB_PAT" --build-arg RED_HAT_DEV_PW="$RED_HAT_DEV_PW" --platform linux/{{ARCH}} -f docker/Dockerfile-{{OS}} -t devxygmbh/{{ARCH}}-binaries-r-{{OS}}:latest --push .; \
+        docker buildx build --progress plain --build-arg ARCH={{ARCH}} --build-arg GITHUB_PAT="$GITHUB_PAT" --build-arg RED_HAT_DEV_PW="$RED_HAT_DEV_PW" --platform linux/{{ARCH}} -f docker/Containerfile-{{OS}} -t devxygmbh/{{ARCH}}-binaries-r-{{OS}}:latest --push .; \
     else \
-        docker buildx build --progress plain --build-arg GITHUB_PAT="$GITHUB_PAT" --build-arg ARCH={{ARCH}} -f docker/Dockerfile-{{OS}} --platform linux/{{ARCH}} -t devxygmbh/{{ARCH}}-binaries-r-{{OS}}:latest --push .; \
+        docker buildx build --progress plain --build-arg GITHUB_PAT="$GITHUB_PAT" --build-arg ARCH={{ARCH}} -f docker/Containerfile-{{OS}} --platform linux/{{ARCH}} -t devxygmbh/{{ARCH}}-binaries-r-{{OS}}:latest --push .; \
     fi
 
 # just build-all ubuntu-2404 noble arm64 later 1
