@@ -1,4 +1,4 @@
-#' Store build metadata of single binary builds 
+#' Store build metadata of single binary builds
 #' @template param-package_name
 #' @template param-tag
 #' @template param-arch
@@ -8,7 +8,7 @@
 #' @param build_duration Duration of binary build
 #' @param size Size of binary package
 #' @template param-error
-#' 
+#'
 #' @importFrom DBI dbConnect dbDisconnect dbWriteTable dbGetQuery dbExecute
 store_build_metadata <- function(
     package_name, tag, platform, error_occurred, arch,
@@ -20,10 +20,7 @@ store_build_metadata <- function(
   )
 
   # Check if an entry with the same package_name and tag already exists
-  existing_entries <- dbGetQuery(con, paste0(
-    "SELECT * FROM single_builds WHERE name = '",
-    package_name, "' AND tag = '", tag, "' AND platform = '", arch, "' AND arch = '", platform, "'"
-  ))
+  existing_entries <- dbGetQuery(con, "SELECT * FROM single_builds WHERE name = $1 AND tag = $2 AND platform = $3 AND arch = $4", params = list(package_name, tag, platform, arch))
 
   if (nrow(existing_entries) >= 1 && !force) {
     cli::cli_alert("{.fun store_build_metadata}: Build metadata for {.field {.pkg {package_name}}} {.field {tag}} already exists.")
