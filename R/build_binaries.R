@@ -179,6 +179,11 @@ build_binary_package <- function(package_name, tag = NULL, codename = NULL,
     # }, package_name, tag, future.seed = TRUE)
   }, package_name, tag)
 
+  # check if latest version has a binary. If not, upload the latest source tarball
+  if (!check_for_binary(package_name[1])) {
+    upload_source_tarball(package_name[1])
+  }
+
   if (archive) {
     archive_package(package_name[1], debug = debug)
   }

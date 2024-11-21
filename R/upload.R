@@ -8,7 +8,7 @@
 #' @template param-debug
 #' @template param-local_build_root
 #' @template param-force
-#' 
+#'
 #' @importFrom s3fs s3_file_exists s3_file_upload s3_file_system
 #' @export
 upload_single_binary <- function(
@@ -17,7 +17,8 @@ upload_single_binary <- function(
     bucket = "devxy-arm64-r-binaries",
     local_build_root = "/root",
     codename = NULL,
-    package_name, tag,
+    package_name,
+    tag,
     force = FALSE,
     debug = FALSE) {
   codename <- set_codename(codename)
@@ -75,4 +76,38 @@ upload_single_binary <- function(
   } else if (exists && !force) {
     cli::cli_alert("{.fun upload_single_binary}: Package {.pkg {package_name}} {.field {tag}} already exists in S3. Skipping upload.")
   }
+}
+
+#' Uploads source tarballs to S3
+#' @template param-package_name
+#' @template param-endpoint
+#' @template param-region
+#' @template param-bucket
+#' @template param-codename
+#' @template param-arch
+#' @export
+upload_source_tarball <- function(
+    package_name,
+    endpoint = "https://s3.eu-central-003.backblazeb2.com",
+    region = "eu-central-003",
+    bucket = "devxy-arm64-r-binaries",
+    codename = NULL,
+    arch = NULL) {
+  s3fs::s3_file_system(
+    aws_access_key_id = Sys.getenv("AWS_ACCESS_KEY_ID"),
+    aws_secret_access_key = Sys.getenv("AWS_SECRET_ACCESS_KEY"),
+    endpoint = endpoint,
+    region_name = region,
+  )
+
+  codename <- set_codename(codename)
+  remote_bin_path <- set_bin_path(local_build_root = bucket, codename)
+  version <- available.packages(repos = "https://cloud.r-project.org")[package_name, "Version"]
+
+  tmpfile <- tempfile()
+  download.file(sprintf("https://cloud.r-project.org/src/contrib/%s_%s.tar.gz", package_name, version), tmpfile, quiet = TRUE)
+
+  s3fs::s3_file_upload(tmpfile, sprintf("s3://%s/%s_%s.tar.gz", remote_bin_path, package_name, version), overwrite = TRUE)
+
+  cli::cli_alert("Successfully uploaded source tarball for package {.pkg {package_name}} {.field {version}} to {.path {remote_bin_path}}.")
 }

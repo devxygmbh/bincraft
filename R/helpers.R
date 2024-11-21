@@ -54,3 +54,33 @@ set_bin_path <- function(local_build_root, codename) {
   )
   return(path)
 }
+
+#' Checks whether a binary for the latest package version exists
+#' @template param-package_name
+#' @template param-endpoint
+#' @template param-region
+#' @template param-bucket
+#' @template param-codename
+#' @template param-arch
+#' @param version Version to check for. Only "latest" is supported right now.
+#' @export
+check_for_binary <- function(
+    package_name,
+    endpoint = "https://s3.eu-central-003.backblazeb2.com",
+    region = "eu-central-003",
+    bucket = "devxy-arm64-r-binaries",
+    codename = NULL,
+    arch = NULL,
+    version = "latest") {
+  s3fs::s3_file_system(
+    aws_access_key_id = Sys.getenv("AWS_ACCESS_KEY_ID"),
+    aws_secret_access_key = Sys.getenv("AWS_SECRET_ACCESS_KEY"),
+    endpoint = endpoint,
+    region_name = region,
+  )
+  codename <- set_codename(codename)
+  remote_bin_path <- set_bin_path(local_build_root = bucket, codename)
+  version <- available.packages(repos = "https://cloud.r-project.org")[package_name, "Version"]
+  exists <- s3fs::s3_file_exists(sprintf("s3://%s/%s_%s.tar.gz", remote_bin_path, package_name, version))
+  return(exists)
+}
