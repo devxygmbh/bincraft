@@ -1,14 +1,38 @@
+when:
+  - event: pull_request
+  - event: push
+    branch: ${CI_REPO_DEFAULT_BRANCH}
+
 steps:
   'Check package':
-    when:
-      event: [push, pull_request]
-    image: docker.io/devxygmbh/r-ubuntu:4.4-noble
+    image: docker.io/devxygmbh/r-alpine:4.4-3.20
     environment:
       GITHUB_PAT:
         from_secret: GITHUB_PAT
+      # PKG_SYSREQS: "TRUE"
+      # PKG_SYSREQS_VERBOSE: "TRUE"
     commands:
-      - R -q -s -e 'install.packages("pak")'
+      # - R -q -e 'install.packages("pak", repos = sprintf("https://r-lib.github.io/p/pak/devel/%s/%s/%s", .Platform$pkgType, R.Version()$os, R.Version()$arch))'
+      - apk add --no-cache tar
       - R -q -e 'options(Ncpus = 4)'
-      - R -q -e 'pak::pak()'
-      - R -q -e 'pak::pak("rcmdcheck")'
-      - R -q -e 'rcmdcheck::rcmdcheck()'
+      - R -q -e 'install.packages("remotes")'
+      - R -q -e 'remotes::install_deps(dependencies = TRUE, quiet = TRUE)'
+      - R CMD build . && R CMD check $(ls -t . | head -n1)
+      # - R -q -e 'install.packages("rcmdcheck")'
+      # - R -q -e 'pak::pak()'
+      # - R -q -e 'pak::pak("rcmdcheck")'
+      # - R -q -e 'rcmdcheck::rcmdcheck()'
+    backend_options:
+      kubernetes:
+        resources:
+          requests:
+            memory: 1300Mi
+            cpu: 2000m
+          limits:
+            memory: 2000Mi
+            cpu: 4000m
+        tolerations:
+          - key: 'CI'
+            operator: 'Equal'
+            value: 'true'
+            effect: 'NoSchedule'

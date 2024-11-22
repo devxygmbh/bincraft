@@ -10,6 +10,7 @@
 #'
 #' @importFrom stringr str_split
 #' @importFrom utils available.packages tail
+#' @importFrom gh gh
 #' @export
 #' @examples
 #' \dontrun{
@@ -67,7 +68,7 @@ archive_package <- function(
     # only archive if more than one package exists in the root
     if (length(all_versions) > 1) {
       # get most recent version from CRAN
-      last_version <- available.packages("https://cloud.r-project.org/src/contrib")[.x, "Version"]
+      last_version <- gh::gh(sprintf("GET /repos/cran/%s/tags", package_name))[[1]]$name
       # check if last version is available in repo
       if (any(grepl(sprintf("^%s_%s.tar.gz", package_name, last_version), all_versions))) {
         index <- which(grepl(sprintf("_%s.tar.gz", last_version), all_versions, fixed = TRUE))
