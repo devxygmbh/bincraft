@@ -85,6 +85,7 @@ upload_single_binary <- function(
 #' @template param-bucket
 #' @template param-codename
 #' @template param-arch
+#' @importFrom utils download.file
 #' @export
 upload_source_tarball <- function(
     package_name,
