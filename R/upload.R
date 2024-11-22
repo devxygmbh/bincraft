@@ -103,7 +103,7 @@ upload_source_tarball <- function(
 
   codename <- set_codename(codename)
   remote_bin_path <- set_bin_path(local_build_root = bucket, codename)
-  version <- gh::gh(sprintf("GET /repos/cran/%s/tags", package_name))[[1]]$name
+  version <- strsplit(gh::gh(sprintf("GET /repos/cran/%s/commits/master", package_name))$commit$message, "version ")[[1]][2]
 
   tmpfile <- tempfile()
   download.file(sprintf("https://cloud.r-project.org/src/contrib/%s_%s.tar.gz", package_name, version), tmpfile, quiet = TRUE)
