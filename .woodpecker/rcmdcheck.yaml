@@ -6,22 +6,23 @@ when:
 steps:
   'Check package':
     image: docker.io/devxygmbh/r-alpine:4.4-3.20
+    pull: true
     environment:
       GITHUB_PAT:
         from_secret: GITHUB_PAT
+      RCMDCHECK_NUM_COLORS: 300
       # PKG_SYSREQS: "TRUE"
       # PKG_SYSREQS_VERBOSE: "TRUE"
     commands:
-      # - R -q -e 'install.packages("pak", repos = sprintf("https://r-lib.github.io/p/pak/devel/%s/%s/%s", .Platform$pkgType, R.Version()$os, R.Version()$arch))'
-      - apk add --no-cache tar
+      - R -q -e 'install.packages("pak", repos = sprintf("https://r-lib.github.io/p/pak/devel/%s/%s/%s", .Platform$pkgType, R.Version()$os, R.Version()$arch))'
+      - R -q -e 'cmd = pak::pkg_sysreqs(".")$install_scripts; system(cmd)'
       - R -q -e 'options(Ncpus = 4)'
       - R -q -e 'install.packages("remotes")'
       - R -q -e 'remotes::install_deps(dependencies = TRUE, quiet = TRUE)'
-      # - R CMD build . && R CMD check $(ls -t . | head -n1)
       - R -q -e 'remotes::install_github("r-lib/rcmdcheck")'
       # - R -q -e 'pak::pak()'
       # - R -q -e 'pak::pak("rcmdcheck")'
-      - R -q -e 'rcmdcheck::rcmdcheck()'
+      - R -q -e 'rcmdcheck::rcmdcheck(error_on = "warning")'
     backend_options:
       kubernetes:
         resources:
