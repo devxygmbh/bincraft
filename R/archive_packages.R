@@ -69,7 +69,7 @@ archive_package <- function(
     if (length(all_versions) > 1) {
       # get most recent version from CRAN
 
-      last_version <- strsplit(gh::gh(sprintf("GET /repos/cran/%s/commits", package_name))$commit$message, "version ")[[1]][2]
+      last_version <- strsplit(gh::gh(sprintf("GET /repos/cran/%s/commits", package_name))[[1]]$commit$message, "version ")[[1]][2]
       # check if last version is available in repo
       if (any(grepl(sprintf("^%s_%s.tar.gz", package_name, last_version), all_versions))) {
         index <- which(grepl(sprintf("_%s.tar.gz", last_version), all_versions, fixed = TRUE))
