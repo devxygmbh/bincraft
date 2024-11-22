@@ -15,7 +15,6 @@ steps:
       # PKG_SYSREQS_VERBOSE: "TRUE"
     commands:
       - R -q -e 'install.packages("pak", repos = sprintf("https://r-lib.github.io/p/pak/devel/%s/%s/%s", .Platform$pkgType, R.Version()$os, R.Version()$arch))'
-      - apk add --no-cache -q tzdata texlive
       - R -q -e 'cmd = pak::pkg_sysreqs(".")$install_scripts; system(cmd)'
       - R -q -e 'options(Ncpus = 4)'
       - R -q -e 'install.packages("remotes")'
@@ -23,7 +22,7 @@ steps:
       - R -q -e 'remotes::install_github("r-lib/rcmdcheck")'
       # - R -q -e 'pak::pak()'
       # - R -q -e 'pak::pak("rcmdcheck")'
-      - R -q -e 'rcmdcheck::rcmdcheck(error_on = "warning")'
+      - R -q -e 'rcmdcheck::rcmdcheck(args = "--no-manual", error_on = "warning")'
     backend_options:
       kubernetes:
         resources:
