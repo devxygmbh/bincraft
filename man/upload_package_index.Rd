@@ -11,7 +11,8 @@ upload_package_index(
   bucket = "devxy-arm64-r-binaries",
   local_build_root = ".",
   codename = NULL,
-  debug = FALSE
+  debug = FALSE,
+  arch = NULL
 )
 }
 \arguments{
@@ -35,6 +36,9 @@ Linux distribution identifier}
 
 \item{debug}{(\link{Date})\cr
 Date or date interval}
+
+\item{arch}{(\link{character})\cr
+Architecture}
 }
 \description{
 Upload package index files to S3

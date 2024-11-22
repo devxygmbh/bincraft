@@ -57,6 +57,7 @@ add_to_package_index <- function(
 #' @template param-bucket
 #' @template param-debug
 #' @template param-local_build_root
+#' @template param-arch
 #'
 #' @importFrom s3fs s3_file_upload s3_dir_ls
 #' @importFrom cranlike update_PACKAGES
@@ -68,10 +69,13 @@ upload_package_index <- function(
     bucket = "devxy-arm64-r-binaries",
     local_build_root = ".",
     codename = NULL,
-    debug = FALSE) {
+    debug = FALSE,
+  arch = NULL) {
   cli::cli_alert("{.fun upload_package_index}: Updating PACKAGES* files in S3.")
 
   codename <- set_codename(codename)
+
+  if (is.null(arch)) {
 
   local_arch <- Sys.info()[["machine"]]
   if (grepl("arm64", local_arch) || grepl("aarch64", local_arch)) {
@@ -79,6 +83,7 @@ upload_package_index <- function(
   } else if (grepl("amd64", local_arch) || grepl("x86_64", local_arch)) {
     arch <- "amd64"
   }
+}
 
   local_bin_dir <- set_bin_path(local_build_root, codename)
   remote_bin_dir <- sprintf("%s/%s/%s/latest/src/contrib", bucket, arch, codename)
@@ -109,4 +114,4 @@ upload_package_index <- function(
   )
 
   return(invisible(TRUE))
-}
+  }

@@ -1,9 +1,9 @@
 when:
   - event: pull_request
-    path: '*.{R}'
+    path: 'R/**'
   - event: push
     branch: ${CI_REPO_DEFAULT_BRANCH}
-    path: '*.{R}'
+    path: 'R/**'
 
 steps:
   'Check package':
