@@ -20,10 +20,12 @@
 #' @importFrom dplyr bind_rows
 #' @importFrom purrr walk2
 #' @examples
+#' \dontrun{
 #' process_cran_updates(
 #'   interval = lubridate::interval(lubridate::today() - 2, lubridate::today() - 20),
 #'   process_updated = FALSE, process_new = FALSE
 #' )
+#' }
 #'
 #' @export
 process_cran_updates <- function(

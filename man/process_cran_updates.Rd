@@ -65,9 +65,11 @@ Packages which got removed from CRAN can be deleted by setting \code{prune = TRU
 Argument \code{interval} allows to specify a range which should be processed.
 }
 \examples{
+\dontrun{
 process_cran_updates(
   interval = lubridate::interval(lubridate::today() - 2, lubridate::today() - 20),
   process_updated = FALSE, process_new = FALSE
 )
+}
 
 }
