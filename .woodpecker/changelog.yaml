@@ -1,0 +1,40 @@
+clone:
+  git:
+    image: docker.io/woodpeckerci/plugin-git:2.6.0
+    settings:
+      tags: true
+
+when:
+  event: [push, manual]
+  branch: ${CI_REPO_DEFAULT_BRANCH}
+
+steps:
+  - name: 'Upcoming Changelog'
+    environment:
+      API_RW_TOKEN:
+        from_secret: API_RW_TOKEN
+    image: docker.io/thegeeklab/git-sv:1.0.5
+    commands: |
+      chown -R root .
+      apk add -q --no-cache curl jq sed
+      # for GitLab we need a string input with (escaped) linebreaks (\n)
+      git sv rn -o changelog.md
+      export RELEASE_NOTES=$(cat changelog.md | sed ':a;N;$!ba;s/\n/\\\\n/g')
+      CI_REPO_URL_ENCODED=$(echo -n "${CI_REPO}" | jq -sRr @uri)
+      export PROJECT_ID=$(curl -s -H "PRIVATE-TOKEN:$API_RW_TOKEN" ${CI_FORGE_URL}/api/v4/projects/$CI_REPO_URL_ENCODED | jq '.id')
+      export ISSUE_NUMBER=$(curl -s -H "PRIVATE-TOKEN:$API_RW_TOKEN" "${CI_FORGE_URL}/api/v4/projects/$PROJECT_ID/issues?search=Changelog%20for%20next%20version&in=title" | jq '.[].iid')
+
+      if [ -z "$ISSUE_NUMBER" ]; then
+        curl -s -X POST "${CI_FORGE_URL}/api/v4/projects/$PROJECT_ID/issues" -H "PRIVATE-TOKEN:$API_RW_TOKEN" -H 'Content-Type: application/json' -d "{\"title\":\"Changelog for next version\", \"description\":\"$RELEASE_NOTES\" }"
+      else
+        curl -s -X PUT "${CI_FORGE_URL}/api/v4/projects/$PROJECT_ID/issues/$ISSUE_NUMBER" -H "PRIVATE-TOKEN:$API_RW_TOKEN" -H 'Content-Type: application/json' -d "{\"title\":\"Changelog for next version\", \"description\":\"$RELEASE_NOTES\" }"
+      fi
+    backend_options:
+      kubernetes:
+        resources:
+          requests:
+            memory: 100Mi
+            cpu: 100m
+          limits:
+            memory: 300Mi
+            cpu: 1000m
