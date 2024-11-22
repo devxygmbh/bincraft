@@ -80,7 +80,7 @@ check_for_binary <- function(
   )
   codename <- set_codename(codename)
   remote_bin_path <- set_bin_path(local_build_root = bucket, codename)
-  version <- available.packages(repos = "https://cloud.r-project.org")[package_name, "Version"]
+  version <- gh::gh(sprintf("GET /repos/cran/%s/tags", package_name))[[1]]$name
   exists <- s3fs::s3_file_exists(sprintf("s3://%s/%s_%s.tar.gz", remote_bin_path, package_name, version))
   return(exists)
 }
