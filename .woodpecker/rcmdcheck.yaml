@@ -17,11 +17,11 @@ steps:
       - R -q -e 'options(Ncpus = 4)'
       - R -q -e 'install.packages("remotes")'
       - R -q -e 'remotes::install_deps(dependencies = TRUE, quiet = TRUE)'
-      - R CMD build . && R CMD check $(ls -t . | head -n1)
-      # - R -q -e 'install.packages("rcmdcheck")'
+      # - R CMD build . && R CMD check $(ls -t . | head -n1)
+      - R -q -e 'remotes::install_github("r-lib/rcmdcheck")'
       # - R -q -e 'pak::pak()'
       # - R -q -e 'pak::pak("rcmdcheck")'
-      # - R -q -e 'rcmdcheck::rcmdcheck()'
+      - R -q -e 'rcmdcheck::rcmdcheck()'
     backend_options:
       kubernetes:
         resources:
