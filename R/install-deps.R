@@ -26,10 +26,10 @@ install_package_system_dependencies <- function(package_name,
 
   if (grepl("alpine", platform)) {
     platform <- "alpine"
+    Sys.setenv(PKG_SYSREQS_PLATFORM = "alpine")
   }
 
   cli::cli_alert("{.fun install_package_system_dependencies}: Installing R package dependencies for {.pkg {package_name[1]}} with tag {.field {tail(tag, 1)}}.")
-  # Sys.setenv(PKG_SYSREQS_PLATFORM = platform)
   Sys.setenv(PKG_SYSREQS = TRUE)
   Sys.setenv(PKG_SYSREQS_VERBOSE = TRUE)
   # FIXME: https://github.com/r-lib/pak/issues/610
