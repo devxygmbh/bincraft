@@ -1,4 +1,4 @@
-#' Archive packages in CRAN-like repositories
+#' Archive packages in CRAN-like repositories2
 #' @template param-package_name
 #' @template param-codename
 #' @template param-arch
