@@ -110,7 +110,7 @@ upload_package_index <- function(
   purrr::walk2(
     c("PACKAGES", "PACKAGES.db", "PACKAGES.rds", "PACKAGES.gz"),
     sprintf("%s/%s", remote_bin_dir, c("PACKAGES", "PACKAGES.db", "PACKAGES.rds", "PACKAGES.gz")),
-    \(x, y) s3fs::s3_file_upload(x, y, overwrite = TRUE, CacheControl = "no-cache")
+    \(x, y) s3fs::s3_file_upload(x, y, overwrite = TRUE, CacheControl = "no-store")
   )
 
   return(invisible(TRUE))
