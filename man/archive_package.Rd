@@ -2,7 +2,7 @@
 % Please edit documentation in R/archive_packages.R
 \name{archive_package}
 \alias{archive_package}
-\title{Archive packages in CRAN-like repositories}
+\title{Archive packages in CRAN-like repositories2}
 \usage{
 archive_package(
   package_name,
@@ -41,7 +41,7 @@ Architecture}
 Date or date interval}
 }
 \description{
-Archive packages in CRAN-like repositories
+Archive packages in CRAN-like repositories2
 }
 \examples{
 \dontrun{

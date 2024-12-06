@@ -77,6 +77,15 @@ build_binary_package <- function(package_name, tag = NULL, codename = NULL,
     recursive = TRUE
   )
 
+  # this is used in CI to determine the last successful build in case the build gets interrupted before all packages got processed
+  if (Sys.getenv("CI") != "") {
+    pkgs <- as.character(available.packages("https://cloud.r-project.org/src/contrib")[, "Package"])
+    index <- which(grepl(sprintf("^%s$", package_name), pkgs))
+    cat(sprintf("%s - %s - %s", package_name, index, date()), file = sprintf("%s/%s.txt", Sys.getenv("CI_WORKSPACE"), Sys.getenv("CI_WORKFLOW_NAME")))
+    # this writes a cached file so that future builds can continue to pick where they left of without changing the workflow
+    cat(sprintf("%s", index), file = sprintf("/mnt/cache/%s.txt", Sys.getenv("CI_WORKFLOW_NAME")))
+  }
+
   cli::cli_h2("Installing system dependencies ({.pkg {package_name}})")
 
   gert::git_config_global_set("advice.detachedHead", "false")
@@ -187,6 +196,7 @@ build_binary_package <- function(package_name, tag = NULL, codename = NULL,
   if (archive) {
     archive_package(package_name[1], debug = debug)
   }
+
   return(invisible(TRUE))
 }
 
