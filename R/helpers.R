@@ -85,19 +85,11 @@ check_for_binary <- function(
   return(exists)
 }
 
-
-retry <- function(expr, retries = 5, envir = parent.frame()) {
-  attempt <- 1
-  while (attempt <= retries) {
-    tryCatch({
-      result <- eval(expr, envir = envir) 
-      return(result) 
-    }, error = function(e) {
-      message(paste("Attempt", attempt, "failed:", e$message))
-      if (attempt == retries) {
-        stop("All retry attempts failed.")
-      }
-    })
-    attempt <- attempt + 1
-  }
-}
+#' @importFrom purrr rate_backoff
+retry_config <- purrr::rate_backoff(
+  pause_base = 1,
+  pause_cap = 60,
+  pause_min = 1,
+  max_times = 10,
+  jitter = FALSE
+)

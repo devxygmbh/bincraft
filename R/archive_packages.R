@@ -59,12 +59,12 @@ archive_package <- function(
 
   files <- s3fs::s3_dir_ls(remote_bin_dir)
 
-  foo <- lapply(package_name, function(.x) {
-    cli::cli_h2("Archiving ({.pkg {.x}})")
-    if (!s3fs::s3_dir_exists(sprintf("%s/Archive/%s", remote_bin_dir, .x))) {
-      s3fs::s3_dir_create(sprintf("%s/Archive/%s", remote_bin_dir, .x))
+  foo <- lapply(package_name, function(pkgname) {
+    cli::cli_h2("Archiving ({.pkg {pkgname}})")
+    if (!s3fs::s3_dir_exists(sprintf("%s/Archive/%s", remote_bin_dir, pkgname))) {
+      s3fs::s3_dir_create(sprintf("%s/Archive/%s", remote_bin_dir, pkgname))
     }
-    all_versions <- grep(sprintf("/%s_", .x), files, value = TRUE)
+    all_versions <- grep(sprintf("/%s_", pkgname), files, value = TRUE)
     # only archive if more than one package exists in the root
     if (length(all_versions) > 1) {
       # get most recent version from CRAN
@@ -75,10 +75,14 @@ archive_package <- function(
         index <- which(grepl(sprintf("_%s.tar.gz", last_version), all_versions, fixed = TRUE))
         old_versions <- all_versions[-index]
       } else {
-        # this often fails with 
+        # this often fails with
         # caused by error in `curl::curl_fetch_memory(url)`:
         # ! SSL peer certificate or SSH remote key was not OK: [crandb.r-pkg.org] SSL certificate problem: unable to get local issuer certificate
-        versions <- retry(quote(rev(pak::pkg_history(.x)$Version)))
+        versions <- insistently(
+          ~
+            rev(pak::pkg_history(pkgname)$Version),
+          rate = retry_config, quiet = FALSE
+        )()
         for (i in versions) {
           if (any(grepl(paste0("^", i, "$"), stringr::str_split(stringr::str_split(all_versions, "_", simplify = T)[, 2], ".tar.gz", simplify = TRUE)[, 1]))) {
             index <- which(grepl(sprintf("_%s.tar.gz", i), all_versions))
@@ -88,10 +92,10 @@ archive_package <- function(
         }
       }
       cli::cli_alert("{.fun archive_package}: Archiving {.field {basename(old_versions)}}, keeping {.field {basename(all_versions[index])}}.")
-      s3fs::s3_file_move(old_versions, sprintf("%s/Archive/%s/%s", remote_bin_dir, .x, basename(old_versions)), overwrite = TRUE)
-      cli::cli_alert_success("{.fun archive_package}: Successfully archived package {.pkg {.x}}.")
+      s3fs::s3_file_move(old_versions, sprintf("%s/Archive/%s/%s", remote_bin_dir, pkgname, basename(old_versions)), overwrite = TRUE)
+      cli::cli_alert_success("{.fun archive_package}: Successfully archived package {.pkg {pkgname}}.")
     } else {
-      cli::cli_alert("{.fun archive_package}: Skipping {.pkg {.x}} as only one package versions exists.")
+      cli::cli_alert("{.fun archive_package}: Skipping {.pkg {pkgname}} as only one package versions exists.")
     }
   })
 
