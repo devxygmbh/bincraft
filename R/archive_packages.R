@@ -75,7 +75,10 @@ archive_package <- function(
         index <- which(grepl(sprintf("_%s.tar.gz", last_version), all_versions, fixed = TRUE))
         old_versions <- all_versions[-index]
       } else {
-        versions <- rev(pak::pkg_history(.x)$Version)
+        # this often fails with 
+        # caused by error in `curl::curl_fetch_memory(url)`:
+        # ! SSL peer certificate or SSH remote key was not OK: [crandb.r-pkg.org] SSL certificate problem: unable to get local issuer certificate
+        versions <- retry(quote(rev(pak::pkg_history(.x)$Version)))
         for (i in versions) {
           if (any(grepl(paste0("^", i, "$"), stringr::str_split(stringr::str_split(all_versions, "_", simplify = T)[, 2], ".tar.gz", simplify = TRUE)[, 1]))) {
             index <- which(grepl(sprintf("_%s.tar.gz", i), all_versions))

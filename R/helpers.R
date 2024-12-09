@@ -84,3 +84,20 @@ check_for_binary <- function(
   exists <- s3fs::s3_file_exists(sprintf("s3://%s/%s_%s.tar.gz", remote_bin_path, package_name, version))
   return(exists)
 }
+
+
+retry <- function(expr, retries = 5, envir = parent.frame()) {
+  attempt <- 1
+  while (attempt <= retries) {
+    tryCatch({
+      result <- eval(expr, envir = envir) 
+      return(result) 
+    }, error = function(e) {
+      message(paste("Attempt", attempt, "failed:", e$message))
+      if (attempt == retries) {
+        stop("All retry attempts failed.")
+      }
+    })
+    attempt <- attempt + 1
+  }
+}
