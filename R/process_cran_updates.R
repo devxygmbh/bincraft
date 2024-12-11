@@ -17,7 +17,7 @@
 #' @template param-process_new
 #' @template param-process_removed
 #'
-#' @importFrom dplyr bind_rows
+#' @importFrom dplyr bind_rows pull filter
 #' @importFrom purrr walk2
 #' @examples
 #' \dontrun{
@@ -44,8 +44,6 @@ process_cran_updates <- function(
     process_removed = TRUE) {
   # Get list of updated and new packages for a specific day
   updated_pkgs <- get_updated_cran_packages(interval)
-  # FIXME: temporary hickup for package redatam
-  updated_pkgs <- updated_pkgs[updated_pkgs$name != "redatam", ]
   new_pkgs <- get_new_cran_packages(interval)
 
   all_pkgs <- dplyr::bind_rows(updated_pkgs, new_pkgs)
@@ -55,6 +53,17 @@ process_cran_updates <- function(
     print(updated_pkgs)
     cli::cli_alert_success("{.fun process_cran_updates}: New packages:")
     print(new_pkgs)
+
+    `%nin%` <- Negate(`%in%`)
+    win_only = withr::with_options(list(
+      repos = structure(c(CRAN = "https://cloud.r-project.org"))
+    ), tools::CRAN_package_db()) |>
+      filter(`OS_type` == "windows") |>
+      pull(Package)
+
+    all_pkgs = all_pkgs |> 
+      filter(`name` %nin% win_only)
+
     purrr::walk2(all_pkgs$name, all_pkgs$version, ~ {
       build_binary_package(.x, .y, platform = platform)
       archive_package(.x)
