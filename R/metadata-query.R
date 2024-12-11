@@ -10,7 +10,7 @@ query_metadata_table <- function(table = "single_builds") {
       dbname = "build_metadata", host = "r-binaries.devxy.io",
       port = 15432, user = "r_binaries", password = Sys.getenv("PGPASS"),
       sslmode = "require"
-    ), rate = retry_config, quiet = FALSE)
+    ), rate = retry_config, quiet = FALSE)()
   metadata <- insistently(
     ~
       tbl(con, table),
