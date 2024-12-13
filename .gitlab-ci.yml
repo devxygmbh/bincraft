@@ -1,10 +1,8 @@
 image: docker.io/devxygmbh/r-alpine:4.4-3.20
 
-workflow:
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-
 deploy-pages:
+  only:
+    - schedules
   variables:
     PKG_SYSREQS: 'TRUE'
     PKG_SYSREQS_VERBOSE: 'TRUE'
