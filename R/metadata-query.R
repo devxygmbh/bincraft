@@ -3,6 +3,7 @@
 #' @importFrom DBI dbConnect dbGetQuery
 #' @importFrom RPostgres Postgres
 #' @importFrom dplyr tbl
+#' @importFrom purrr insistently
 #' @export
 query_metadata_table <- function(table = "single_builds") {
   con <- insistently(~
