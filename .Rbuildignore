@@ -18,3 +18,5 @@ get-all-pkg-versions.R
 05-get-updated-cran-pkgs.R
 man-roxygen/
 .gitsv/
+docs/
+pkgdown/

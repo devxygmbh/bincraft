@@ -55,14 +55,19 @@ process_cran_updates <- function(
     cli::cli_alert_success("{.fun process_cran_updates}: New packages:")
     print(new_pkgs)
 
+    # make R CMD Check happy
+    OS_type <- NULL
+    Package <- NULL
+    name <- NULL
+
     `%nin%` <- Negate(`%in%`)
-    win_only = withr::with_options(list(
+    win_only <- withr::with_options(list(
       repos = structure(c(CRAN = "https://cloud.r-project.org"))
     ), tools::CRAN_package_db()) |>
       filter(`OS_type` == "windows") |>
       pull(Package)
 
-    all_pkgs = all_pkgs |> 
+    all_pkgs <- all_pkgs |>
       filter(`name` %nin% win_only)
 
     purrr::walk2(all_pkgs$name, all_pkgs$version, ~ {
