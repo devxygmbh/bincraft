@@ -19,6 +19,7 @@
 #'
 #' @importFrom dplyr bind_rows pull filter
 #' @importFrom purrr walk2
+#' @importFrom withr with_options
 #' @examples
 #' \dontrun{
 #' process_cran_updates(

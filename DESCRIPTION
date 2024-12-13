@@ -25,11 +25,12 @@ Imports:
     s3fs (>= 0.1.7),
     stringr,
     utils,
+    withr,
     xml2
 Suggests:
+    callr,
     dbplyr,
     hms,
-    callr,
     httr2
 Remotes: 
     pat-s/cranlike@s3,
