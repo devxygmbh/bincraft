@@ -101,3 +101,38 @@ archive_package <- function(
 
   return(invisible(TRUE))
 }
+
+#' Create Meta/archive.rds for remotes package
+#' @description
+#' Inspired from <https://stackoverflow.com/questions/35584396/how-to-generate-meta-archive-rds-to-be-compatible-with-devtoolsinstall-version>
+#' 
+#' @importFrom data.table data.table tstrsplit as.data.table
+#' @export
+write_archive_rds <- function(files) {
+  # make R CMD Check happy
+  row_name <- NULL
+  package <- NULL
+
+  dt <- data.table(file_path = basename(files))
+  dt <- dt[grepl("\\.tar\\.gz$", file_path)]
+
+  # split into package and version
+  dt[, c("package", "version") := tstrsplit(sub("\\.tar\\.gz$", "", file_path), "_", fixed = TRUE)]
+
+  # assign DF row names
+  dt[, row_name := paste0(package, "/", package, "_", version, ".tar.gz")]
+
+  # Group by package and create a list of data.tables
+  result <- dt[, .(data_frame = list(as.data.table(setNames(list(row_name), c("row_name"))))), by = package]
+
+  # Convert each grouped data.table to a data.frame and assign row names
+  result_list <- lapply(result$data_frame, function(dt_group) {
+    df <- as.data.frame(dt_group)
+    rownames(df) <- df$row_name
+    df[, 0] # Remove the column, leaving just row names
+  })
+
+  names(result_list) <- result$package
+
+  return(result_list)
+}

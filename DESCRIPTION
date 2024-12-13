@@ -10,6 +10,7 @@ URL: https://devxy.gitlab.io/bincraftR
 Imports:
     cli,
     cranlike,
+    data.table,
     DBI,
     dplyr,
     fs,
