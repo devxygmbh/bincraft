@@ -27,7 +27,8 @@ Imports:
     utils,
     xml2
 Suggests:
-    dbplyr
+    dbplyr,
+    hms
 Remotes: 
     pat-s/cranlike@s3,
     pat-s/desc@description-from-remote
