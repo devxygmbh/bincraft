@@ -28,7 +28,8 @@ Imports:
     xml2
 Suggests:
     dbplyr,
-    hms
+    hms,
+    callr
 Remotes: 
     pat-s/cranlike@s3,
     pat-s/desc@description-from-remote
