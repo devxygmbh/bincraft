@@ -1,0 +1,32 @@
+url: https://devxy.gitlab.io/bincraftR
+template:
+  bootstrap: 5
+  light-switch: true
+
+reference:
+  - title: Build
+    # desc: Functions related to building
+  - contents:
+      - starts_with("build_")
+      - install_package_system_dependencies
+  - title: Upload & Archive
+  - contents:
+      - contains("archive")
+      - contains("upload")
+  - title: Metadata
+  - contents:
+      - contains("metadata")
+  - title: Process changes packages
+  - contents:
+      - contains("cran_packages")
+      - process_cranberries_rss
+      - get_cranberries_feed
+  - title: Process package index
+  - contents:
+      - contains("index")
+      - process_cran_updates
+  - title: Helpers
+    contents:
+      - check_for_binary
+      - set_bin_path
+      - set_codename

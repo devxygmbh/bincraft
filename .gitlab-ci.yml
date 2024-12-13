@@ -1,0 +1,32 @@
+image: docker.io/devxygmbh/r-alpine:4.4-3.20
+
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+deploy-pages:
+  variables:
+    PKG_SYSREQS: 'TRUE'
+    PKG_SYSREQS_VERBOSE: 'TRUE'
+  script:
+    # FIXME: unclear why textshaping deps are not detected (harfbuzz-dev libfribidi-dev freetype-dev)
+    - apk add -q --no-cache pandoc harfbuzz-dev fribidi-dev freetype-dev
+    - R -q -e 'install.packages("pak", repos = sprintf("https://r-lib.github.io/p/pak/devel/%s/%s/%s", .Platform$pkgType, R.Version()$os, R.Version()$arch))'
+    - R -q -e 'options(Ncpus = 4)'
+    - R -q -e 'dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE)'
+    - R -q -e 'pak::pak()'
+    - R -q -e 'pak::pak("pkgdown")'
+    - R -q -e 'pkgdown::build_site()'
+    - mv docs/ public/
+  pages: true
+  cache:
+    - key: cache-$CI_COMMIT_BRANCH
+      fallback_keys:
+        - cache-default
+      paths:
+        - $(R -q -e 'Sys.getenv("R_LIBS_USER"')
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
