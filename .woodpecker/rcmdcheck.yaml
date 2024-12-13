@@ -14,16 +14,10 @@ steps:
       GITHUB_PAT:
         from_secret: GITHUB_PAT
       RCMDCHECK_NUM_COLORS: 300
-      # PKG_SYSREQS: "TRUE"
-      # PKG_SYSREQS_VERBOSE: "TRUE"
     commands:
       - R -q -e 'install.packages("pak", repos = sprintf("https://r-lib.github.io/p/pak/devel/%s/%s/%s", .Platform$pkgType, R.Version()$os, R.Version()$arch))'
       - R -q -e 'options(Ncpus = 4)'
-      # pak clashes when it attempts to install pak into the same library, hence we create a user dir for all upcoming pkgs
       - R -q -e 'dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE)'
-      # - R -q -e 'install.packages("remotes")'
-      # - R -q -e 'remotes::install_deps(dependencies = TRUE, quiet = TRUE)'
-      # - R -q -e 'remotes::install_github("r-lib/rcmdcheck")'
       - R -q -e 'pak::pak(dependencies = TRUE)'
       - R -q -e 'pak::pak("r-lib/rcmdcheck", dependencies = TRUE)'
       - R -q -e 'rcmdcheck::rcmdcheck(args = "--no-manual", error_on = "warning")'
