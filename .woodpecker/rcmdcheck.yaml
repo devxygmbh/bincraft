@@ -24,7 +24,7 @@ steps:
       # - R -q -e 'install.packages("remotes")'
       # - R -q -e 'remotes::install_deps(dependencies = TRUE, quiet = TRUE)'
       # - R -q -e 'remotes::install_github("r-lib/rcmdcheck")'
-      - R -q -e 'pak::pak()'
+      - R -q -e 'pak::pak(dependencies = TRUE)'
       - R -q -e 'pak::pak("r-lib/rcmdcheck", dependencies = TRUE)'
       - R -q -e 'rcmdcheck::rcmdcheck(args = "--no-manual", error_on = "warning")'
     backend_options:
