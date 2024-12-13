@@ -29,7 +29,8 @@ Imports:
 Suggests:
     dbplyr,
     hms,
-    callr
+    callr,
+    httr2
 Remotes: 
     pat-s/cranlike@s3,
     pat-s/desc@description-from-remote
