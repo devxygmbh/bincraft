@@ -1,0 +1,8 @@
+pandoc: '3.6'
+pkgdown: 2.1.1
+pkgdown_sha: ~
+articles: {}
+last_built: 2024-12-13T17:09Z
+urls:
+  reference: https://devxy.gitlab.io/bincraftR/reference
+  article: https://devxy.gitlab.io/bincraftR/articles
