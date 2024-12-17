@@ -33,6 +33,7 @@ Suggests:
     bit,
     bit64,
     callr,
+    cachem,
     dbplyr,
     hms,
     httr2
