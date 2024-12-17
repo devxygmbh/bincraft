@@ -22,6 +22,7 @@ query_metadata_table <- function(table = "single_builds") {
 
 #' List existing database tables
 #' @importFrom DBI dbListTables
+#' @importFrom purrr insistently
 #' @export
 list_metadata_tables <- function() {
   con <- insistently(~

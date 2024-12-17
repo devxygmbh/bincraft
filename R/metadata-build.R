@@ -64,6 +64,7 @@ store_build_metadata <- function(
 
 #' Remove package from metadata table
 #' @template param-package_name
+#' @importFrom purrr insistently
 remove_from_metadata <- function(package_name) {
   con <- insistently(~
     dbConnect(RPostgres::Postgres(),
