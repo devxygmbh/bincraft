@@ -30,6 +30,8 @@ Imports:
     withr,
     xml2
 Suggests:
+    bit,
+    bit64,
     callr,
     dbplyr,
     hms,
