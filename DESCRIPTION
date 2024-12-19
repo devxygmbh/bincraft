@@ -32,11 +32,12 @@ Imports:
 Suggests:
     bit,
     bit64,
-    callr,
     cachem,
+    callr,
     dbplyr,
     hms,
-    httr2
+    httr2,
+    parallelly
 Remotes: 
     pat-s/cranlike@s3,
     pat-s/desc@description-from-remote
