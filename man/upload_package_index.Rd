@@ -6,9 +6,9 @@
 \usage{
 upload_package_index(
   package_name = NULL,
-  endpoint = "https://s3.eu-central-003.backblazeb2.com",
-  region = "eu-central-003",
-  bucket = "devxy-arm64-r-binaries",
+  endpoint = "fsn1.your-objectstorage.com",
+  region = "fsn1",
+  bucket = "devxy-r-package-binaries",
   local_build_root = ".",
   codename = NULL,
   debug = FALSE,

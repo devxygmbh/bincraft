@@ -6,7 +6,7 @@
 .markdownlint.yaml
 .prettierrc.json
 .woodpecker
-devxy-arm64-r-binaries/
+devxy-r-package-binaries/
 ^PACKAGES.*
 s3:*
 docker

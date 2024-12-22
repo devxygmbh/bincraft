@@ -66,9 +66,9 @@ set_bin_path <- function(local_build_root, codename) {
 #' @export
 check_for_binary <- function(
     package_name,
-    endpoint = "https://s3.eu-central-003.backblazeb2.com",
-    region = "eu-central-003",
-    bucket = "devxy-arm64-r-binaries",
+    endpoint = "fsn1.your-objectstorage.com",
+    region = "fsn1",
+    bucket = "devxy-r-package-binaries",
     codename = NULL,
     arch = NULL,
     version = "latest") {
