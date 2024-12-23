@@ -41,8 +41,8 @@ upload_single_binary <- function(
   }
 
   s3fs::s3_file_system(
-    aws_access_key_id = Sys.getenv("AWS_ACCESS_KEY_ID"),
-    aws_secret_access_key = Sys.getenv("AWS_SECRET_ACCESS_KEY"),
+    aws_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
+    aws_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S"),
     endpoint = endpoint,
     region_name = region,
   )
@@ -95,8 +95,8 @@ upload_source_tarball <- function(
     codename = NULL,
     arch = NULL) {
   s3fs::s3_file_system(
-    aws_access_key_id = Sys.getenv("AWS_ACCESS_KEY_ID"),
-    aws_secret_access_key = Sys.getenv("AWS_SECRET_ACCESS_KEY"),
+    aws_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
+    aws_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S"),
     endpoint = endpoint,
     region_name = region,
   )

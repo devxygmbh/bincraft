@@ -31,8 +31,8 @@ add_to_package_index <- function(
   remote_bin_dir <- sprintf("%s/%s/%s/latest/src/contrib", bucket, arch, codename)
 
   s3fs::s3_file_system(
-    aws_access_key_id = Sys.getenv("AWS_ACCESS_KEY_ID"),
-    aws_secret_access_key = Sys.getenv("AWS_SECRET_ACCESS_KEY"),
+    aws_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
+    aws_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S"),
     endpoint = endpoint,
     region_name = region,
   )
@@ -88,8 +88,8 @@ upload_package_index <- function(
   remote_bin_dir <- sprintf("%s/%s/%s/latest/src/contrib", bucket, arch, codename)
 
   s3fs::s3_file_system(
-    aws_access_key_id = Sys.getenv("AWS_ACCESS_KEY_ID"),
-    aws_secret_access_key = Sys.getenv("AWS_SECRET_ACCESS_KEY"),
+    aws_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
+    aws_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S"),
     endpoint = endpoint,
     region_name = region,
   )
