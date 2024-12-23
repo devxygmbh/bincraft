@@ -37,7 +37,7 @@ process_cran_updates <- function(
     interval = lubridate::today(),
     codename = NULL,
     local_build_root = ".",
-    endpoint = "fsn1.your-objectstorage.com",
+    endpoint = "https://fsn1.your-objectstorage.com",
     region = "fsn1",
     bucket = "devxy-r-package-binaries",
     process_updated = TRUE,

@@ -12,7 +12,7 @@
 #' @importFrom s3fs s3_file_exists s3_file_upload s3_file_system
 #' @export
 upload_single_binary <- function(
-    endpoint = "fsn1.your-objectstorage.com",
+    endpoint = "https://fsn1.your-objectstorage.com",
     region = "fsn1",
     bucket = "devxy-r-package-binaries",
     local_build_root = "/root",
@@ -90,7 +90,7 @@ upload_single_binary <- function(
 #' @export
 upload_source_tarball <- function(
     package_name,
-    endpoint = "fsn1.your-objectstorage.com",
+    endpoint = "https://fsn1.your-objectstorage.com",
     region = "fsn1",
     bucket = "devxy-r-package-binaries",
     codename = NULL,

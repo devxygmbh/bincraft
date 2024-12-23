@@ -6,7 +6,7 @@
 \usage{
 upload_source_tarball(
   package_name,
-  endpoint = "fsn1.your-objectstorage.com",
+  endpoint = "https://fsn1.your-objectstorage.com",
   region = "fsn1",
   bucket = "devxy-r-package-binaries",
   codename = NULL,

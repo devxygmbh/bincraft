@@ -12,7 +12,7 @@
 #' @export
 add_to_package_index <- function(
     package_name = NULL,
-    endpoint = "fsn1.your-objectstorage.com",
+    endpoint = "https://fsn1.your-objectstorage.com",
     region = "fsn1",
     bucket = "devxy-r-package-binaries",
     local_build_root = "/mnt/cache/binaries",
@@ -65,7 +65,7 @@ add_to_package_index <- function(
 #' @export
 upload_package_index <- function(
     package_name = NULL,
-    endpoint = "fsn1.your-objectstorage.com",
+    endpoint = "https://fsn1.your-objectstorage.com",
     region = "fsn1",
     bucket = "devxy-r-package-binaries",
     local_build_root = ".",
