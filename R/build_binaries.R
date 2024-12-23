@@ -44,7 +44,8 @@ build_binary_package <- function(package_name, tag = NULL, codename = NULL,
       "noble" = "ubuntu-2404",
       "rhel9" = "redhat-9",
       "rhel8" = "redhat-8",
-      "alpine320" = "alpine-320"
+      "alpine320" = "alpine-320",
+      "alpine321" = "alpine-321"
     )
   }
 
