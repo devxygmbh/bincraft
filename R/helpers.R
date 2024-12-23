@@ -77,6 +77,7 @@ check_for_binary <- function(
     aws_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S"),
     endpoint = endpoint,
     region_name = region,
+    refresh = TRUE
   )
   codename <- set_codename(codename)
   remote_bin_path <- set_bin_path(local_build_root = bucket, codename)

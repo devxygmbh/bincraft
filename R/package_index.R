@@ -35,6 +35,7 @@ add_to_package_index <- function(
     aws_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S"),
     endpoint = endpoint,
     region_name = region,
+    refresh = TRUE
   )
 
   # get latest PACKAGES file from S3
@@ -92,6 +93,7 @@ upload_package_index <- function(
     aws_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S"),
     endpoint = endpoint,
     region_name = region,
+    refresh = TRUE
   )
 
   cli::cli_alert("{.fun upload_package_index}: Started listing remote packages")

@@ -32,6 +32,7 @@ archive_package <- function(
     aws_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S"),
     endpoint = endpoint,
     region_name = region,
+    refresh = TRUE
   )
 
   if (debug) {
