@@ -13,7 +13,7 @@ steps:
     environment:
       API_RW_TOKEN:
         from_secret: API_RW_TOKEN
-    image: docker.io/thegeeklab/git-sv:1.0.7
+    image: docker.io/thegeeklab/git-sv:1.0.9
     commands: |
       chown -R root .
       apk add -q --no-cache curl jq sed
