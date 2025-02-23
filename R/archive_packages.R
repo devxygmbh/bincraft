@@ -93,7 +93,7 @@ archive_package <- function(
         }
       }
       cli::cli_alert("{.fun archive_package}: Archiving {.field {basename(old_versions)}}, keeping {.field {basename(all_versions[index])}}.")
-      s3fs::s3_file_move(old_versions, sprintf("%s/Archive/%s/%s", remote_bin_dir, pkgname, basename(old_versions)), overwrite = TRUE)
+      s3fs::s3_file_move(old_versions, sprintf("%s/Archive/%s/%s", remote_bin_dir, pkgname, basename(old_versions)), max_batch = fs::fs_bytes("300MB"), overwrite = TRUE)
       cli::cli_alert_success("{.fun archive_package}: Successfully archived package {.pkg {pkgname}}.")
     } else {
       cli::cli_alert("{.fun archive_package}: Skipping {.pkg {pkgname}} as only one package versions exists.")

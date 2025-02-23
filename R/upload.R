@@ -69,6 +69,7 @@ upload_single_binary <- function(
     s3fs::s3_file_upload(
       sprintf("%s/%s", local_bin_path, tarball_name),
       sprintf("%s/%s", remote_bin_path, tarball_name),
+      max_batch = fs::fs_bytes("300MB"),
       overwrite = TRUE
     )
     cli::cli_alert_success("Successfully uploaded package {.pkg {package_name}} with tag {.field {tag}}.")
