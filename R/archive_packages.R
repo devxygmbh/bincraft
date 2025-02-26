@@ -106,13 +106,16 @@ archive_package <- function(
 #' Create Meta/archive.rds for remotes package
 #' @description
 #' Inspired from <https://stackoverflow.com/questions/35584396/how-to-generate-meta-archive-rds-to-be-compatible-with-devtoolsinstall-version>
-#' 
-#' @importFrom data.table data.table tstrsplit as.data.table
+#' @param files Input files
+#'
+#' @importFrom data.table data.table tstrsplit as.data.table :=
+#' @importFrom stats setNames
 #' @export
 write_archive_rds <- function(files) {
   # make R CMD Check happy
   row_name <- NULL
   package <- NULL
+  file_path <- NULL
 
   dt <- data.table(file_path = basename(files))
   dt <- dt[grepl("\\.tar\\.gz$", file_path)]

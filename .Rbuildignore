@@ -20,3 +20,5 @@ man-roxygen/
 .gitsv/
 docs/
 pkgdown/
+.gitlab-ci.yml
+poc.R
