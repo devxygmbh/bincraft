@@ -1,6 +1,6 @@
 Package: bincraftR
 Title: Toolbox for building R package binaries on Linux
-Version: 1.2.0
+Version: 1.2.1
 Authors@R:
     person("Patrick", "Schratz", , "mail@devxy.io", role = c("aut", "cre"))
 Description: Help to build, archive, remove and update R binary packages
