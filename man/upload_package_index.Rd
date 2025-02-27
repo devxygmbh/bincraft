@@ -6,13 +6,15 @@
 \usage{
 upload_package_index(
   package_name = NULL,
-  endpoint = "https://fsn1.your-objectstorage.com",
-  region = "fsn1",
-  bucket = "devxy-r-package-binaries",
+  endpoint = NULL,
+  region = NULL,
+  bucket = NULL,
   local_build_root = ".",
   codename = NULL,
   debug = FALSE,
-  arch = NULL
+  arch = NULL,
+  s3_access_key_id = NULL,
+  s3_secret_access_key = NULL
 )
 }
 \arguments{
@@ -34,11 +36,17 @@ Path to local build root}
 \item{codename}{(\link{character})\cr
 Linux distribution identifier}
 
-\item{debug}{(\link{Date})\cr
-Date or date interval}
+\item{debug}{(\link{logical})\cr
+Whether to enable debug logging}
 
 \item{arch}{(\link{character})\cr
 Architecture}
+
+\item{s3_access_key_id}{(\link{character})\cr
+S3 access key ID}
+
+\item{s3_secret_access_key}{(\link{character})\cr
+S3 secret access key}
 }
 \description{
 Upload package index files to S3

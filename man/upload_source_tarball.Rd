@@ -6,11 +6,13 @@
 \usage{
 upload_source_tarball(
   package_name,
-  endpoint = "https://fsn1.your-objectstorage.com",
-  region = "fsn1",
-  bucket = "devxy-r-package-binaries",
+  endpoint = NULL,
+  region = NULL,
+  bucket = NULL,
   codename = NULL,
-  arch = NULL
+  arch = NULL,
+  s3_access_key_id = NULL,
+  s3_secret_access_key = NULL
 )
 }
 \arguments{
@@ -31,6 +33,12 @@ Linux distribution identifier}
 
 \item{arch}{(\link{character})\cr
 Architecture}
+
+\item{s3_access_key_id}{(\link{character})\cr
+S3 access key ID}
+
+\item{s3_secret_access_key}{(\link{character})\cr
+S3 secret access key}
 }
 \description{
 Uploads source tarballs to S3

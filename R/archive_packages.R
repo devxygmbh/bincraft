@@ -7,6 +7,8 @@
 #' @template param-bucket
 #' @template param-debug
 #' @template param-local_build_root
+#' @template param-s3-access-key-id
+#' @template param-s3-secret-access-key
 #'
 #' @importFrom stringr str_split
 #' @importFrom utils available.packages tail
@@ -22,14 +24,26 @@ archive_package <- function(
     package_name,
     codename = NULL,
     local_build_root = ".",
-    endpoint = "https://fsn1.your-objectstorage.com",
-    region = "fsn1",
-    bucket = "devxy-r-package-binaries",
+    endpoint = NULL,
+    region = NULL,
+    bucket = NULL,
     arch = NULL,
-    debug = FALSE) {
+    debug = FALSE,
+    s3_access_key_id = NULL,
+    s3_secret_access_key = NULL) {
+  if (is.null(endpoint)) {
+    stop("endpoint must be defined")
+  }
+  if (is.null(region)) {
+    stop("endpoint must be defined")
+  }
+  if (is.null(bucket)) {
+    stop("endpoint must be defined")
+  }
+
   s3fs::s3_file_system(
-    aws_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
-    aws_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S"),
+    aws_access_key_id = s3_access_key_id,
+    aws_secret_access_key = s3_secret_access_key,
     endpoint = endpoint,
     region_name = region,
     refresh = TRUE

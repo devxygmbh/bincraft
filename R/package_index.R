@@ -6,18 +6,32 @@
 #' @template param-bucket
 #' @template param-local_build_root
 #' @template param-debug
+#' @template param-s3-access-key-id
+#' @template param-s3-secret-access-key
 #'
 #' @importFrom cranlike add_PACKAGES
 #' @importFrom s3fs s3_dir_ls s3_file_system
 #' @export
 add_to_package_index <- function(
     package_name = NULL,
-    endpoint = "https://fsn1.your-objectstorage.com",
-    region = "fsn1",
-    bucket = "devxy-r-package-binaries",
+    endpoint = NULL,
+    region = NULL,
+    bucket = NULL,
     local_build_root = "/mnt/cache/binaries",
     codename = NULL,
-    debug = FALSE) {
+    debug = FALSE,
+    s3_access_key_id = NULL,
+    s3_secret_access_key = NULL) {
+  if (is.null(endpoint)) {
+    stop("endpoint must be defined")
+  }
+  if (is.null(region)) {
+    stop("endpoint must be defined")
+  }
+  if (is.null(bucket)) {
+    stop("endpoint must be defined")
+  }
+
   codename <- set_codename(codename)
 
   local_arch <- Sys.info()[["machine"]]
@@ -31,8 +45,8 @@ add_to_package_index <- function(
   remote_bin_dir <- sprintf("%s/%s/%s/latest/src/contrib", bucket, arch, codename)
 
   s3fs::s3_file_system(
-    aws_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
-    aws_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S"),
+    aws_access_key_id = s3_access_key_id,
+    aws_secret_access_key = s3_secret_access_key,
     endpoint = endpoint,
     region_name = region,
     refresh = TRUE
@@ -59,19 +73,32 @@ add_to_package_index <- function(
 #' @template param-debug
 #' @template param-local_build_root
 #' @template param-arch
+#' @template param-s3-access-key-id
+#' @template param-s3-secret-access-key
 #'
 #' @importFrom s3fs s3_file_upload s3_dir_ls
 #' @importFrom cranlike update_PACKAGES
 #' @export
 upload_package_index <- function(
     package_name = NULL,
-    endpoint = "https://fsn1.your-objectstorage.com",
-    region = "fsn1",
-    bucket = "devxy-r-package-binaries",
+    endpoint = NULL,
+    region = NULL,
+    bucket = NULL,
     local_build_root = ".",
     codename = NULL,
     debug = FALSE,
-    arch = NULL) {
+    arch = NULL,
+    s3_access_key_id = NULL,
+    s3_secret_access_key = NULL) {
+  if (is.null(endpoint)) {
+    stop("endpoint must be defined")
+  }
+  if (is.null(region)) {
+    stop("endpoint must be defined")
+  }
+  if (is.null(bucket)) {
+    stop("endpoint must be defined")
+  }
   cli::cli_alert("{.fun upload_package_index}: Updating PACKAGES* files in S3.")
 
   codename <- set_codename(codename)
@@ -89,8 +116,8 @@ upload_package_index <- function(
   remote_bin_dir <- sprintf("%s/%s/%s/latest/src/contrib", bucket, arch, codename)
 
   s3fs::s3_file_system(
-    aws_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
-    aws_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S"),
+    aws_access_key_id = s3_access_key_id,
+    aws_secret_access_key = s3_secret_access_key,
     endpoint = endpoint,
     region_name = region,
     refresh = TRUE

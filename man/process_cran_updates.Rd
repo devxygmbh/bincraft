@@ -12,12 +12,14 @@ process_cran_updates(
   interval = lubridate::today(),
   codename = NULL,
   local_build_root = ".",
-  endpoint = "https://fsn1.your-objectstorage.com",
-  region = "fsn1",
-  bucket = "devxy-r-package-binaries",
+  endpoint = NULL,
+  region = NULL,
+  bucket = NULL,
   process_updated = TRUE,
   process_new = TRUE,
-  process_removed = TRUE
+  process_removed = TRUE,
+  s3_access_key_id = NULL,
+  s3_secret_access_key = NULL
 )
 }
 \arguments{
@@ -59,6 +61,12 @@ Whether to process newly added packages on CRAN}
 
 \item{process_removed}{(\link{logical})\cr
 Whether to process packages that have been removed from CRAN}
+
+\item{s3_access_key_id}{(\link{character})\cr
+S3 access key ID}
+
+\item{s3_secret_access_key}{(\link{character})\cr
+S3 secret access key}
 }
 \description{
 Packages which got removed from CRAN can be deleted by setting \code{prune = TRUE}.

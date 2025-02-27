@@ -5,15 +5,17 @@
 \title{Upload binary to S3}
 \usage{
 upload_single_binary(
-  endpoint = "https://fsn1.your-objectstorage.com",
-  region = "fsn1",
-  bucket = "devxy-r-package-binaries",
+  endpoint = NULL,
+  region = NULL,
+  bucket = NULL,
   local_build_root = "/root",
   codename = NULL,
   package_name,
   tag,
   force = FALSE,
-  debug = FALSE
+  debug = FALSE,
+  s3_access_key_id = NULL,
+  s3_secret_access_key = NULL
 )
 }
 \arguments{
@@ -41,8 +43,14 @@ Tag/version. Tags starting with "R-" are filtered out.}
 \item{force}{(\link{logical})\cr
 Whether to force-build packages}
 
-\item{debug}{(\link{Date})\cr
-Date or date interval}
+\item{debug}{(\link{logical})\cr
+Whether to enable debug logging}
+
+\item{s3_access_key_id}{(\link{character})\cr
+S3 access key ID}
+
+\item{s3_secret_access_key}{(\link{character})\cr
+S3 secret access key}
 }
 \description{
 Upload binary to S3

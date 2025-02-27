@@ -6,12 +6,14 @@
 \usage{
 check_for_binary(
   package_name,
-  endpoint = "https://fsn1.your-objectstorage.com",
-  region = "fsn1",
-  bucket = "devxy-r-package-binaries",
+  endpoint = NULL,
+  region = NULL,
+  bucket = NULL,
   codename = NULL,
   arch = NULL,
-  version = "latest"
+  version = "latest",
+  s3_access_key_id = NULL,
+  s3_secret_access_key = NULL
 )
 }
 \arguments{
@@ -34,6 +36,12 @@ Linux distribution identifier}
 Architecture}
 
 \item{version}{Version to check for. Only "latest" is supported right now.}
+
+\item{s3_access_key_id}{(\link{character})\cr
+S3 access key ID}
+
+\item{s3_secret_access_key}{(\link{character})\cr
+S3 secret access key}
 }
 \description{
 Checks whether a binary for the latest package version exists

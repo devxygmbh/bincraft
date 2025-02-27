@@ -36,8 +36,8 @@ Local output path for binaries}
 \item{local_clone_dir}{(\link{character})\cr
 Path to clone git repos into}
 
-\item{debug}{(\link{Date})\cr
-Date or date interval}
+\item{debug}{(\link{logical})\cr
+Whether to enable debug logging}
 
 \item{force}{(\link{logical})\cr
 Whether to force-build packages}

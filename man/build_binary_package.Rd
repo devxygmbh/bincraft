@@ -20,7 +20,12 @@ build_binary_package(
   upload = FALSE,
   archive = FALSE,
   future_strategy = "sequential",
-  future_workers = 1
+  future_workers = 1,
+  endpoint = NULL,
+  region = NULL,
+  bucket = NULL,
+  s3_access_key_id = NULL,
+  s3_secret_access_key = NULL
 )
 }
 \arguments{
@@ -55,8 +60,8 @@ Whether to infer and install system dependencies of packages}
 \item{deps_verbose}{(\link{logical})\cr
 Whether to enable verbose output via env var \code{PKG_SYSREQS_VERBOSE}}
 
-\item{debug}{(\link{Date})\cr
-Date or date interval}
+\item{debug}{(\link{logical})\cr
+Whether to enable debug logging}
 
 \item{force}{(\link{logical})\cr
 Whether to force-build packages}
@@ -70,6 +75,21 @@ Whether to archive packages.}
 \item{future_strategy}{future parallelization strategy}
 
 \item{future_workers}{Parallel workers count}
+
+\item{endpoint}{(\link{character})\cr
+S3 endpoint}
+
+\item{region}{(\link{character})\cr
+S3 region}
+
+\item{bucket}{(\link{character})\cr
+S3 bucket name}
+
+\item{s3_access_key_id}{(\link{character})\cr
+S3 access key ID}
+
+\item{s3_secret_access_key}{(\link{character})\cr
+S3 secret access key}
 }
 \description{
 Builds binary packages from a given URL for a specific architecture.

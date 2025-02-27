@@ -22,6 +22,14 @@
 #' @template param-upload
 #' @template param-force
 #' @template param-url
+#'
+#' @template param-endpoint
+#' @template param-region
+#' @template param-bucket
+#'
+#' @template param-s3-access-key-id
+#' @template param-s3-secret-access-key
+#'
 #' @param future_strategy future parallelization strategy
 #' @param future_workers Parallel workers count
 #'
@@ -57,7 +65,12 @@ build_binary_package <- function(
     upload = FALSE,
     archive = FALSE,
     future_strategy = "sequential",
-    future_workers = 1) {
+    future_workers = 1,
+    endpoint = NULL,
+    region = NULL,
+    bucket = NULL,
+    s3_access_key_id = NULL,
+    s3_secret_access_key = NULL) {
   cli::cli_h2("Preparations ({.pkg {package_name}})")
   codename <- set_codename(codename)
 
@@ -208,7 +221,7 @@ build_binary_package <- function(
       tryCatch(
         {
           # p()
-          dump <- upload_single_binary(package_name = x, tag = y, force = force, debug = debug)
+          dump <- upload_single_binary(package_name = x, tag = y, force = force, debug = debug, s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key)
         },
         error = function(e) {
           message(sprintf("Error in uploading package %s with tag %s: %s", x, y, e))
@@ -219,12 +232,12 @@ build_binary_package <- function(
 
     # check if latest version has a binary. If not, upload the latest source tarball
     if (!check_for_binary(package_name[1])) {
-      upload_source_tarball(package_name[1])
+      upload_source_tarball(package_name[1], s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key)
     }
   }
 
   if (archive) {
-    archive_package(package_name[1], debug = debug)
+    archive_package(package_name[1], debug = debug, s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key)
   }
 
   return(invisible(TRUE))

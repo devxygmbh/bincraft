@@ -62,19 +62,23 @@ set_bin_path <- function(local_build_root, codename) {
 #' @template param-bucket
 #' @template param-codename
 #' @template param-arch
+#' @template param-s3-access-key-id
+#' @template param-s3-secret-access-key
 #' @param version Version to check for. Only "latest" is supported right now.
 #' @export
 check_for_binary <- function(
     package_name,
-    endpoint = "https://fsn1.your-objectstorage.com",
-    region = "fsn1",
-    bucket = "devxy-r-package-binaries",
+    endpoint = NULL,
+    region = NULL,
+    bucket = NULL,
     codename = NULL,
     arch = NULL,
-    version = "latest") {
+    version = "latest",
+    s3_access_key_id = NULL,
+    s3_secret_access_key = NULL) {
   s3fs::s3_file_system(
-    aws_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
-    aws_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S"),
+    aws_access_key_id = s3_access_key_id,
+    aws_secret_access_key = s3_secret_access_key,
     endpoint = endpoint,
     region_name = region,
     refresh = TRUE

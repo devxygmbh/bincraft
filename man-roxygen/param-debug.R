@@ -1,2 +1,2 @@
-#' @param debug ([Date])\cr
-#'  Date or date interval
+#' @param debug ([logical])\cr
+#'  Whether to enable debug logging
