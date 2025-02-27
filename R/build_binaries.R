@@ -345,7 +345,7 @@ build_single_tag <- function(
       error = function(e) {
         cli::cli_alert_warning("Error in installing dependencies for package {.pkg {package_name[1]}} with tag {.field {tag[1]}}: {e}")
         store_build_metadata(package_name[1], tag[1], platform,
-          arch = arch, error_occurred = TRUE, force = TRUE, error = conditionMessage(e), store_build_metadata = store_build_metadata,
+          arch = arch, error_occurred = TRUE, force = TRUE, error = conditionMessage(e),
           metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
           metadata_db_port = metadata_db_port, metadata_db_table = metadata_db_table,
           metadata_db_password = metadata_db_password, metadata_db_user = metadata_db_user,
@@ -458,6 +458,7 @@ build_single_tag <- function(
       if (fs::file_exists(sprintf("%s/%s", binary_output_path, tarball_name))) {
         store_build_metadata(package_name, tag, platform,
           arch = arch, error_occurred = FALSE, force = force, build_duration = total_build_time, size = file_size,
+          metadata_db_type = metadata_db_type,
           metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
           metadata_db_port = metadata_db_port, metadata_db_table = metadata_db_table,
           metadata_db_password = metadata_db_password, metadata_db_user = metadata_db_user,

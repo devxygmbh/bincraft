@@ -58,7 +58,7 @@ store_build_metadata <- function(
     cli::cli_alert_info("{.fun store_build_metadata}: Force overwriting build metadata for {.pkg {package_name}} {.field {tag}} ({platform}) because {.code force = TRUE} was set.")
 
     insistently(~
-      dbExecute(con, "UPDATE $9 SET timestamp = $1, error_occurred = $2, error_text = $3, duration = $4, size = $5, removed = $9 WHERE name = $6 and tag = $7 and platform = $8",
+      dbExecute(con, "UPDATE $9 SET timestamp = $1, error_occurred = $2, error_text = $3, duration = $4, size = $5, removed = $10 WHERE name = $6 and tag = $7 and platform = $8",
         params = list(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), error_occurred, error, build_duration, size, package_name, tag, platform, metadata_db_table, FALSE)
       ), rate = retry_config, quiet = FALSE)()
   } else if (nrow(existing_entries) == 0) {
@@ -109,6 +109,9 @@ remove_from_metadata <- function(
     metadata_db_user = NULL,
     metadata_db_password = NULL,
     metadata_db_sslmode = NULL) {
+  if (metadata_db_type == "postgres") {
+    driver <- RPostgres::Postgres()
+  }
   con <- purrr::insistently(~
     dbConnect(driver,
       dbname = metadata_db_name, host = metadata_db_host,
