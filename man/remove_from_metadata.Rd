@@ -6,35 +6,35 @@
 \usage{
 remove_from_metadata(
   package_name,
-  db_type = "postgres",
-  db_host = NULL,
-  db_name = NULL,
-  db_table = NULL,
-  db_port = NULL,
-  db_user = NULL,
-  db_password = NULL,
-  db_sslmode = NULL
+  metadata_db_type = "postgres",
+  metadata_db_host = NULL,
+  metadata_db_name = NULL,
+  metadata_db_table = NULL,
+  metadata_db_port = NULL,
+  metadata_db_user = NULL,
+  metadata_db_password = NULL,
+  metadata_db_sslmode = NULL
 )
 }
 \arguments{
 \item{package_name}{(\link{character})\cr
 Package name}
 
-\item{db_type}{Database type. Denotes the DB driver to be used for connecting.}
+\item{metadata_db_type}{Database type. Denotes the DB driver to be used for connecting.}
 
-\item{db_host}{Database host}
+\item{metadata_db_host}{Database host}
 
-\item{db_name}{Database name}
+\item{metadata_db_name}{Database name}
 
-\item{db_table}{Database table}
+\item{metadata_db_table}{Database table}
 
-\item{db_port}{Database port}
+\item{metadata_db_port}{Database port}
 
-\item{db_user}{Database user}
+\item{metadata_db_user}{Database user}
 
-\item{db_password}{Database password}
+\item{metadata_db_password}{Database password}
 
-\item{db_sslmode}{Database sslmode}
+\item{metadata_db_sslmode}{Database sslmode}
 }
 \description{
 Remove package from metadata table

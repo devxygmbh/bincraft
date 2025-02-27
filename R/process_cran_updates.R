@@ -13,6 +13,9 @@
 #' @template param-local_output_dir_root
 #' @template param-local_clone_dir
 #' @template param-interval
+#' @template param-archive
+#' @template param-store_build_metadata
+#' @template param-upload
 #' @template param-process_updated
 #' @template param-process_new
 #' @template param-process_removed
@@ -26,7 +29,6 @@
 #' \dontrun{
 #' process_cran_updates(
 #'   interval = lubridate::interval(lubridate::today() - 2, lubridate::today() - 20),
-#'   process_updated = FALSE, process_new = FALSE
 #' )
 #' }
 #'
@@ -42,6 +44,9 @@ process_cran_updates <- function(
     endpoint = NULL,
     region = NULL,
     bucket = NULL,
+    store_build_metadata = FALSE,
+    archive = FALSE,
+    upload = FALSE,
     process_updated = TRUE,
     process_new = TRUE,
     process_removed = TRUE,
@@ -84,7 +89,7 @@ process_cran_updates <- function(
       filter(`name` %nin% win_only)
 
     purrr::walk2(all_pkgs$name, all_pkgs$version, ~ {
-      build_binary_package(.x, .y, platform = platform)
+      build_binary_package(.x, .y, platform = platform, upload = upload, archive = archive, store_build_metadata = store_build_metadata, s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key)
       archive_package(.x)
     })
   }

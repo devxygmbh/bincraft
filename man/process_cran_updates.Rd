@@ -15,6 +15,9 @@ process_cran_updates(
   endpoint = NULL,
   region = NULL,
   bucket = NULL,
+  store_build_metadata = FALSE,
+  archive = FALSE,
+  upload = FALSE,
   process_updated = TRUE,
   process_new = TRUE,
   process_removed = TRUE,
@@ -53,6 +56,15 @@ S3 region}
 \item{bucket}{(\link{character})\cr
 S3 bucket name}
 
+\item{store_build_metadata}{(\link{logical})\cr
+Whether to store the build metadata in the referenced database.}
+
+\item{archive}{(\link{logical})\cr
+Whether to archive packages.}
+
+\item{upload}{(\link{logical})\cr
+Whether to upload the built packages to the specified remote.}
+
 \item{process_updated}{(\link{logical})\cr
 Whether to process updated packages on CRAN}
 
@@ -76,7 +88,6 @@ Argument \code{interval} allows to specify a range which should be processed.
 \dontrun{
 process_cran_updates(
   interval = lubridate::interval(lubridate::today() - 2, lubridate::today() - 20),
-  process_updated = FALSE, process_new = FALSE
 )
 }
 
