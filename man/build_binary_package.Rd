@@ -17,7 +17,8 @@ build_binary_package(
   deps_verbose = FALSE,
   debug = FALSE,
   force = FALSE,
-  archive = TRUE,
+  upload = FALSE,
+  archive = FALSE,
   future_strategy = "multisession",
   future_workers = 2
 )
@@ -59,6 +60,9 @@ Date or date interval}
 
 \item{force}{(\link{logical})\cr
 Whether to force-build packages}
+
+\item{upload}{(\link{logical})\cr
+Whether to upload the built packages to the specified remote.}
 
 \item{archive}{(\link{logical})\cr
 Whether to archive packages.}

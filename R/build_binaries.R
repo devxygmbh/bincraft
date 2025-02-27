@@ -19,6 +19,7 @@
 #' @template param-deps_verbose
 #' @template param-debug
 #' @template param-archive
+#' @template param-upload
 #' @template param-force
 #' @template param-url
 #' @param future_strategy future parallelization strategy
@@ -53,7 +54,8 @@ build_binary_package <- function(
     deps_verbose = FALSE,
     debug = FALSE,
     force = FALSE,
-    archive = TRUE,
+    upload = FALSE,
+    archive = FALSE,
     future_strategy = "multisession",
     future_workers = 2) {
   cli::cli_h2("Preparations ({.pkg {package_name}})")
@@ -198,25 +200,27 @@ build_binary_package <- function(
   total_build_time <- round(Sys.time() - t1, 2)
   cli::cli_alert("Execution time ({.pkg {package_name[1]}}) ({length(tag)} tags): {.strong {total_build_time} {units(difftime(Sys.time(), t1))}}.")
 
-  # out <- progressr::with_progress({
-  # p <- progressr::progressor(along = tag)
-  # future.apply::future_mapply(function(x, y) {
-  mapply(function(x, y) {
-    tryCatch(
-      {
-        # p()
-        dump <- upload_single_binary(package_name = x, tag = y, force = force, debug = debug)
-      },
-      error = function(e) {
-        message(sprintf("Error in uploading package %s with tag %s: %s", x, y, e))
-      }
-    )
-    # }, package_name, tag, future.seed = TRUE)
-  }, package_name, tag)
+  if (upload) {
+    # out <- progressr::with_progress({
+    # p <- progressr::progressor(along = tag)
+    # future.apply::future_mapply(function(x, y) {
+    mapply(function(x, y) {
+      tryCatch(
+        {
+          # p()
+          dump <- upload_single_binary(package_name = x, tag = y, force = force, debug = debug)
+        },
+        error = function(e) {
+          message(sprintf("Error in uploading package %s with tag %s: %s", x, y, e))
+        }
+      )
+      # }, package_name, tag, future.seed = TRUE)
+    }, package_name, tag)
 
-  # check if latest version has a binary. If not, upload the latest source tarball
-  if (!check_for_binary(package_name[1])) {
-    upload_source_tarball(package_name[1])
+    # check if latest version has a binary. If not, upload the latest source tarball
+    if (!check_for_binary(package_name[1])) {
+      upload_source_tarball(package_name[1])
+    }
   }
 
   if (archive) {
