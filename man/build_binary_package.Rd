@@ -19,8 +19,8 @@ build_binary_package(
   force = FALSE,
   upload = FALSE,
   archive = FALSE,
-  future_strategy = "multisession",
-  future_workers = 2
+  future_strategy = "sequential",
+  future_workers = 1
 )
 }
 \arguments{

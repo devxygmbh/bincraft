@@ -56,8 +56,8 @@ build_binary_package <- function(
     force = FALSE,
     upload = FALSE,
     archive = FALSE,
-    future_strategy = "multisession",
-    future_workers = 2) {
+    future_strategy = "sequential",
+    future_workers = 1) {
   cli::cli_h2("Preparations ({.pkg {package_name}})")
   codename <- set_codename(codename)
 
