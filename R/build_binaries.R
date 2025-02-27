@@ -194,7 +194,11 @@ build_binary_package <- function(
         dump <- build_single_tag(x, y, binary_output_path, local_clone_dir,
           platform = platform, arch = arch, debug = debug, force = force,
           install_system_dependencies = install_system_dependencies,
-          deps_verbose = deps_verbose, store_build_metadata = store_build_metadata
+          deps_verbose = deps_verbose, store_build_metadata = store_build_metadata,
+          metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
+          metadata_db_port = metadata_db_port, metadata_db_table = metadata_db_table,
+          metadata_db_password = metadata_db_password, metadata_db_user = metadata_db_user,
+          metadata_db_sslmode = metadata_db_sslmode
         )
 
         p(message = sprintf("Done building '%s'", y))
@@ -205,7 +209,13 @@ build_binary_package <- function(
           cli::cli_alert_success("Successfully built package {.pkg {x}} with tag {.field {y}}.")
         } else {
           cli::cli_alert_warning("Error in building package {.pkg {x}} with tag {.field {y}}: Uncommon/unspecific error during build.")
-          store_build_metadata(x, y, platform, error_occurred = TRUE, force = TRUE, arch = arch, error = "Uncommon/unspecific error during build")
+          store_build_metadata(x, y, platform,
+            error_occurred = TRUE, force = TRUE, arch = arch, error = "Uncommon/unspecific error during build",
+            metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
+            metadata_db_port = metadata_db_port, metadata_db_table = metadata_db_table,
+            metadata_db_password = metadata_db_password, metadata_db_user = metadata_db_user,
+            metadata_db_sslmode = metadata_db_sslmode
+          )
         }
       },
       error = function(e) {
@@ -213,7 +223,12 @@ build_binary_package <- function(
         local_clone_dir_single <- sprintf("%s/%s_%s", local_clone_dir, x, y)
         unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
         # only stderr contains the important information why the build failed
-        store_build_metadata(x, y, platform, error_occurred = TRUE, arch = arch, force = TRUE, error = e$stderr)
+        store_build_metadata(x, y, platform,
+          error_occurred = TRUE, arch = arch, force = TRUE, error = e$stderr, metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
+          metadata_db_port = metadata_db_port, metadata_db_table = metadata_db_table,
+          metadata_db_password = metadata_db_password, metadata_db_user = metadata_db_user,
+          metadata_db_sslmode = metadata_db_sslmode
+        )
       }
     )
     p(message = sprintf("Finished building %s %s", x, y))
@@ -239,7 +254,7 @@ build_binary_package <- function(
       tryCatch(
         {
           # p()
-          dump <- upload_single_binary(package_name = x, tag = y, force = force, debug = debug, s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key)
+          dump <- upload_single_binary(package_name = x, tag = y, force = force, debug = debug, s3_endpoint = s3_endpoint, s3_bucket = s3_bucket, s3_region = s3_region, s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key)
         },
         error = function(e) {
           message(sprintf("Error in uploading package %s with tag %s: %s", x, y, e))
@@ -249,8 +264,8 @@ build_binary_package <- function(
     }, package_name, tag)
 
     # check if latest version has a binary. If not, upload the latest source tarball
-    if (!check_for_binary(package_name[1])) {
-      upload_source_tarball(package_name[1], s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key)
+    if (!check_for_binary(package_name[1], s3_endpoint = s3_endpoint, s3_bucket = s3_bucket, s3_region = s3_region, s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key)) {
+      upload_source_tarball(package_name[1], s3_endpoint = s3_endpoint, s3_bucket = s3_bucket, s3_region = s3_region, s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key)
     }
   } else {
     cli::cli_alert_info("The following binaries have been built:")
@@ -258,7 +273,7 @@ build_binary_package <- function(
   }
 
   if (archive) {
-    archive_package(package_name[1], debug = debug, s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key)
+    archive_package(package_name[1], debug = debug, s3_endpoint = s3_endpoint, s3_bucket = s3_bucket, s3_region = s3_region, s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key)
   }
 
   return(invisible(TRUE))
@@ -276,6 +291,14 @@ build_binary_package <- function(
 #' @template param-force
 #' @template param-binary_output_path
 #' @template param-store_build_metadata
+#' @template param-metadata_db_host
+#' @template param-metadata_db_type
+#' @template param-metadata_db_name
+#' @template param-metadata_db_port
+#' @template param-metadata_db_table
+#' @template param-metadata_db_user
+#' @template param-metadata_db_password
+#' @template param-metadata_db_sslmode
 #'
 #' @importFrom cli cli_alert
 #' @importFrom pkgbuild build
@@ -292,7 +315,15 @@ build_single_tag <- function(
     force = FALSE,
     install_system_dependencies = TRUE,
     deps_verbose = FALSE,
-    store_build_metadata = FALSE) {
+    store_build_metadata = FALSE,
+    metadata_db_type = "postgres",
+    metadata_db_host = NULL,
+    metadata_db_name = NULL,
+    metadata_db_table = NULL,
+    metadata_db_port = NULL,
+    metadata_db_user = NULL,
+    metadata_db_password = NULL,
+    metadata_db_sslmode = NULL) {
   cli::cli_alert("{.fun build_single_tag}: (1/3) Cloning package {.pkg {package_name}} with tag {.field {tag}}.")
 
   local_clone_dir_single <- sprintf("%s/%s_%s", local_clone_dir, package_name, tag)
@@ -312,7 +343,13 @@ build_single_tag <- function(
       # NB: here we need to use conditionMessage() to extract the actual error - as opposed to using $stderr for errors within the tryCatch used in the future* calls
       error = function(e) {
         cli::cli_alert_warning("Error in installing dependencies for package {.pkg {package_name[1]}} with tag {.field {tag[1]}}: {e}")
-        store_build_metadata(package_name[1], tag[1], platform, arch = arch, error_occurred = TRUE, force = TRUE, error = conditionMessage(e))
+        store_build_metadata(package_name[1], tag[1], platform,
+          arch = arch, error_occurred = TRUE, force = TRUE, error = conditionMessage(e), store_build_metadata = store_build_metadata,
+          metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
+          metadata_db_port = metadata_db_port, metadata_db_table = metadata_db_table,
+          metadata_db_password = metadata_db_password, metadata_db_user = metadata_db_user,
+          metadata_db_sslmode = metadata_db_sslmode
+        )
         return(TRUE)
       }
     )
@@ -348,7 +385,12 @@ build_single_tag <- function(
         cli::cli_alert_warning("Error in starting build command for package {.pkg {package_name}} with tag {.field {tag}}: {e}")
         local_clone_dir_single <- sprintf("%s/%s_%s", local_clone_dir, package_name, tag)
         unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
-        store_build_metadata(package_name, tag, platform, arch = arch, error_occurred = TRUE, force = TRUE, error = sprintf("Error trying to initiate pkgbuild - likely a non-valid R package structure. Full error: %s", e))
+        store_build_metadata(package_name, tag, platform,
+          arch = arch, error_occurred = TRUE, force = TRUE, error = sprintf("Error trying to initiate pkgbuild - likely a non-valid R package structure. Full error: %s", e), metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
+          metadata_db_port = metadata_db_port, metadata_db_table = metadata_db_table,
+          metadata_db_password = metadata_db_password, metadata_db_user = metadata_db_user,
+          metadata_db_sslmode = metadata_db_sslmode
+        )
         return(invisible(TRUE))
       }
     )
@@ -413,7 +455,13 @@ build_single_tag <- function(
 
     if (store_build_metadata) {
       if (fs::file_exists(sprintf("%s/%s", binary_output_path, tarball_name))) {
-        store_build_metadata(package_name, tag, platform, arch = arch, error_occurred = FALSE, force = force, build_duration = total_build_time, size = file_size)
+        store_build_metadata(package_name, tag, platform,
+          arch = arch, error_occurred = FALSE, force = force, build_duration = total_build_time, size = file_size,
+          metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
+          metadata_db_port = metadata_db_port, metadata_db_table = metadata_db_table,
+          metadata_db_password = metadata_db_password, metadata_db_user = metadata_db_user,
+          metadata_db_sslmode = metadata_db_sslmode
+        )
       }
     }
   }

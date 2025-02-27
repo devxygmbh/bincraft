@@ -76,6 +76,15 @@ check_for_binary <- function(
     version = "latest",
     s3_access_key_id = NULL,
     s3_secret_access_key = NULL) {
+  if (is.null(s3_endpoint)) {
+    stop("s3_endpoint must be defined")
+  }
+  if (is.null(s3_region)) {
+    stop("s3_region must be defined")
+  }
+  if (is.null(s3_bucket)) {
+    stop("s3_bucket must be defined")
+  }
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
     aws_secret_access_key = s3_secret_access_key,
