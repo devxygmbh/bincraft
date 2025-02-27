@@ -324,6 +324,7 @@ build_single_tag <- function(
     metadata_db_user = NULL,
     metadata_db_password = NULL,
     metadata_db_sslmode = NULL) {
+  cli::cli_rule("{package_name} {tag}")
   cli::cli_alert("{.fun build_single_tag}: (1/3) Cloning package {.pkg {package_name}} with tag {.field {tag}}.")
 
   local_clone_dir_single <- sprintf("%s/%s_%s", local_clone_dir, package_name, tag)
