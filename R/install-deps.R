@@ -4,13 +4,15 @@
 #' @template param-platform
 #' @template param-deps_verbose
 #' @template param-local_clone_dir
+#' @template param-debug
 #'
 #' @export
 install_package_system_dependencies <- function(package_name,
                                                 tag,
                                                 platform = platform,
                                                 local_clone_dir,
-                                                deps_verbose = FALSE) {
+                                                deps_verbose = FALSE,
+                                                debug = FALSE) {
   if (debug) {
     cli::cli_alert("{.fun install_package_system_dependencies}: Cloning package {.pkg {package_name[1]}} with tag {.field {tail(tag, 1)}}.")
   }

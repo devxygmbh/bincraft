@@ -342,7 +342,10 @@ build_single_tag <- function(
   cli::cli_par()
   cli::cli_end()
   cli::cli_rule("{package_name} {tag}")
-  cli::cli_alert("{.fun build_single_tag}: (1/3) Cloning package {.pkg {package_name}} with tag {.field {tag}}.")
+
+  if (debug) {
+    cli::cli_alert("{.fun build_single_tag}: Cloning package {.pkg {package_name}} with tag {.field {tag}}.")
+  }
 
   local_clone_dir_single <- sprintf("%s/%s_%s", local_clone_dir, package_name, tag)
 
@@ -360,10 +363,10 @@ build_single_tag <- function(
   }
 
   if (file.exists(sprintf("%s/%s_%s.tar.gz", binary_output_path, package_name, tag))) {
-    cli::cli_alert_info("{.fun build_single_tag}: (2/3) Tarball for package {.pkg {package_name}} with tag {.field {tag}} already exists. Skipping build.")
+    cli::cli_alert_info("{.fun build_single_tag}: Tarball for package {.pkg {package_name}} with tag {.field {tag}} already exists. Skipping build.")
     return(invisible(TRUE))
   } else if (!force && !is.null(s3_bucket) && s3fs::s3_file_exists(sprintf("%s/%s", remote_bin_path, tarball_name))) {
-    cli::cli_alert_info("{.fun build_single_tag}: (2/3) Package {.pkg {package_name}} with tag {.field {tag}} already exists in S3 and {.code force = FALSE}. Skipping build.")
+    cli::cli_alert_info("{.fun build_single_tag}: Package {.pkg {package_name}} with tag {.field {tag}} already exists in S3 and {.code force = FALSE}. Skipping build.")
     return(invisible(TRUE))
   }
 
@@ -377,7 +380,7 @@ build_single_tag <- function(
   if (install_system_dependencies) {
     tryCatch(
       {
-        install_package_system_dependencies(package_name, tag, platform, local_clone_dir_single, deps_verbose)
+        install_package_system_dependencies(package_name, tag, platform, local_clone_dir_single, deps_verbose, debug)
       },
       # NB: here we need to use conditionMessage() to extract the actual error - as opposed to using $stderr for errors within the tryCatch used in the future* calls
       error = function(e) {
@@ -394,7 +397,7 @@ build_single_tag <- function(
     )
   }
 
-  cli::cli_alert("{.fun build_single_tag}: (2/3) Building package {.pkg {package_name}} with tag {.field {tag}}.")
+  cli::cli_alert("{.fun build_single_tag}: 🔨️ Building package {.pkg {package_name}} with tag {.field {tag}}.")
 
   if (debug) {
     quiet <- FALSE
@@ -474,7 +477,9 @@ build_single_tag <- function(
   }
   unlink(sprintf("%s/%s_%s_R*.tar.gz", binary_output_path, package_name, tag))
 
-  cli::cli_alert("{.fun build_single_tag}: (3/3) Removing {.path {local_clone_dir_single}}.")
+  if (debug) {
+    cli::cli_alert("{.fun build_single_tag}: Removing {.path {local_clone_dir_single}}.")
+  }
   unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
 
   total_build_time <- round(as.numeric(difftime(Sys.time(), t1, units = "secs")), 2)

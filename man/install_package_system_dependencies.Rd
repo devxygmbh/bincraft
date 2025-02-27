@@ -9,7 +9,8 @@ install_package_system_dependencies(
   tag,
   platform = platform,
   local_clone_dir,
-  deps_verbose = FALSE
+  deps_verbose = FALSE,
+  debug = FALSE
 )
 }
 \arguments{
@@ -27,6 +28,9 @@ Path to clone git repos into}
 
 \item{deps_verbose}{(\link{logical})\cr
 Whether to enable verbose output via env var \code{PKG_SYSREQS_VERBOSE}}
+
+\item{debug}{(\link{logical})\cr
+Whether to enable debug logging}
 }
 \description{
 Install system dependencies for R package
