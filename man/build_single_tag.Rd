@@ -11,6 +11,12 @@ build_single_tag(
   arch,
   binary_output_path,
   local_clone_dir,
+  codename = NULL,
+  s3_endpoint = NULL,
+  s3_region = NULL,
+  s3_bucket = NULL,
+  s3_access_key_id = NULL,
+  s3_secret_access_key = NULL,
   debug = FALSE,
   force = FALSE,
   install_system_dependencies = TRUE,
@@ -44,6 +50,24 @@ Local output path for binaries}
 
 \item{local_clone_dir}{(\link{character})\cr
 Path to clone git repos into}
+
+\item{codename}{(\link{character})\cr
+Linux distribution identifier}
+
+\item{s3_endpoint}{(\link{character})\cr
+S3 endpoint}
+
+\item{s3_region}{(\link{character})\cr
+S3 region}
+
+\item{s3_bucket}{(\link{character})\cr
+S3 bucket name}
+
+\item{s3_access_key_id}{(\link{character})\cr
+S3 access key ID}
+
+\item{s3_secret_access_key}{(\link{character})\cr
+S3 secret access key}
 
 \item{debug}{(\link{logical})\cr
 Whether to enable debug logging}

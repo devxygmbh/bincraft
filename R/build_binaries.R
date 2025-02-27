@@ -198,7 +198,8 @@ build_binary_package <- function(
           metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
           metadata_db_port = metadata_db_port, metadata_db_table = metadata_db_table,
           metadata_db_password = metadata_db_password, metadata_db_user = metadata_db_user,
-          metadata_db_sslmode = metadata_db_sslmode
+          metadata_db_sslmode = metadata_db_sslmode,
+          s3_endpoint = s3_endpoint, s3_bucket = s3_bucket, s3_region = s3_region, s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key
         )
 
         p(message = sprintf("Done building '%s'", y))
@@ -291,6 +292,7 @@ build_binary_package <- function(
 #' @template param-install_system_dependencies
 #' @template param-deps_verbose
 #' @template param-force
+#' @template param-codename
 #' @template param-binary_output_path
 #' @template param-store_build_metadata
 #' @template param-metadata_db_host
@@ -301,6 +303,11 @@ build_binary_package <- function(
 #' @template param-metadata_db_user
 #' @template param-metadata_db_password
 #' @template param-metadata_db_sslmode
+#' @template param-s3_endpoint
+#' @template param-s3_region
+#' @template param-s3_bucket
+#' @template param-s3-access-key-id
+#' @template param-s3-secret-access-key
 #'
 #' @importFrom cli cli_alert
 #' @importFrom pkgbuild build
@@ -313,6 +320,12 @@ build_single_tag <- function(
     arch,
     binary_output_path,
     local_clone_dir,
+    codename = NULL,
+    s3_endpoint = NULL,
+    s3_region = NULL,
+    s3_bucket = NULL,
+    s3_access_key_id = NULL,
+    s3_secret_access_key = NULL,
     debug = FALSE,
     force = FALSE,
     install_system_dependencies = TRUE,
@@ -332,6 +345,27 @@ build_single_tag <- function(
   cli::cli_alert("{.fun build_single_tag}: (1/3) Cloning package {.pkg {package_name}} with tag {.field {tag}}.")
 
   local_clone_dir_single <- sprintf("%s/%s_%s", local_clone_dir, package_name, tag)
+
+  if (!is.null(s3_bucket)) {
+    codename <- set_codename(codename)
+    remote_bin_path <- set_bin_path(local_output_dir_root = s3_bucket, codename)
+    tarball_name <- sprintf("%s_%s.tar.gz", package_name, tag)
+    s3fs::s3_file_system(
+      aws_access_key_id = s3_access_key_id,
+      aws_secret_access_key = s3_secret_access_key,
+      endpoint = s3_endpoint,
+      region_name = s3_region,
+      refresh = TRUE
+    )
+  }
+
+  if (file.exists(sprintf("%s/%s_%s.tar.gz", binary_output_path, package_name, tag))) {
+    cli::cli_alert_info("{.fun build_single_tag}: (2/3) Tarball for package {.pkg {package_name}} with tag {.field {tag}} already exists. Skipping build.")
+    return(invisible(TRUE))
+  } else if (!force && !is.null(s3_bucket) && s3fs::s3_file_exists(sprintf("%s/%s", remote_bin_path, tarball_name))) {
+    cli::cli_alert_info("{.fun build_single_tag}: (2/3) Package {.pkg {package_name}} with tag {.field {tag}} already exists in S3 and {.code force = FALSE}. Skipping build.")
+    return(invisible(TRUE))
+  }
 
   # Using system git here as {gert} does not provide this functionality to checkout a branch by tag
   system2("git", args = c(
@@ -360,115 +394,111 @@ build_single_tag <- function(
     )
   }
 
-  if (file.exists(sprintf("%s/%s_%s.tar.gz", binary_output_path, package_name, tag))) {
-    cli::cli_alert_info("{.fun build_single_tag}: (2/3) Tarball for package {.pkg {package_name}} with tag {.field {tag}} already exists. Skipping build.")
+  cli::cli_alert("{.fun build_single_tag}: (2/3) Building package {.pkg {package_name}} with tag {.field {tag}}.")
+
+  if (debug) {
+    quiet <- FALSE
   } else {
-    cli::cli_alert("{.fun build_single_tag}: (2/3) Building package {.pkg {package_name}} with tag {.field {tag}}.")
-
-    if (debug) {
-      quiet <- FALSE
-    } else {
-      quiet <- TRUE
-    }
-    t1 <- Sys.time()
-    tryCatch(
-      {
-        if (debug) {
-          message(sprintf("DEBUG1: Printing 'binary_output_path': %s", binary_output_path))
-        }
-        pkgbuild::build(
-          path = sprintf("%s", local_clone_dir_single),
-          binary = TRUE, vignettes = FALSE,
-          dest_path = binary_output_path, quiet = quiet
-        )
-        if (debug) {
-          message(sprintf("DEBUG: Listing dir 'binary_output_path': %s", binary_output_path))
-          print(fs::dir_ls(binary_output_path))
-        }
-      },
-      error = function(e) {
-        cli::cli_alert_warning("Error in starting build command for package {.pkg {package_name}} with tag {.field {tag}}: {e}")
-        local_clone_dir_single <- sprintf("%s/%s_%s", local_clone_dir, package_name, tag)
-        unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
-        store_build_metadata(package_name, tag, platform,
-          arch = arch, error_occurred = TRUE, force = TRUE, error = sprintf("Error trying to initiate pkgbuild - likely a non-valid R package structure. Full error: %s", e), metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
-          metadata_db_port = metadata_db_port, metadata_db_table = metadata_db_table,
-          metadata_db_password = metadata_db_password, metadata_db_user = metadata_db_user,
-          metadata_db_sslmode = metadata_db_sslmode
-        )
-        return(invisible(TRUE))
-      }
-    )
-
-    if (any(grepl("alpine", system2("cat", args = c("/etc/os-release"), stdout = TRUE)))) {
-      linux_suffix <- "musl"
-    } else {
-      linux_suffix <- "gnu"
-    }
-
-    # set tarball id for arch
-    local_arch <- Sys.info()[["machine"]]
-    if (grepl("arm64", local_arch) || grepl("aarch64", local_arch)) {
-      tarball_id <- "unknown"
-      tarball_arch <- "aarch64"
-    } else if (grepl("amd64", local_arch) || grepl("x86_64", local_arch)) {
-      tarball_id <- "pc"
-      tarball_arch <- "x86_64"
-    }
-    # on some systems, the tarball_id is also sometimes 'redhat'
-    if (any(grepl("-redhat-linux", fs::dir_ls(binary_output_path, recurse = TRUE)))) {
-      tarball_id <- "redhat"
-    }
-
-    if (!file.exists(sprintf("%s/%s_%s.tar.gz", binary_output_path, package_name, tag))) {
+    quiet <- TRUE
+  }
+  t1 <- Sys.time()
+  tryCatch(
+    {
       if (debug) {
-        cli::cli_alert_info('{.fun build_single_tag}: DEBUG: Moving package from {.path {sprintf("%s/%s_%s_R_%s-%s-linux-%s.tar.gz", binary_output_path, package_name, tag, tarball_arch, tarball_id, linux_suffix)}} to {.path {sprintf("%s/%s_%s.tar.gz", binary_output_path, package_name, tag)}}')
+        message(sprintf("DEBUG1: Printing 'binary_output_path': %s", binary_output_path))
       }
-      # double-check that file exists (some packages like https://github.com/cran/BACCO/tree/1.0-14 don't include R/ and hence don't procude a valid binary)
-      if (fs::file_exists(sprintf("%s/%s_%s_R_%s-%s-linux-%s.tar.gz", binary_output_path, package_name, tag, tarball_arch, tarball_id, linux_suffix))) {
-        # remove _aarch64-unknown-linux-gnu/musl part in filename
-        fs::file_move(
-          sprintf("%s/%s_%s_R_%s-%s-linux-%s.tar.gz", binary_output_path, package_name, tag, tarball_arch, tarball_id, linux_suffix),
-          sprintf("%s/%s_%s.tar.gz", binary_output_path, package_name, tag)
-        )
-      } else {
-        cli::cli_alert_info('{.fun build_single_tag}: File for package {.pkg {package_name}} {.field {tag}} at {.path {sprintf("%s/%s_%s_R_%s-%s-linux-%s.tar.gz", binary_output_path, package_name, tag, tarball_arch, tarball_id, linux_suffix)}} does not exist - skipping.')
-        if (debug) {
-          message(sprintf("DEBUG: Listing dir 'binary_output_path': %s", binary_output_path))
-          message(fs::dir_ls(binary_output_path))
-        }
+      pkgbuild::build(
+        path = sprintf("%s", local_clone_dir_single),
+        binary = TRUE, vignettes = FALSE,
+        dest_path = binary_output_path, quiet = quiet
+      )
+      if (debug) {
+        message(sprintf("DEBUG: Listing dir 'binary_output_path': %s", binary_output_path))
+        print(fs::dir_ls(binary_output_path))
       }
-    } else {
-      cli::cli_alert_warning('{.fun build_single_tag}: Binary {sprintf("%s_%s.tar.gz", package_name, tag)} already exists. Skipping copy.')
+    },
+    error = function(e) {
+      cli::cli_alert_warning("Error in starting build command for package {.pkg {package_name}} with tag {.field {tag}}: {e}")
+      local_clone_dir_single <- sprintf("%s/%s_%s", local_clone_dir, package_name, tag)
+      unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
+      store_build_metadata(package_name, tag, platform,
+        arch = arch, error_occurred = TRUE, force = TRUE, error = sprintf("Error trying to initiate pkgbuild - likely a non-valid R package structure. Full error: %s", e), metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
+        metadata_db_port = metadata_db_port, metadata_db_table = metadata_db_table,
+        metadata_db_password = metadata_db_password, metadata_db_user = metadata_db_user,
+        metadata_db_sslmode = metadata_db_sslmode
+      )
+      return(invisible(TRUE))
     }
-    unlink(sprintf("%s/%s_%s_R*.tar.gz", binary_output_path, package_name, tag))
+  )
 
-    cli::cli_alert("{.fun build_single_tag}: (3/3) Removing {.path {local_clone_dir_single}}.")
-    unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
+  if (any(grepl("alpine", system2("cat", args = c("/etc/os-release"), stdout = TRUE)))) {
+    linux_suffix <- "musl"
+  } else {
+    linux_suffix <- "gnu"
+  }
 
-    total_build_time <- round(as.numeric(difftime(Sys.time(), t1, units = "secs")), 2)
+  # set tarball id for arch
+  local_arch <- Sys.info()[["machine"]]
+  if (grepl("arm64", local_arch) || grepl("aarch64", local_arch)) {
+    tarball_id <- "unknown"
+    tarball_arch <- "aarch64"
+  } else if (grepl("amd64", local_arch) || grepl("x86_64", local_arch)) {
+    tarball_id <- "pc"
+    tarball_arch <- "x86_64"
+  }
+  # on some systems, the tarball_id is also sometimes 'redhat'
+  if (any(grepl("-redhat-linux", fs::dir_ls(binary_output_path, recurse = TRUE)))) {
+    tarball_id <- "redhat"
+  }
 
-    # bytes to MB in binary format
-    file_size <- round(as.numeric(fs::file_size(sprintf("%s/%s_%s.tar.gz", binary_output_path, package_name, tag))) / (1024^2), 2)
-
+  if (!file.exists(sprintf("%s/%s_%s.tar.gz", binary_output_path, package_name, tag))) {
     if (debug) {
-      cli::cli_alert_warning("DEBUG: total_build_time: {total_build_time}")
-      cli::cli_alert_warning("DEBUG: file_size: {file_size}")
+      cli::cli_alert_info('{.fun build_single_tag}: DEBUG: Moving package from {.path {sprintf("%s/%s_%s_R_%s-%s-linux-%s.tar.gz", binary_output_path, package_name, tag, tarball_arch, tarball_id, linux_suffix)}} to {.path {sprintf("%s/%s_%s.tar.gz", binary_output_path, package_name, tag)}}')
     }
-
-    tarball_name <- sprintf("%s_%s.tar.gz", package_name, tag)
-
-    if (store_build_metadata) {
-      if (fs::file_exists(sprintf("%s/%s", binary_output_path, tarball_name))) {
-        store_build_metadata(package_name, tag, platform,
-          arch = arch, error_occurred = FALSE, force = force, build_duration = total_build_time, size = file_size,
-          metadata_db_type = metadata_db_type,
-          metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
-          metadata_db_port = metadata_db_port, metadata_db_table = metadata_db_table,
-          metadata_db_password = metadata_db_password, metadata_db_user = metadata_db_user,
-          metadata_db_sslmode = metadata_db_sslmode
-        )
+    # double-check that file exists (some packages like https://github.com/cran/BACCO/tree/1.0-14 don't include R/ and hence don't procude a valid binary)
+    if (fs::file_exists(sprintf("%s/%s_%s_R_%s-%s-linux-%s.tar.gz", binary_output_path, package_name, tag, tarball_arch, tarball_id, linux_suffix))) {
+      # remove _aarch64-unknown-linux-gnu/musl part in filename
+      fs::file_move(
+        sprintf("%s/%s_%s_R_%s-%s-linux-%s.tar.gz", binary_output_path, package_name, tag, tarball_arch, tarball_id, linux_suffix),
+        sprintf("%s/%s_%s.tar.gz", binary_output_path, package_name, tag)
+      )
+    } else {
+      cli::cli_alert_info('{.fun build_single_tag}: File for package {.pkg {package_name}} {.field {tag}} at {.path {sprintf("%s/%s_%s_R_%s-%s-linux-%s.tar.gz", binary_output_path, package_name, tag, tarball_arch, tarball_id, linux_suffix)}} does not exist - skipping.')
+      if (debug) {
+        message(sprintf("DEBUG: Listing dir 'binary_output_path': %s", binary_output_path))
+        message(fs::dir_ls(binary_output_path))
       }
+    }
+  } else {
+    cli::cli_alert_warning('{.fun build_single_tag}: Binary {sprintf("%s_%s.tar.gz", package_name, tag)} already exists. Skipping copy.')
+  }
+  unlink(sprintf("%s/%s_%s_R*.tar.gz", binary_output_path, package_name, tag))
+
+  cli::cli_alert("{.fun build_single_tag}: (3/3) Removing {.path {local_clone_dir_single}}.")
+  unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
+
+  total_build_time <- round(as.numeric(difftime(Sys.time(), t1, units = "secs")), 2)
+
+  # bytes to MB in binary format
+  file_size <- round(as.numeric(fs::file_size(sprintf("%s/%s_%s.tar.gz", binary_output_path, package_name, tag))) / (1024^2), 2)
+
+  if (debug) {
+    cli::cli_alert_warning("DEBUG: total_build_time: {total_build_time}")
+    cli::cli_alert_warning("DEBUG: file_size: {file_size}")
+  }
+
+  tarball_name <- sprintf("%s_%s.tar.gz", package_name, tag)
+
+  if (store_build_metadata) {
+    if (fs::file_exists(sprintf("%s/%s", binary_output_path, tarball_name))) {
+      store_build_metadata(package_name, tag, platform,
+        arch = arch, error_occurred = FALSE, force = force, build_duration = total_build_time, size = file_size,
+        metadata_db_type = metadata_db_type,
+        metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
+        metadata_db_port = metadata_db_port, metadata_db_table = metadata_db_table,
+        metadata_db_password = metadata_db_password, metadata_db_user = metadata_db_user,
+        metadata_db_sslmode = metadata_db_sslmode
+      )
     }
   }
 
