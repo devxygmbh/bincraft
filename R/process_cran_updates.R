@@ -14,6 +14,14 @@
 #' @template param-local_clone_dir
 #' @template param-interval
 #' @template param-archive
+#' @template param-metadata_db_host
+#' @template param-metadata_db_type
+#' @template param-metadata_db_name
+#' @template param-metadata_db_port
+#' @template param-metadata_db_table
+#' @template param-metadata_db_user
+#' @template param-metadata_db_password
+#' @template param-metadata_db_sslmode
 #' @template param-store_build_metadata
 #' @template param-upload
 #' @template param-process_updated

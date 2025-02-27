@@ -73,6 +73,30 @@ Whether to archive packages.}
 \item{upload}{(\link{logical})\cr
 Whether to upload the built packages to the specified remote.}
 
+\item{metadata_db_type}{(\link{character})\cr
+Type of metadata database}
+
+\item{metadata_db_host}{(\link{character})\cr
+Host value of metadata database}
+
+\item{metadata_db_name}{(\link{character})\cr
+Name of metadata database}
+
+\item{metadata_db_table}{(\link{character})\cr
+Table name of metadata database}
+
+\item{metadata_db_port}{(\link{integer})\cr
+Port of metadata database}
+
+\item{metadata_db_user}{(\link{character})\cr
+User value of metadata database}
+
+\item{metadata_db_password}{(\link{character})\cr
+User password of metadata database}
+
+\item{metadata_db_sslmode}{(\link{character})\cr
+SSL mode for metadata database}
+
 \item{process_updated}{(\link{logical})\cr
 Whether to process updated packages on CRAN}
 

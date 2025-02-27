@@ -84,6 +84,30 @@ Whether to archive packages.}
 \item{store_build_metadata}{(\link{logical})\cr
 Whether to store the build metadata in the referenced database.}
 
+\item{metadata_db_type}{(\link{character})\cr
+Type of metadata database}
+
+\item{metadata_db_host}{(\link{character})\cr
+Host value of metadata database}
+
+\item{metadata_db_name}{(\link{character})\cr
+Name of metadata database}
+
+\item{metadata_db_table}{(\link{character})\cr
+Table name of metadata database}
+
+\item{metadata_db_port}{(\link{integer})\cr
+Port of metadata database}
+
+\item{metadata_db_user}{(\link{character})\cr
+User value of metadata database}
+
+\item{metadata_db_password}{(\link{character})\cr
+User password of metadata database}
+
+\item{metadata_db_sslmode}{(\link{character})\cr
+SSL mode for metadata database}
+
 \item{future_strategy}{future parallelization strategy}
 
 \item{future_workers}{Parallel workers count}

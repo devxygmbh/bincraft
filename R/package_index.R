@@ -42,7 +42,7 @@ add_to_package_index <- function(
   }
 
   local_bin_dir <- set_bin_path(local_output_dir_root, codename)
-  remote_bin_dir <- sprintf("%s/%s/%s/latest/src/contrib", s3_s3_bucket, arch, codename)
+  remote_bin_dir <- sprintf("%s/%s/%s/latest/src/contrib", s3_bucket, arch, codename)
 
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,

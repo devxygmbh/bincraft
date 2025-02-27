@@ -40,7 +40,7 @@ upload_single_binary <- function(
   cli::cli_h2("Uploading ({.pkg {package_name[1]}})")
 
   local_bin_path <- set_bin_path(local_output_dir_root = local_output_dir_root, codename)
-  remote_bin_path <- set_bin_path(local_output_dir_root = bucket, codename)
+  remote_bin_path <- set_bin_path(local_output_dir_root = s3_bucket, codename)
 
   tarball_name <- sprintf("%s_%s.tar.gz", package_name, tag)
 
@@ -136,7 +136,7 @@ upload_source_tarball <- function(
   )
 
   codename <- set_codename(codename)
-  remote_bin_path <- set_bin_path(local_output_dir_root = bucket, codename)
+  remote_bin_path <- set_bin_path(local_output_dir_root = s3_bucket, codename)
   version <- strsplit(gh::gh(sprintf("GET /repos/cran/%s/commits", package_name))[[1]]$commit$message, "version ")[[1]][2]
 
   tmpfile <- tempfile()
