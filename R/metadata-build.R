@@ -48,19 +48,36 @@ store_build_metadata <- function(
       sslmode = metadata_db_sslmode
     ), rate = retry_config, quiet = FALSE)()
 
-  # Check if an entry with the same package_name and tag already exists
-  existing_entries <- purrr::insistently(~
-    dbGetQuery(con, "SELECT * FROM $5 WHERE name = $1 AND tag = $2 AND platform = $3 AND arch = $4", params = list(package_name, tag, platform, arch, metadata_db_table)), rate = retry_config, quiet = FALSE)()
+  table_name <- DBI::dbQuoteIdentifier(con, metadata_db_table)
+  query <- paste0("SELECT * FROM ", table_name, " WHERE name = $1 AND tag = $2 AND platform = $3 AND arch = $4")
+  existing_entries <- purrr::insistently(~ dbGetQuery(con, query, params = list(package_name, tag, platform, arch)), rate = retry_config, quiet = FALSE)()
 
   if (nrow(existing_entries) >= 1 && !force) {
     cli::cli_alert("{.fun store_build_metadata}: Build metadata for {.field {.pkg {package_name}}} {.field {tag}} already exists.")
   } else if (nrow(existing_entries) >= 1 && force) {
     cli::cli_alert_info("{.fun store_build_metadata}: Force overwriting build metadata for {.pkg {package_name}} {.field {tag}} ({platform}) because {.code force = TRUE} was set.")
 
-    insistently(~
-      dbExecute(con, "UPDATE $9 SET timestamp = $1, error_occurred = $2, error_text = $3, duration = $4, size = $5, removed = $10 WHERE name = $6 and tag = $7 and platform = $8",
-        params = list(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), error_occurred, error, build_duration, size, package_name, tag, platform, metadata_db_table, FALSE)
-      ), rate = retry_config, quiet = FALSE)()
+    query <- paste0(
+      "UPDATE ", table_name, " SET timestamp = $1, error_occurred = $2, error_text = $3, ",
+      "duration = $4, size = $5, removed = $6 WHERE name = $7 and tag = $8 and platform = $9"
+    )
+    insistently(
+      ~ dbExecute(
+        con, query,
+        params = list(
+          format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+          error_occurred,
+          error,
+          build_duration,
+          size,
+          FALSE,
+          package_name,
+          tag,
+          platform
+        )
+      ),
+      rate = retry_config, quiet = FALSE
+    )()
   } else if (nrow(existing_entries) == 0) {
     cli::cli_alert("{.fun store_build_metadata}: Storing build metadata for {.pkg {package_name}} {.field {tag}}.")
     # if no entry exists already, we can insert the info via dbWriteTable by passing a DF
@@ -119,8 +136,11 @@ remove_from_metadata <- function(
       sslmode = metadata_db_sslmode
     ), rate = retry_config, quiet = FALSE)()
 
-  purrr::insistently(~
-    dbExecute(con, "UPDATE $2 SET removed = true WHERE name = $1",
-      params = list(package_name, metadata_db_table), rate = retry_config, quiet = FALSE
-    ))()
+  table_name <- DBI::dbQuoteIdentifier(con, metadata_db_table)
+  query <- paste0("UPDATE ", table_name, " SET removed = true WHERE name = $1")
+  purrr::insistently(
+    ~ dbExecute(con, query, params = list(package_name)),
+    rate = retry_config,
+    quiet = FALSE
+  )()
 }
