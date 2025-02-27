@@ -46,6 +46,7 @@ archive_package <- function(
     aws_secret_access_key = s3_secret_access_key,
     endpoint = endpoint,
     region_name = region,
+    bucket = bucket,
     refresh = TRUE
   )
 
