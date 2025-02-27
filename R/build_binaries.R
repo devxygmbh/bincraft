@@ -236,6 +236,9 @@ build_binary_package <- function(
     if (!check_for_binary(package_name[1])) {
       upload_source_tarball(package_name[1], s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key)
     }
+  } else {
+    cli::cli_alert_info("The following binaries have been built:")
+    fs::dir_ls(binary_output_path)[-1]
   }
 
   if (archive) {
