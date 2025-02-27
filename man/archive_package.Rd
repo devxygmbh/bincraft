@@ -8,9 +8,9 @@ archive_package(
   package_name,
   codename = NULL,
   local_output_dir_root = ".",
-  endpoint = NULL,
-  region = NULL,
-  bucket = NULL,
+  s3_endpoint = NULL,
+  s3_region = NULL,
+  s3_bucket = NULL,
   arch = NULL,
   debug = FALSE,
   s3_access_key_id = NULL,
@@ -27,13 +27,13 @@ Linux distribution identifier}
 \item{local_output_dir_root}{(\link{character})\cr
 Path to local build root}
 
-\item{endpoint}{(\link{character})\cr
+\item{s3_endpoint}{(\link{character})\cr
 S3 endpoint}
 
-\item{region}{(\link{character})\cr
+\item{s3_region}{(\link{character})\cr
 S3 region}
 
-\item{bucket}{(\link{character})\cr
+\item{s3_bucket}{(\link{character})\cr
 S3 bucket name}
 
 \item{arch}{(\link{character})\cr

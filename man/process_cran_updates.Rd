@@ -12,9 +12,9 @@ process_cran_updates(
   interval = lubridate::today(),
   codename = NULL,
   local_output_dir_root = ".",
-  endpoint = NULL,
-  region = NULL,
-  bucket = NULL,
+  s3_endpoint = NULL,
+  s3_region = NULL,
+  s3_bucket = NULL,
   store_build_metadata = FALSE,
   archive = FALSE,
   upload = FALSE,
@@ -55,13 +55,13 @@ Linux distribution identifier}
 \item{local_output_dir_root}{(\link{character})\cr
 Path to local build root}
 
-\item{endpoint}{(\link{character})\cr
+\item{s3_endpoint}{(\link{character})\cr
 S3 endpoint}
 
-\item{region}{(\link{character})\cr
+\item{s3_region}{(\link{character})\cr
 S3 region}
 
-\item{bucket}{(\link{character})\cr
+\item{s3_bucket}{(\link{character})\cr
 S3 bucket name}
 
 \item{store_build_metadata}{(\link{logical})\cr

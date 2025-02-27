@@ -6,9 +6,9 @@
 #' @template param-package_name
 #' @template param-tag
 #' @template param-codename
-#' @template param-endpoint
-#' @template param-region
-#' @template param-bucket
+#' @template param-s3_endpoint
+#' @template param-s3_region
+#' @template param-s3_bucket
 #' @template param-platform
 #' @template param-local_output_dir_root
 #' @template param-local_clone_dir
@@ -41,9 +41,9 @@ process_cran_updates <- function(
     interval = lubridate::today(),
     codename = NULL,
     local_output_dir_root = ".",
-    endpoint = NULL,
-    region = NULL,
-    bucket = NULL,
+    s3_endpoint = NULL,
+    s3_region = NULL,
+    s3_bucket = NULL,
     store_build_metadata = FALSE,
     archive = FALSE,
     upload = FALSE,
@@ -60,14 +60,14 @@ process_cran_updates <- function(
     process_removed = TRUE,
     s3_access_key_id = NULL,
     s3_secret_access_key = NULL) {
-  if (is.null(endpoint)) {
-    stop("endpoint must be defined")
+  if (is.null(s3_endpoint)) {
+    stop("s3_endpoint must be defined")
   }
-  if (is.null(region)) {
-    stop("endpoint must be defined")
+  if (is.null(s3_region)) {
+    stop("s3_region must be defined")
   }
-  if (is.null(bucket)) {
-    stop("endpoint must be defined")
+  if (is.null(s3_bucket)) {
+    stop("s3_bucket must be defined")
   }
   # Get list of updated and new packages for a specific day
   updated_pkgs <- get_updated_cran_packages(interval)
@@ -99,7 +99,7 @@ process_cran_updates <- function(
     purrr::walk2(all_pkgs$name, all_pkgs$version, ~ {
       build_binary_package(.x, .y, platform = platform, upload = upload, archive = archive, store_build_metadata = store_build_metadata, s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key, metadata_db_type = metadata_db_type, metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name, metadata_db_table = metadata_db_table, metadata_db_port = metadata_db_port, metadata_db_user = metadata_db_user, metadata_db_password = metadata_db_password, metadata_db_sslmode = metadata_db_sslmode)
       if (archive) {
-        archive_package(.x, s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key, endpoint = endpoint, bucket = bucket, region = region)
+        archive_package(.x, s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key, endpoint = s3_endpoint, bucket = bucket, region = region)
       }
     })
   }
@@ -112,8 +112,8 @@ process_cran_updates <- function(
     s3fs::s3_file_system(
       aws_access_key_id = s3_access_key_id,
       aws_secret_access_key = s3_secret_access_key,
-      endpoint = endpoint,
-      region_name = region,
+      endpoint = s3_endpoint,
+      region_name = s3_region,
       refresh = TRUE
     )
 
@@ -127,7 +127,7 @@ process_cran_updates <- function(
     }
 
     local_bin_dir <- set_bin_path(local_output_dir_root, codename)
-    remote_bin_dir <- sprintf("%s/%s/%s/latest/src/contrib", bucket, arch, codename)
+    remote_bin_dir <- sprintf("%s/%s/%s/latest/src/contrib", s3_bucket, arch, codename)
 
     files <- s3fs::s3_dir_ls(remote_bin_dir)
 

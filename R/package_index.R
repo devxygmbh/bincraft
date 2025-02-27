@@ -1,9 +1,9 @@
 #' Add package to repository index
 #' @template param-package_name
 #' @template param-codename
-#' @template param-endpoint
-#' @template param-region
-#' @template param-bucket
+#' @template param-s3_endpoint
+#' @template param-s3_region
+#' @template param-s3_bucket
 #' @template param-local_output_dir_root
 #' @template param-debug
 #' @template param-s3-access-key-id
@@ -14,22 +14,22 @@
 #' @export
 add_to_package_index <- function(
     package_name = NULL,
-    endpoint = NULL,
-    region = NULL,
-    bucket = NULL,
+    s3_endpoint = NULL,
+    s3_region = NULL,
+    s3_bucket = NULL,
     local_output_dir_root = "/mnt/cache/binaries",
     codename = NULL,
     debug = FALSE,
     s3_access_key_id = NULL,
     s3_secret_access_key = NULL) {
-  if (is.null(endpoint)) {
-    stop("endpoint must be defined")
+  if (is.null(s3_endpoint)) {
+    stop("s3_endpoint must be defined")
   }
-  if (is.null(region)) {
-    stop("endpoint must be defined")
+  if (is.null(s3_region)) {
+    stop("s3_region must be defined")
   }
-  if (is.null(bucket)) {
-    stop("endpoint must be defined")
+  if (is.null(s3_bucket)) {
+    stop("s3_bucket must be defined")
   }
 
   codename <- set_codename(codename)
@@ -42,13 +42,13 @@ add_to_package_index <- function(
   }
 
   local_bin_dir <- set_bin_path(local_output_dir_root, codename)
-  remote_bin_dir <- sprintf("%s/%s/%s/latest/src/contrib", bucket, arch, codename)
+  remote_bin_dir <- sprintf("%s/%s/%s/latest/src/contrib", s3_s3_bucket, arch, codename)
 
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
     aws_secret_access_key = s3_secret_access_key,
-    endpoint = endpoint,
-    region_name = region,
+    endpoint = s3_endpoint,
+    region_name = s3_region,
     refresh = TRUE
   )
 
@@ -67,9 +67,9 @@ add_to_package_index <- function(
 #' Upload package index files to S3
 #' @template param-package_name
 #' @template param-codename
-#' @template param-endpoint
-#' @template param-region
-#' @template param-bucket
+#' @template param-s3_endpoint
+#' @template param-s3_region
+#' @template param-s3_bucket
 #' @template param-debug
 #' @template param-local_output_dir_root
 #' @template param-arch
@@ -81,23 +81,23 @@ add_to_package_index <- function(
 #' @export
 upload_package_index <- function(
     package_name = NULL,
-    endpoint = NULL,
-    region = NULL,
-    bucket = NULL,
+    s3_endpoint = NULL,
+    s3_region = NULL,
+    s3_bucket = NULL,
     local_output_dir_root = ".",
     codename = NULL,
     debug = FALSE,
     arch = NULL,
     s3_access_key_id = NULL,
     s3_secret_access_key = NULL) {
-  if (is.null(endpoint)) {
-    stop("endpoint must be defined")
+  if (is.null(s3_endpoint)) {
+    stop("s3_endpoint must be defined")
   }
-  if (is.null(region)) {
-    stop("endpoint must be defined")
+  if (is.null(s3_region)) {
+    stop("s3_region must be defined")
   }
-  if (is.null(bucket)) {
-    stop("endpoint must be defined")
+  if (is.null(s3_bucket)) {
+    stop("s3_bucket must be defined")
   }
   cli::cli_alert("{.fun upload_package_index}: Updating PACKAGES* files in S3.")
 
@@ -113,13 +113,13 @@ upload_package_index <- function(
   }
 
   local_bin_dir <- set_bin_path(local_output_dir_root, codename)
-  remote_bin_dir <- sprintf("%s/%s/%s/latest/src/contrib", bucket, arch, codename)
+  remote_bin_dir <- sprintf("%s/%s/%s/latest/src/contrib", s3_bucket, arch, codename)
 
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
     aws_secret_access_key = s3_secret_access_key,
-    endpoint = endpoint,
-    region_name = region,
+    endpoint = s3_endpoint,
+    region_name = s3_region,
     refresh = TRUE
   )
 

@@ -2,9 +2,9 @@
 #' @template param-package_name
 #' @template param-tag
 #' @template param-codename
-#' @template param-endpoint
-#' @template param-region
-#' @template param-bucket
+#' @template param-s3_endpoint
+#' @template param-s3_region
+#' @template param-s3_bucket
 #' @template param-debug
 #' @template param-local_output_dir_root
 #' @template param-force
@@ -14,9 +14,9 @@
 #' @importFrom s3fs s3_file_exists s3_file_upload s3_file_system
 #' @export
 upload_single_binary <- function(
-    endpoint = NULL,
-    region = NULL,
-    bucket = NULL,
+    s3_endpoint = NULL,
+    s3_region = NULL,
+    s3_bucket = NULL,
     local_output_dir_root = ".",
     codename = NULL,
     package_name,
@@ -25,14 +25,14 @@ upload_single_binary <- function(
     debug = FALSE,
     s3_access_key_id = NULL,
     s3_secret_access_key = NULL) {
-  if (is.null(endpoint)) {
-    stop("endpoint must be defined")
+  if (is.null(s3_endpoint)) {
+    stop("s3_endpoint must be defined")
   }
-  if (is.null(region)) {
-    stop("endpoint must be defined")
+  if (is.null(s3_region)) {
+    stop("s3_region must be defined")
   }
-  if (is.null(bucket)) {
-    stop("endpoint must be defined")
+  if (is.null(s3_bucket)) {
+    stop("s3_bucket must be defined")
   }
 
   codename <- set_codename(codename)
@@ -57,8 +57,8 @@ upload_single_binary <- function(
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
     aws_secret_access_key = s3_secret_access_key,
-    endpoint = endpoint,
-    region_name = region,
+    endpoint = s3_endpoint,
+    region_name = s3_region,
     refresh = TRUE
   )
 
@@ -96,14 +96,14 @@ upload_single_binary <- function(
 
 #' Uploads source tarballs to S3
 #' @template param-package_name
-#' @template param-endpoint
-#' @template param-region
-#' @template param-bucket
+#' @template param-s3_endpoint
+#' @template param-s3_region
+#' @template param-s3_bucket
 #' @template param-codename
 #' @template param-arch
-#' @template param-endpoint
-#' @template param-region
-#' @template param-bucket
+#' @template param-s3_endpoint
+#' @template param-s3_region
+#' @template param-s3_bucket
 #' @template param-s3-access-key-id
 #' @template param-s3-secret-access-key
 #'
@@ -111,27 +111,27 @@ upload_single_binary <- function(
 #' @export
 upload_source_tarball <- function(
     package_name,
-    endpoint = NULL,
-    region = NULL,
-    bucket = NULL,
+    s3_endpoint = NULL,
+    s3_region = NULL,
+    s3_bucket = NULL,
     codename = NULL,
     arch = NULL,
     s3_access_key_id = NULL,
     s3_secret_access_key = NULL) {
-  if (is.null(endpoint)) {
-    stop("endpoint must be defined")
+  if (is.null(s3_endpoint)) {
+    stop("s3_endpoint must be defined")
   }
-  if (is.null(region)) {
-    stop("endpoint must be defined")
+  if (is.null(s3_region)) {
+    stop("s3_region must be defined")
   }
-  if (is.null(bucket)) {
-    stop("endpoint must be defined")
+  if (is.null(s3_bucket)) {
+    stop("s3_bucket must be defined")
   }
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
     aws_secret_access_key = s3_secret_access_key,
-    endpoint = endpoint,
-    region_name = region,
+    endpoint = s3_endpoint,
+    region_name = s3_region,
     refresh = TRUE
   )
 

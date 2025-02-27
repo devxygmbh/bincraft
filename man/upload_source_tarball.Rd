@@ -6,9 +6,9 @@
 \usage{
 upload_source_tarball(
   package_name,
-  endpoint = NULL,
-  region = NULL,
-  bucket = NULL,
+  s3_endpoint = NULL,
+  s3_region = NULL,
+  s3_bucket = NULL,
   codename = NULL,
   arch = NULL,
   s3_access_key_id = NULL,
@@ -19,13 +19,13 @@ upload_source_tarball(
 \item{package_name}{(\link{character})\cr
 Package name}
 
-\item{endpoint}{(\link{character})\cr
+\item{s3_endpoint}{(\link{character})\cr
 S3 endpoint}
 
-\item{region}{(\link{character})\cr
+\item{s3_region}{(\link{character})\cr
 S3 region}
 
-\item{bucket}{(\link{character})\cr
+\item{s3_bucket}{(\link{character})\cr
 S3 bucket name}
 
 \item{codename}{(\link{character})\cr

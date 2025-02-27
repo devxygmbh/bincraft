@@ -57,9 +57,9 @@ set_bin_path <- function(local_output_dir_root, codename) {
 
 #' Checks whether a binary for the latest package version exists
 #' @template param-package_name
-#' @template param-endpoint
-#' @template param-region
-#' @template param-bucket
+#' @template param-s3_endpoint
+#' @template param-s3_region
+#' @template param-s3_bucket
 #' @template param-codename
 #' @template param-arch
 #' @template param-s3-access-key-id
@@ -68,9 +68,9 @@ set_bin_path <- function(local_output_dir_root, codename) {
 #' @export
 check_for_binary <- function(
     package_name,
-    endpoint = NULL,
-    region = NULL,
-    bucket = NULL,
+    s3_endpoint = NULL,
+    s3_region = NULL,
+    s3_bucket = NULL,
     codename = NULL,
     arch = NULL,
     version = "latest",
@@ -79,8 +79,8 @@ check_for_binary <- function(
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
     aws_secret_access_key = s3_secret_access_key,
-    endpoint = endpoint,
-    region_name = region,
+    endpoint = s3_endpoint,
+    region_name = s3_region,
     refresh = TRUE
   )
   codename <- set_codename(codename)

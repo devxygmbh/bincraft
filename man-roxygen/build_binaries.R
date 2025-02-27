@@ -24,9 +24,9 @@
 #' @template param-force
 #' @template param-url
 #'
-#' @template param-endpoint
-#' @template param-region
-#' @template param-bucket
+#' @template param-s3_endpoint
+#' @template param-s3_region
+#' @template param-s3_bucket
 #'
 #' @template param-s3-access-key-id
 #' @template param-s3-secret-access-key
@@ -68,9 +68,9 @@ build_binary_package <- function(
     store_build_metadata = FALSE,
     future_strategy = "sequential",
     future_workers = 1,
-    endpoint = NULL,
-    region = NULL,
-    bucket = NULL,
+    s3_endpoint = NULL,
+    s3_region = NULL,
+    s3_bucket = NULL,
     s3_access_key_id = NULL,
     s3_secret_access_key = NULL) {
   cli::cli_h2("Preparations ({.pkg {package_name}})")

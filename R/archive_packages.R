@@ -2,9 +2,9 @@
 #' @template param-package_name
 #' @template param-codename
 #' @template param-arch
-#' @template param-endpoint
-#' @template param-region
-#' @template param-bucket
+#' @template param-s3_endpoint
+#' @template param-s3_region
+#' @template param-s3_bucket
 #' @template param-debug
 #' @template param-local_output_dir_root
 #' @template param-s3-access-key-id
@@ -24,29 +24,28 @@ archive_package <- function(
     package_name,
     codename = NULL,
     local_output_dir_root = ".",
-    endpoint = NULL,
-    region = NULL,
-    bucket = NULL,
+    s3_endpoint = NULL,
+    s3_region = NULL,
+    s3_bucket = NULL,
     arch = NULL,
     debug = FALSE,
     s3_access_key_id = NULL,
     s3_secret_access_key = NULL) {
-  if (is.null(endpoint)) {
-    stop("endpoint must be defined")
+  if (is.null(s3_endpoint)) {
+    stop("s3_endpoint must be defined")
   }
-  if (is.null(region)) {
-    stop("endpoint must be defined")
+  if (is.null(s3_region)) {
+    stop("s3_region must be defined")
   }
-  if (is.null(bucket)) {
-    stop("endpoint must be defined")
+  if (is.null(s3_bucket)) {
+    stop("s3_bucket must be defined")
   }
 
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
     aws_secret_access_key = s3_secret_access_key,
-    endpoint = endpoint,
-    region_name = region,
-    bucket = bucket,
+    endpoint = s3_endpoint,
+    region_name = s3_region,
     refresh = TRUE
   )
 
@@ -66,7 +65,7 @@ archive_package <- function(
   }
 
   local_bin_dir <- set_bin_path(local_output_dir_root, codename)
-  remote_bin_dir <- sprintf("%s/%s/%s/latest/src/contrib", bucket, arch, codename)
+  remote_bin_dir <- sprintf("%s/%s/%s/latest/src/contrib", s3_bucket, arch, codename)
 
   # suppress progressr output here
   progressr::handlers("void")

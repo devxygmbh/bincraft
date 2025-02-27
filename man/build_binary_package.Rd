@@ -30,9 +30,9 @@ build_binary_package(
   metadata_db_sslmode = NULL,
   future_strategy = "sequential",
   future_workers = 1,
-  endpoint = NULL,
-  region = NULL,
-  bucket = NULL,
+  s3_endpoint = NULL,
+  s3_region = NULL,
+  s3_bucket = NULL,
   s3_access_key_id = NULL,
   s3_secret_access_key = NULL
 )
@@ -88,13 +88,13 @@ Whether to store the build metadata in the referenced database.}
 
 \item{future_workers}{Parallel workers count}
 
-\item{endpoint}{(\link{character})\cr
+\item{s3_endpoint}{(\link{character})\cr
 S3 endpoint}
 
-\item{region}{(\link{character})\cr
+\item{s3_region}{(\link{character})\cr
 S3 region}
 
-\item{bucket}{(\link{character})\cr
+\item{s3_bucket}{(\link{character})\cr
 S3 bucket name}
 
 \item{s3_access_key_id}{(\link{character})\cr
