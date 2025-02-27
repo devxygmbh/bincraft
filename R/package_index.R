@@ -84,7 +84,7 @@ upload_package_index <- function(
     endpoint = NULL,
     region = NULL,
     bucket = NULL,
-    local_output_dir_root = "./",
+    local_output_dir_root = ".",
     codename = NULL,
     debug = FALSE,
     arch = NULL,

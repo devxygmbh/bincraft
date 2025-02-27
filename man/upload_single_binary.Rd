@@ -8,7 +8,7 @@ upload_single_binary(
   endpoint = NULL,
   region = NULL,
   bucket = NULL,
-  local_output_dir_root = "./",
+  local_output_dir_root = ".",
   codename = NULL,
   package_name,
   tag,

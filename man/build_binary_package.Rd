@@ -9,7 +9,7 @@ build_binary_package(
   tag = NULL,
   codename = NULL,
   url = NULL,
-  local_output_dir_root = "./",
+  local_output_dir_root = ".",
   local_clone_dir = "/tmp",
   platform = NULL,
   arch = NULL,

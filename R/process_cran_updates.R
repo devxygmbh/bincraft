@@ -38,7 +38,7 @@ process_cran_updates <- function(
     local_clone_dir,
     interval = lubridate::today(),
     codename = NULL,
-    local_output_dir_root = "./",
+    local_output_dir_root = ".",
     endpoint = NULL,
     region = NULL,
     bucket = NULL,

@@ -23,7 +23,7 @@
 archive_package <- function(
     package_name,
     codename = NULL,
-    local_output_dir_root = "./",
+    local_output_dir_root = ".",
     endpoint = NULL,
     region = NULL,
     bucket = NULL,
