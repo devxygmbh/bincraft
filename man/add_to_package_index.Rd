@@ -9,7 +9,7 @@ add_to_package_index(
   endpoint = NULL,
   region = NULL,
   bucket = NULL,
-  local_build_root = "/mnt/cache/binaries",
+  local_output_dir_root = "/mnt/cache/binaries",
   codename = NULL,
   debug = FALSE,
   s3_access_key_id = NULL,
@@ -29,7 +29,7 @@ S3 region}
 \item{bucket}{(\link{character})\cr
 S3 bucket name}
 
-\item{local_build_root}{(\link{character})\cr
+\item{local_output_dir_root}{(\link{character})\cr
 Path to local build root}
 
 \item{codename}{(\link{character})\cr

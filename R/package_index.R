@@ -4,7 +4,7 @@
 #' @template param-endpoint
 #' @template param-region
 #' @template param-bucket
-#' @template param-local_build_root
+#' @template param-local_output_dir_root
 #' @template param-debug
 #' @template param-s3-access-key-id
 #' @template param-s3-secret-access-key
@@ -17,7 +17,7 @@ add_to_package_index <- function(
     endpoint = NULL,
     region = NULL,
     bucket = NULL,
-    local_build_root = "/mnt/cache/binaries",
+    local_output_dir_root = "/mnt/cache/binaries",
     codename = NULL,
     debug = FALSE,
     s3_access_key_id = NULL,
@@ -41,7 +41,7 @@ add_to_package_index <- function(
     arch <- "amd64"
   }
 
-  local_bin_dir <- set_bin_path(local_build_root, codename)
+  local_bin_dir <- set_bin_path(local_output_dir_root, codename)
   remote_bin_dir <- sprintf("%s/%s/%s/latest/src/contrib", bucket, arch, codename)
 
   s3fs::s3_file_system(
@@ -71,7 +71,7 @@ add_to_package_index <- function(
 #' @template param-region
 #' @template param-bucket
 #' @template param-debug
-#' @template param-local_build_root
+#' @template param-local_output_dir_root
 #' @template param-arch
 #' @template param-s3-access-key-id
 #' @template param-s3-secret-access-key
@@ -84,7 +84,7 @@ upload_package_index <- function(
     endpoint = NULL,
     region = NULL,
     bucket = NULL,
-    local_build_root = ".",
+    local_output_dir_root = "./",
     codename = NULL,
     debug = FALSE,
     arch = NULL,
@@ -112,7 +112,7 @@ upload_package_index <- function(
     }
   }
 
-  local_bin_dir <- set_bin_path(local_build_root, codename)
+  local_bin_dir <- set_bin_path(local_output_dir_root, codename)
   remote_bin_dir <- sprintf("%s/%s/%s/latest/src/contrib", bucket, arch, codename)
 
   s3fs::s3_file_system(

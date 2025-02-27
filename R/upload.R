@@ -6,7 +6,7 @@
 #' @template param-region
 #' @template param-bucket
 #' @template param-debug
-#' @template param-local_build_root
+#' @template param-local_output_dir_root
 #' @template param-force
 #' @template param-s3-access-key-id
 #' @template param-s3-secret-access-key
@@ -17,7 +17,7 @@ upload_single_binary <- function(
     endpoint = NULL,
     region = NULL,
     bucket = NULL,
-    local_build_root = "/root",
+    local_output_dir_root = "./",
     codename = NULL,
     package_name,
     tag,
@@ -39,8 +39,8 @@ upload_single_binary <- function(
 
   cli::cli_h2("Uploading ({.pkg {package_name[1]}})")
 
-  local_bin_path <- set_bin_path(local_build_root = local_build_root, codename)
-  remote_bin_path <- set_bin_path(local_build_root = bucket, codename)
+  local_bin_path <- set_bin_path(local_output_dir_root = local_output_dir_root, codename)
+  remote_bin_path <- set_bin_path(local_output_dir_root = bucket, codename)
 
   tarball_name <- sprintf("%s_%s.tar.gz", package_name, tag)
 
@@ -136,7 +136,7 @@ upload_source_tarball <- function(
   )
 
   codename <- set_codename(codename)
-  remote_bin_path <- set_bin_path(local_build_root = bucket, codename)
+  remote_bin_path <- set_bin_path(local_output_dir_root = bucket, codename)
   version <- strsplit(gh::gh(sprintf("GET /repos/cran/%s/commits", package_name))[[1]]$commit$message, "version ")[[1]][2]
 
   tmpfile <- tempfile()

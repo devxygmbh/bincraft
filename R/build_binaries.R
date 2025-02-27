@@ -13,7 +13,7 @@
 #' @template param-codename
 #' @template param-arch
 #' @template param-platform
-#' @template param-local_build_root
+#' @template param-local_output_dir_root
 #' @template param-local_clone_dir
 #' @template param-install_system_dependencies
 #' @template param-deps_verbose
@@ -54,7 +54,7 @@ build_binary_package <- function(
     tag = NULL,
     codename = NULL,
     url = NULL,
-    local_build_root = "/root",
+    local_output_dir_root = "./",
     local_clone_dir = "/tmp",
     platform = NULL,
     arch = NULL,
@@ -90,9 +90,9 @@ build_binary_package <- function(
     cli::cli_alert_warning("DEBUG: codename {codename}.")
   }
 
-  binary_output_path <- set_bin_path(local_build_root, codename)
+  binary_output_path <- set_bin_path(local_output_dir_root, codename)
 
-  local_bin_path <- set_bin_path(local_build_root = local_build_root, codename)
+  local_bin_path <- set_bin_path(local_output_dir_root = local_output_dir_root, codename)
 
   # infer local architecture
   local_arch <- Sys.info()[["machine"]]
@@ -106,7 +106,7 @@ build_binary_package <- function(
     cli::cli_alert_warning("DEBUG: binary_output_path {binary_output_path}.")
   }
 
-  dir_out_src <- sprintf("%s/src/contrib/Archive", local_build_root)
+  dir_out_src <- sprintf("%s/src/contrib/Archive", local_output_dir_root)
   if (debug) {
     cli::cli_alert("{.fun build_binary_package}: Creating bin dir {.path {binary_output_path}}.")
     cli::cli_alert("{.fun build_binary_package}: Creating src dir {.path {dir_out_src}}.")

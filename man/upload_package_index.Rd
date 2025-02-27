@@ -9,7 +9,7 @@ upload_package_index(
   endpoint = NULL,
   region = NULL,
   bucket = NULL,
-  local_build_root = ".",
+  local_output_dir_root = "./",
   codename = NULL,
   debug = FALSE,
   arch = NULL,
@@ -30,7 +30,7 @@ S3 region}
 \item{bucket}{(\link{character})\cr
 S3 bucket name}
 
-\item{local_build_root}{(\link{character})\cr
+\item{local_output_dir_root}{(\link{character})\cr
 Path to local build root}
 
 \item{codename}{(\link{character})\cr

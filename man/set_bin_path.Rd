@@ -4,10 +4,10 @@
 \alias{set_bin_path}
 \title{Set path for binary package outputs}
 \usage{
-set_bin_path(local_build_root, codename)
+set_bin_path(local_output_dir_root, codename)
 }
 \arguments{
-\item{local_build_root}{(\link{character})\cr
+\item{local_output_dir_root}{(\link{character})\cr
 Path to local build root}
 
 \item{codename}{(\link{character})\cr

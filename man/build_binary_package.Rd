@@ -9,7 +9,7 @@ build_binary_package(
   tag = NULL,
   codename = NULL,
   url = NULL,
-  local_build_root = "/root",
+  local_output_dir_root = "./",
   local_clone_dir = "/tmp",
   platform = NULL,
   arch = NULL,
@@ -42,7 +42,7 @@ Linux distribution identifier}
 URL from which to build binaries from. By default, a CRAN package is assumed and looked up at 'https://github.com/cran/\if{html}{\out{<package>}}'/.
 Must be a https:// URL, local paths are not supported.}
 
-\item{local_build_root}{(\link{character})\cr
+\item{local_output_dir_root}{(\link{character})\cr
 Path to local build root}
 
 \item{local_clone_dir}{(\link{character})\cr

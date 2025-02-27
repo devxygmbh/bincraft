@@ -38,9 +38,9 @@ set_codename <- function(codename) {
 
 #' Set path for binary package outputs
 #' @template param-codename
-#' @template param-local_build_root
+#' @template param-local_output_dir_root
 #' @export
-set_bin_path <- function(local_build_root, codename) {
+set_bin_path <- function(local_output_dir_root, codename) {
   local_arch <- Sys.info()[["machine"]]
   if (grepl("arm64", local_arch) || grepl("aarch64", local_arch)) {
     arch <- "arm64"
@@ -50,7 +50,7 @@ set_bin_path <- function(local_build_root, codename) {
 
   path <- sprintf(
     "%s/%s/%s/latest/src/contrib",
-    local_build_root, arch, codename
+    local_output_dir_root, arch, codename
   )
   return(path)
 }
@@ -84,7 +84,7 @@ check_for_binary <- function(
     refresh = TRUE
   )
   codename <- set_codename(codename)
-  remote_bin_path <- set_bin_path(local_build_root = bucket, codename)
+  remote_bin_path <- set_bin_path(local_output_dir_root = bucket, codename)
   version <- strsplit(gh::gh(sprintf("GET /repos/cran/%s/commits", package_name))[[1]]$commit$message, "version ")[[1]][2]
   exists <- s3fs::s3_file_exists(sprintf("s3://%s/%s_%s.tar.gz", remote_bin_path, package_name, version))
   return(exists)

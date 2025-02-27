@@ -7,7 +7,7 @@
 archive_package(
   package_name,
   codename = NULL,
-  local_build_root = ".",
+  local_output_dir_root = "./",
   endpoint = NULL,
   region = NULL,
   bucket = NULL,
@@ -24,7 +24,7 @@ Package name}
 \item{codename}{(\link{character})\cr
 Linux distribution identifier}
 
-\item{local_build_root}{(\link{character})\cr
+\item{local_output_dir_root}{(\link{character})\cr
 Path to local build root}
 
 \item{endpoint}{(\link{character})\cr

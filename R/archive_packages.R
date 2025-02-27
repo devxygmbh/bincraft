@@ -6,7 +6,7 @@
 #' @template param-region
 #' @template param-bucket
 #' @template param-debug
-#' @template param-local_build_root
+#' @template param-local_output_dir_root
 #' @template param-s3-access-key-id
 #' @template param-s3-secret-access-key
 #'
@@ -23,7 +23,7 @@
 archive_package <- function(
     package_name,
     codename = NULL,
-    local_build_root = ".",
+    local_output_dir_root = "./",
     endpoint = NULL,
     region = NULL,
     bucket = NULL,
@@ -64,7 +64,7 @@ archive_package <- function(
     }
   }
 
-  local_bin_dir <- set_bin_path(local_build_root, codename)
+  local_bin_dir <- set_bin_path(local_output_dir_root, codename)
   remote_bin_dir <- sprintf("%s/%s/%s/latest/src/contrib", bucket, arch, codename)
 
   # suppress progressr output here

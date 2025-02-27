@@ -10,7 +10,7 @@
 #' @template param-region
 #' @template param-bucket
 #' @template param-platform
-#' @template param-local_build_root
+#' @template param-local_output_dir_root
 #' @template param-local_clone_dir
 #' @template param-interval
 #' @template param-process_updated
@@ -38,7 +38,7 @@ process_cran_updates <- function(
     local_clone_dir,
     interval = lubridate::today(),
     codename = NULL,
-    local_build_root = ".",
+    local_output_dir_root = "./",
     endpoint = NULL,
     region = NULL,
     bucket = NULL,
@@ -111,7 +111,7 @@ process_cran_updates <- function(
       arch <- "amd64"
     }
 
-    local_bin_dir <- set_bin_path(local_build_root, codename)
+    local_bin_dir <- set_bin_path(local_output_dir_root, codename)
     remote_bin_dir <- sprintf("%s/%s/%s/latest/src/contrib", bucket, arch, codename)
 
     files <- s3fs::s3_dir_ls(remote_bin_dir)
