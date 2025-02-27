@@ -1,4 +1,13 @@
 #' Build R binary packages
+#'
+#' @description
+#' Builds binary packages from a given URL for a specific architecture.
+#' Git tags are used to determine all possible versions to build.
+#'
+#' System dependencies are automatically installed through [pak].
+#'
+#' The function also automatically archives older versions into an `Archive/` directory to keep only the most recent one in the repository root.
+#'
 #' @template param-package_name
 #' @template param-tag
 #' @template param-codename
@@ -11,6 +20,7 @@
 #' @template param-debug
 #' @template param-archive
 #' @template param-force
+#' @template param-url
 #' @param future_strategy future parallelization strategy
 #' @param future_workers Parallel workers count
 #'
@@ -21,19 +31,31 @@
 #' @importFrom gert git_config_global_set git_clone
 #' @importFrom pak local_install_dev_deps
 #' @importFrom pkgbuild build
+#'
+#' @examples
+#' \dontrun{
+#' # build from cran
+#' build_binary_package("brew", archive = FALSE)
+#' build_binary_package("brew", url = "https://github.com/cran/brew", archive = FALSE)
+#' }
+#'
 #' @export
-build_binary_package <- function(package_name, tag = NULL, codename = NULL,
-                                 local_build_root = "/root",
-                                 local_clone_dir = "/tmp",
-                                 platform = NULL,
-                                 arch = NULL,
-                                 install_system_dependencies = TRUE,
-                                 deps_verbose = FALSE,
-                                 debug = FALSE,
-                                 force = FALSE,
-                                 archive = TRUE,
-                                 future_strategy = "multisession",
-                                 future_workers = 2) {
+build_binary_package <- function(
+    package_name,
+    tag = NULL,
+    codename = NULL,
+    url = NULL,
+    local_build_root = "/root",
+    local_clone_dir = "/tmp",
+    platform = NULL,
+    arch = NULL,
+    install_system_dependencies = TRUE,
+    deps_verbose = FALSE,
+    debug = FALSE,
+    force = FALSE,
+    archive = TRUE,
+    future_strategy = "multisession",
+    future_workers = 2) {
   cli::cli_h2("Preparations ({.pkg {package_name}})")
   codename <- set_codename(codename)
 
@@ -57,7 +79,7 @@ build_binary_package <- function(package_name, tag = NULL, codename = NULL,
 
   local_bin_path <- set_bin_path(local_build_root = local_build_root, codename)
 
-  # set arch
+  # infer local architecture
   local_arch <- Sys.info()[["machine"]]
   if (grepl("arm64", local_arch) || grepl("aarch64", local_arch)) {
     arch <- "arm64"
@@ -92,7 +114,10 @@ build_binary_package <- function(package_name, tag = NULL, codename = NULL,
   gert::git_config_global_set("advice.detachedHead", "false")
 
   if (is.null(tag) || tag == "latest") {
-    gert::git_clone(sprintf("https://github.com/cran/%s", package_name),
+    if (is.null(url)) {
+      url <- sprintf("https://github.com/cran/%s", package_name)
+    }
+    gert::git_clone(url,
       path = sprintf("%s/%s", tempdir(), "tmp1"),
       verbose = FALSE
     )

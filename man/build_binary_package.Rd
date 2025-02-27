@@ -8,6 +8,7 @@ build_binary_package(
   package_name,
   tag = NULL,
   codename = NULL,
+  url = NULL,
   local_build_root = "/root",
   local_clone_dir = "/tmp",
   platform = NULL,
@@ -26,10 +27,14 @@ build_binary_package(
 Package name}
 
 \item{tag}{(\link{character})\cr
-Tag/version}
+Tag/version. Tags starting with "R-" are filtered out.}
 
 \item{codename}{(\link{character})\cr
 Linux distribution identifier}
+
+\item{url}{(\link{character})\cr
+URL from which to build binaries from. By default, a CRAN package is assumed and looked up at 'https://github.com/cran/\if{html}{\out{<package>}}'/.
+Must be a https:// URL, local paths are not supported.}
 
 \item{local_build_root}{(\link{character})\cr
 Path to local build root}
@@ -63,5 +68,18 @@ Whether to archive packages.}
 \item{future_workers}{Parallel workers count}
 }
 \description{
-Build R binary packages
+Builds binary packages from a given URL for a specific architecture.
+Git tags are used to determine all possible versions to build.
+
+System dependencies are automatically installed through \link{pak}.
+
+The function also automatically archives older versions into an \verb{Archive/} directory to keep only the most recent one in the repository root.
+}
+\examples{
+\dontrun{
+# build from cran
+build_binary_package("brew", archive = FALSE)
+build_binary_package("brew", url = "https://github.com/cran/brew", archive = FALSE)
+}
+
 }
