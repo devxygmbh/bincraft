@@ -84,8 +84,14 @@ process_cran_updates <- function(
   all_pkgs <- dplyr::bind_rows(updated_pkgs, new_pkgs)
 
   if (any(c(process_updated, process_new))) {
+    cli::cli_par()
+    cli::cli_end()
+    
     cli::cli_alert_success("{.fun process_cran_updates}: Updated packages:")
     print(updated_pkgs)
+
+    cli::cli_par()
+    cli::cli_end()
     cli::cli_alert_success("{.fun process_cran_updates}: New packages:")
     print(new_pkgs)
 
