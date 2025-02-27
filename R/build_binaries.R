@@ -348,6 +348,10 @@ build_single_tag <- function(
       tarball_id <- "pc"
       tarball_arch <- "x86_64"
     }
+    # on some systems, the tarball_id is also sometimes 'redhat'
+    if (any(grepl("-redhat-linux", fs::dir_ls(binary_output_path, recurse = TRUE)))) {
+      tarball_id <- "redhat"
+    }
 
     if (!file.exists(sprintf("%s/%s_%s.tar.gz", binary_output_path, package_name, tag))) {
       if (debug) {
