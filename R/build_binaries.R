@@ -206,7 +206,7 @@ build_binary_package <- function(
         # if for some reason an underlying error didnt' get caught in the tryCatch calls, we check again here for the existence of the binary file on disk and mark the build as failed if it is not found
         tarball_name <- sprintf("%s_%s.tar.gz", x, y)
         if (fs::file_exists(sprintf("%s/%s", local_bin_path, tarball_name))) {
-          cli::cli_alert_success("Successfully built package {.pkg {x}} with tag {.field {y}}.")
+          cli::cli_alert_success("Finished processing package {.pkg {x}} with tag {.field {y}}.")
         } else {
           cli::cli_alert_warning("Error in building package {.pkg {x}} with tag {.field {y}}: Uncommon/unspecific error during build.")
           store_build_metadata(x, y, platform,
@@ -268,6 +268,8 @@ build_binary_package <- function(
       upload_source_tarball(package_name[1], s3_endpoint = s3_endpoint, s3_bucket = s3_bucket, s3_region = s3_region, s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key)
     }
   } else {
+    cli::cli_par()
+    cli::cli_end()
     cli::cli_alert_info("The following binaries have been built:")
     fs::dir_ls(binary_output_path)[-1]
   }
@@ -324,6 +326,8 @@ build_single_tag <- function(
     metadata_db_user = NULL,
     metadata_db_password = NULL,
     metadata_db_sslmode = NULL) {
+  cli::cli_par()
+  cli::cli_end()
   cli::cli_rule("{package_name} {tag}")
   cli::cli_alert("{.fun build_single_tag}: (1/3) Cloning package {.pkg {package_name}} with tag {.field {tag}}.")
 
@@ -357,7 +361,7 @@ build_single_tag <- function(
   }
 
   if (file.exists(sprintf("%s/%s_%s.tar.gz", binary_output_path, package_name, tag))) {
-    cli::cli_alert("{.fun build_single_tag}: (2/3) Tarball for package {.pkg {package_name}} with tag {.field {tag}} already exists. Skipping build.")
+    cli::cli_alert_info("{.fun build_single_tag}: (2/3) Tarball for package {.pkg {package_name}} with tag {.field {tag}} already exists. Skipping build.")
   } else {
     cli::cli_alert("{.fun build_single_tag}: (2/3) Building package {.pkg {package_name}} with tag {.field {tag}}.")
 
