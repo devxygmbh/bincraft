@@ -9,6 +9,14 @@ store_build_metadata(
   tag,
   platform,
   error_occurred,
+  db_type = "postgres",
+  db_host = NULL,
+  db_name = NULL,
+  db_table = NULL,
+  db_port = NULL,
+  db_user = NULL,
+  db_password = NULL,
+  db_sslmode = NULL,
   arch,
   force = FALSE,
   error = NA,
@@ -28,6 +36,22 @@ Platform identifier}
 
 \item{error_occurred}{(\link{logical})\cr
 Whether or not an error occurred during build}
+
+\item{db_type}{Database type. Denotes the DB driver to be used for connecting.}
+
+\item{db_host}{Database host}
+
+\item{db_name}{Database name}
+
+\item{db_table}{Database table}
+
+\item{db_port}{Database port}
+
+\item{db_user}{Database user}
+
+\item{db_password}{Database password}
+
+\item{db_sslmode}{Database sslmode}
 
 \item{arch}{(\link{character})\cr
 Architecture}

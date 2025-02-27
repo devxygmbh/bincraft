@@ -259,7 +259,7 @@ build_binary_package <- function(
 #' @template param-deps_verbose
 #' @template param-force
 #' @template param-binary_output_path
-#' @template param-store_build_metadata
+#' @template parma-store_build_metadata
 #'
 #' @importFrom cli cli_alert
 #' @importFrom pkgbuild build

@@ -4,11 +4,37 @@
 \alias{remove_from_metadata}
 \title{Remove package from metadata table}
 \usage{
-remove_from_metadata(package_name)
+remove_from_metadata(
+  package_name,
+  db_type = "postgres",
+  db_host = NULL,
+  db_name = NULL,
+  db_table = NULL,
+  db_port = NULL,
+  db_user = NULL,
+  db_password = NULL,
+  db_sslmode = NULL
+)
 }
 \arguments{
 \item{package_name}{(\link{character})\cr
 Package name}
+
+\item{db_type}{Database type. Denotes the DB driver to be used for connecting.}
+
+\item{db_host}{Database host}
+
+\item{db_name}{Database name}
+
+\item{db_table}{Database table}
+
+\item{db_port}{Database port}
+
+\item{db_user}{Database user}
+
+\item{db_password}{Database password}
+
+\item{db_sslmode}{Database sslmode}
 }
 \description{
 Remove package from metadata table

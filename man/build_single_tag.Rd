@@ -48,6 +48,9 @@ Whether to infer and install system dependencies of packages}
 
 \item{deps_verbose}{(\link{logical})\cr
 Whether to enable verbose output via env var \code{PKG_SYSREQS_VERBOSE}}
+
+\item{store_build_metadata}{(\link{logical})\cr
+Whether to store the build metadata in the referenced database.}
 }
 \description{
 Build binary for a single tag
