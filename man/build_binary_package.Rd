@@ -19,6 +19,7 @@ build_binary_package(
   force = FALSE,
   upload = FALSE,
   archive = FALSE,
+  store_build_metadata = FALSE,
   future_strategy = "sequential",
   future_workers = 1,
   endpoint = NULL,
@@ -71,6 +72,9 @@ Whether to upload the built packages to the specified remote.}
 
 \item{archive}{(\link{logical})\cr
 Whether to archive packages.}
+
+\item{store_build_metadata}{(\link{logical})\cr
+Whether to store the build metadata in the referenced database.}
 
 \item{future_strategy}{future parallelization strategy}
 

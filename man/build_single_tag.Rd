@@ -14,7 +14,8 @@ build_single_tag(
   debug = FALSE,
   force = FALSE,
   install_system_dependencies = TRUE,
-  deps_verbose = FALSE
+  deps_verbose = FALSE,
+  store_build_metadata = FALSE
 )
 }
 \arguments{

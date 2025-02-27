@@ -19,6 +19,7 @@
 #' @template param-deps_verbose
 #' @template param-debug
 #' @template param-archive
+#' @template param-store_build_metadata
 #' @template param-upload
 #' @template param-force
 #' @template param-url
@@ -64,6 +65,7 @@ build_binary_package <- function(
     force = FALSE,
     upload = FALSE,
     archive = FALSE,
+    store_build_metadata = FALSE,
     future_strategy = "sequential",
     future_workers = 1,
     endpoint = NULL,
@@ -176,7 +178,7 @@ build_binary_package <- function(
         dump <- build_single_tag(x, y, binary_output_path, local_clone_dir,
           platform = platform, arch = arch, debug = debug, force = force,
           install_system_dependencies = install_system_dependencies,
-          deps_verbose = deps_verbose
+          deps_verbose = deps_verbose, store_build_metadata = store_build_metadata
         )
 
         p(message = sprintf("Done building '%s'", y))
@@ -269,7 +271,8 @@ build_single_tag <- function(
     debug = FALSE,
     force = FALSE,
     install_system_dependencies = TRUE,
-    deps_verbose = FALSE) {
+    deps_verbose = FALSE,
+    store_build_metadata = FALSE) {
   cli::cli_alert("{.fun build_single_tag}: (1/3) Cloning package {.pkg {package_name}} with tag {.field {tag}}.")
 
   local_clone_dir_single <- sprintf("%s/%s_%s", local_clone_dir, package_name, tag)
@@ -383,8 +386,11 @@ build_single_tag <- function(
     }
 
     tarball_name <- sprintf("%s_%s.tar.gz", package_name, tag)
-    if (fs::file_exists(sprintf("%s/%s", binary_output_path, tarball_name))) {
-      store_build_metadata(package_name, tag, platform, arch = arch, error_occurred = FALSE, force = force, build_duration = total_build_time, size = file_size)
+
+    if (store_build_metadata) {
+      if (fs::file_exists(sprintf("%s/%s", binary_output_path, tarball_name))) {
+        store_build_metadata(package_name, tag, platform, arch = arch, error_occurred = FALSE, force = force, build_duration = total_build_time, size = file_size)
+      }
     }
   }
 
