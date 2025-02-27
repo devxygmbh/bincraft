@@ -4,14 +4,16 @@
 #' @template param-platform
 #' @template param-deps_verbose
 #' @template param-local_clone_dir
-#' 
+#'
 #' @export
 install_package_system_dependencies <- function(package_name,
                                                 tag,
                                                 platform = platform,
                                                 local_clone_dir,
                                                 deps_verbose = FALSE) {
-  cli::cli_alert("{.fun install_package_system_dependencies}: Cloning package {.pkg {package_name[1]}} with tag {.field {tail(tag, 1)}}.")
+  if (debug) {
+    cli::cli_alert("{.fun install_package_system_dependencies}: Cloning package {.pkg {package_name[1]}} with tag {.field {tail(tag, 1)}}.")
+  }
 
   t1 <- Sys.time()
 
@@ -48,7 +50,9 @@ install_package_system_dependencies <- function(package_name,
     suppressMessages(pak::local_install_deps(sprintf("%s", local_clone_dir_single)))
   }
 
-  cli::cli_alert("{.fun install_package_system_dependencies}: Removing temporary clone dir at {.path {local_clone_dir_single}}.")
+  if (debug) {
+    cli::cli_alert("{.fun install_package_system_dependencies}: Removing temporary clone dir at {.path {local_clone_dir_single}}.")
+  }
 
   total_build_time <- round(Sys.time() - t1, 2)
   cli::cli_alert("Dependency installation time ({.pkg {package_name[[1]]}}): {.strong {total_build_time} {units(difftime(Sys.time(), t1))}}.")
