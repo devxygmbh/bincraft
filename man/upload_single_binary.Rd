@@ -36,7 +36,7 @@ Linux distribution identifier}
 Package name}
 
 \item{tag}{(\link{character})\cr
-Tag/version}
+Tag/version. Tags starting with "R-" are filtered out.}
 
 \item{force}{(\link{logical})\cr
 Whether to force-build packages}

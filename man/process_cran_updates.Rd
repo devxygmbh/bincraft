@@ -25,7 +25,7 @@ process_cran_updates(
 Package name}
 
 \item{tag}{(\link{character})\cr
-Tag/version}
+Tag/version. Tags starting with "R-" are filtered out.}
 
 \item{platform}{(\link{character})\cr
 Platform identifier}
