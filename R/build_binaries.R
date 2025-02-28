@@ -191,7 +191,7 @@ build_binary_package <- function(
     p(message = sprintf("Building '%s'", y))
     tryCatch(
       {
-        dump <- build_single_tag(x, y, binary_output_path, local_clone_dir,
+        result <- build_single_tag(x, y, binary_output_path, local_clone_dir,
           platform = platform, arch = arch, debug = debug, force = force,
           install_system_dependencies = install_system_dependencies,
           deps_verbose = deps_verbose, store_build_metadata = store_build_metadata,
@@ -208,7 +208,7 @@ build_binary_package <- function(
         tarball_name <- sprintf("%s_%s.tar.gz", x, y)
         if (fs::file_exists(sprintf("%s/%s", local_bin_path, tarball_name))) {
           cli::cli_alert_success("Finished processing package {.pkg {x}} with tag {.field {y}}.")
-        } else {
+        } else if (result != "skipped") {
           cli::cli_alert_warning("Error in building package {.pkg {x}} with tag {.field {y}}: Uncommon/unspecific error during build.")
           store_build_metadata(x, y, platform,
             error_occurred = TRUE, force = TRUE, arch = arch, error = "Uncommon/unspecific error during build",
@@ -234,7 +234,6 @@ build_binary_package <- function(
     )
     p(message = sprintf("Finished building %s %s", x, y))
   }
-
 
   if (debug) {
     mapply(worker_fun, package_name, tag, MoreArgs = list(p, debug))
@@ -364,10 +363,10 @@ build_single_tag <- function(
 
   if (file.exists(sprintf("%s/%s_%s.tar.gz", binary_output_path, package_name, tag))) {
     cli::cli_alert_info("{.fun build_single_tag}: Tarball for package {.pkg {package_name}} with tag {.field {tag}} already exists. Skipping build.")
-    return(invisible(TRUE))
+    return("skipped")
   } else if (!force && !is.null(s3_bucket) && s3fs::s3_file_exists(sprintf("%s/%s", remote_bin_path, tarball_name))) {
     cli::cli_alert_info("{.fun build_single_tag}: Package {.pkg {package_name}} with tag {.field {tag}} already exists in S3 and {.code force = FALSE}. Skipping build.")
-    return(invisible(TRUE))
+    return("skipped")
   }
 
   # Using system git here as {gert} does not provide this functionality to checkout a branch by tag
