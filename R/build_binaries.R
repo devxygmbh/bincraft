@@ -233,12 +233,13 @@ build_binary_package <- function(
       }
     )
     p(message = sprintf("Finished building %s %s", x, y))
+    return(result)
   }
 
   if (debug) {
-    mapply(worker_fun, package_name, tag, MoreArgs = list(p, debug))
+    result = mapply(worker_fun, package_name, tag, MoreArgs = list(p, debug))
   } else {
-    future.apply::future_mapply(worker_fun, package_name, tag,
+    result = future.apply::future_mapply(worker_fun, package_name, tag,
       future.seed = TRUE, MoreArgs = list(p, debug)
     )
   }
@@ -246,7 +247,7 @@ build_binary_package <- function(
   total_build_time <- round(Sys.time() - t1, 2)
   cli::cli_alert("Execution time ({.pkg {package_name[1]}}) ({length(tag)} tags): {.strong {total_build_time} {units(difftime(Sys.time(), t1))}}.")
 
-  if (upload) {
+  if (upload && !result == "skipped") {
     # out <- progressr::with_progress({
     # p <- progressr::progressor(along = tag)
     # future.apply::future_mapply(function(x, y) {
@@ -274,7 +275,7 @@ build_binary_package <- function(
     fs::dir_ls(binary_output_path)[-1]
   }
 
-  if (archive) {
+  if (archive && !result == "skipped") {
     archive_package(package_name[1], debug = debug, s3_endpoint = s3_endpoint, s3_bucket = s3_bucket, s3_region = s3_region, s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key)
   }
 
