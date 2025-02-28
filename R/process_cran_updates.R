@@ -86,7 +86,7 @@ process_cran_updates <- function(
   if (any(c(process_updated, process_new))) {
     cli::cli_par()
     cli::cli_end()
-    
+
     cli::cli_alert_success("{.fun process_cran_updates}: Updated packages:")
     print(updated_pkgs)
 
@@ -112,9 +112,6 @@ process_cran_updates <- function(
 
     purrr::walk2(all_pkgs$name, all_pkgs$version, ~ {
       build_binary_package(.x, .y, platform = platform, upload = upload, archive = archive, store_build_metadata = store_build_metadata, s3_endpoint = s3_endpoint, s3_bucket = s3_bucket, s3_region = s3_region, s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key, metadata_db_type = metadata_db_type, metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name, metadata_db_table = metadata_db_table, metadata_db_port = metadata_db_port, metadata_db_user = metadata_db_user, metadata_db_password = metadata_db_password, metadata_db_sslmode = metadata_db_sslmode)
-      if (archive) {
-        archive_package(.x, s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key, s3_endpoint = s3_endpoint, s3_bucket = s3_bucket, s3_region = s3_region)
-      }
     })
   }
 
