@@ -14,9 +14,9 @@
 #' @importFrom s3fs s3_file_exists s3_file_upload s3_file_system
 #' @export
 upload_single_binary <- function(
-    s3_endpoint = NULL,
-    s3_region = NULL,
-    s3_bucket = NULL,
+    s3_endpoint,
+    s3_region,
+    s3_bucket,
     local_output_dir_root = ".",
     codename = NULL,
     package_name,
@@ -25,15 +25,6 @@ upload_single_binary <- function(
     debug = FALSE,
     s3_access_key_id = NULL,
     s3_secret_access_key = NULL) {
-  if (is.null(s3_endpoint)) {
-    stop("s3_endpoint must be defined")
-  }
-  if (is.null(s3_region)) {
-    stop("s3_region must be defined")
-  }
-  if (is.null(s3_bucket)) {
-    stop("s3_bucket must be defined")
-  }
 
   codename <- set_codename(codename)
 
@@ -111,22 +102,13 @@ upload_single_binary <- function(
 #' @export
 upload_source_tarball <- function(
     package_name,
-    s3_endpoint = NULL,
-    s3_region = NULL,
-    s3_bucket = NULL,
+    s3_endpoint,
+    s3_region,
+    s3_bucket,
     codename = NULL,
     arch = NULL,
     s3_access_key_id = NULL,
     s3_secret_access_key = NULL) {
-  if (is.null(s3_endpoint)) {
-    stop("s3_endpoint must be defined")
-  }
-  if (is.null(s3_region)) {
-    stop("s3_region must be defined")
-  }
-  if (is.null(s3_bucket)) {
-    stop("s3_bucket must be defined")
-  }
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
     aws_secret_access_key = s3_secret_access_key,

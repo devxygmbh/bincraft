@@ -14,24 +14,14 @@
 #' @export
 add_to_package_index <- function(
     package_name = NULL,
-    s3_endpoint = NULL,
-    s3_region = NULL,
-    s3_bucket = NULL,
+    s3_endpoint,
+    s3_region,
+    s3_bucket,
     local_output_dir_root = "/mnt/cache/binaries",
     codename = NULL,
     debug = FALSE,
     s3_access_key_id = NULL,
     s3_secret_access_key = NULL) {
-  if (is.null(s3_endpoint)) {
-    stop("s3_endpoint must be defined")
-  }
-  if (is.null(s3_region)) {
-    stop("s3_region must be defined")
-  }
-  if (is.null(s3_bucket)) {
-    stop("s3_bucket must be defined")
-  }
-
   codename <- set_codename(codename)
 
   local_arch <- Sys.info()[["machine"]]
@@ -81,25 +71,16 @@ add_to_package_index <- function(
 #' @export
 upload_package_index <- function(
     package_name = NULL,
-    s3_endpoint = NULL,
-    s3_region = NULL,
-    s3_bucket = NULL,
+    s3_endpoint,
+    s3_region,
+    s3_bucket,
     local_output_dir_root = ".",
     codename = NULL,
     debug = FALSE,
     arch = NULL,
     s3_access_key_id = NULL,
     s3_secret_access_key = NULL) {
-  if (is.null(s3_endpoint)) {
-    stop("s3_endpoint must be defined")
-  }
-  if (is.null(s3_region)) {
-    stop("s3_region must be defined")
-  }
-  if (is.null(s3_bucket)) {
-    stop("s3_bucket must be defined")
-  }
-  cli::cli_alert("{.fun upload_package_index}: Updating PACKAGES* files in S3.")
+  cli::cli_alert("Updating PACKAGES* files in S3.")
 
   codename <- set_codename(codename)
 
@@ -123,9 +104,9 @@ upload_package_index <- function(
     refresh = TRUE
   )
 
-  cli::cli_alert("{.fun upload_package_index}: Started listing remote packages")
+  cli::cli_alert("Started listing remote packages")
   pkgs <- s3fs::s3_dir_ls(remote_bin_dir)
-  cli::cli_alert_success("{.fun upload_package_index}: Finished listing remote packages")
+  cli::cli_alert_success("Finished listing remote packages")
   # We remove 4 from the count as we don't want to count the PACKAGES* files + Archive/ dir
   pkg_count <- length(pkgs) - 5
   unique_pkgs <- length(unique(sapply(strsplit(basename(pkgs), "_"), function(x) x[1]))) - 5
@@ -134,16 +115,16 @@ upload_package_index <- function(
   cranlike::update_PACKAGES(sprintf("s3://%s", remote_bin_dir))
 
   # write Meta/archive.rds for remotes::install_version
-  cli::cli_alert_success("{.fun upload_package_index}: Started creating/updating {.path Meta/archive.rds}")
+  cli::cli_alert_success("Started creating/updating {.path Meta/archive.rds}")
   files <- s3fs::s3_dir_ls(sprintf("%s/Archive", remote_bin_dir), recurse = TRUE, regexp = "*.tar.gz")
   archive_rds <- write_archive_rds(files)
   tmp <- tempfile()
   saveRDS(archive_rds, tmp)
   s3fs::s3_file_upload(tmp, sprintf("%s/Meta/archive.rds", remote_bin_dir), overwrite = TRUE, CacheControl = "no-store")
-  cli::cli_alert_success("{.fun upload_package_index}: Successfully uploaded {.path Meta/archive.rds}")
+  cli::cli_alert_success("Successfully uploaded {.path Meta/archive.rds}")
 
   total_build_time <- round(Sys.time() - t1, 2)
-  cli::cli_alert("{.fun upload_package_index}: Time updating PACKAGES index for {.field {pkg_count}} ({.field {unique_pkgs}} unique) packages: {.strong {total_build_time} {units(difftime(Sys.time(), t1))}}.")
+  cli::cli_alert("Time updating PACKAGES index for {.field {pkg_count}} ({.field {unique_pkgs}} unique) packages: {.strong {total_build_time} {units(difftime(Sys.time(), t1))}}.")
 
   purrr::walk2(
     c("PACKAGES", "PACKAGES.db", "PACKAGES.rds", "PACKAGES.gz"),
