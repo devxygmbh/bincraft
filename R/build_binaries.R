@@ -245,7 +245,7 @@ build_binary_package <- function(
   }
 
   total_build_time <- round(Sys.time() - t1, 2)
-  cli::cli_alert("Execution time ({.pkg {package_name[1]}}) ({length(tag)} tags): {.strong {total_build_time} {units(difftime(Sys.time(), t1))}}.")
+  cli::cli_alert_info("Execution time ({.pkg {package_name[1]}}) ({length(tag)} tag{?s}): {.strong {total_build_time} {units(difftime(Sys.time(), t1))}}.")
 
   if (upload && !result == "skipped") {
     # out <- progressr::with_progress({
@@ -397,7 +397,7 @@ build_single_tag <- function(
     )
   }
 
-  cli::cli_alert("{.fun build_single_tag}: 🔨️ Building package {.pkg {package_name}} with tag {.field {tag}}.")
+  cli::cli_alert("🔨️ Building package {.pkg {package_name}} with tag {.field {tag}}.")
 
   if (debug) {
     quiet <- FALSE
