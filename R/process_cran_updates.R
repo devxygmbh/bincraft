@@ -118,6 +118,8 @@ process_cran_updates <- function(
 
   if (process_removed) {
     removed_pkgs <- get_removed_cran_packages(interval)
+    cli::cli_par()
+    cli::cli_end()
     cli::cli_alert_success("{.fun process_cran_updates}: Removed packages:")
     print(removed_pkgs)
 

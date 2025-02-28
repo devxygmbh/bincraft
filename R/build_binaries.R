@@ -268,11 +268,6 @@ build_binary_package <- function(
     if (!check_for_binary(package_name[1], s3_endpoint = s3_endpoint, s3_bucket = s3_bucket, s3_region = s3_region, s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key)) {
       upload_source_tarball(package_name[1], s3_endpoint = s3_endpoint, s3_bucket = s3_bucket, s3_region = s3_region, s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key)
     }
-  } else {
-    cli::cli_par()
-    cli::cli_end()
-    cli::cli_alert_info("The following binaries have been built:")
-    fs::dir_ls(binary_output_path)[-1]
   }
 
   if (archive && !result == "skipped") {
@@ -363,10 +358,10 @@ build_single_tag <- function(
   }
 
   if (file.exists(sprintf("%s/%s_%s.tar.gz", binary_output_path, package_name, tag))) {
-    cli::cli_alert_info("{.fun build_single_tag}: Tarball for package {.pkg {package_name}} with tag {.field {tag}} already exists. Skipping build.")
+    cli::cli_alert_info("Tarball for package {.pkg {package_name}} with tag {.field {tag}} already exists. Skipping build.")
     return("skipped")
   } else if (!force && !is.null(s3_bucket) && s3fs::s3_file_exists(sprintf("%s/%s", remote_bin_path, tarball_name))) {
-    cli::cli_alert_info("{.fun build_single_tag}: Package {.pkg {package_name}} with tag {.field {tag}} already exists in S3 and {.code force = FALSE}. Skipping build.")
+    cli::cli_alert_info("Package {.pkg {package_name}} with tag {.field {tag}} already exists in S3 and {.code force = FALSE}. Skipping build.")
     return("skipped")
   }
 
