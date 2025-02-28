@@ -14,7 +14,7 @@ install_package_system_dependencies <- function(package_name,
                                                 deps_verbose = FALSE,
                                                 debug = FALSE) {
   if (debug) {
-    cli::cli_alert("{.fun install_package_system_dependencies}: Cloning package {.pkg {package_name[1]}} with tag {.field {tail(tag, 1)}}.")
+    cli::cli_alert("Cloning package {.pkg {package_name[1]}} with tag {.field {tail(tag, 1)}}.")
   }
 
   t1 <- Sys.time()
@@ -33,7 +33,7 @@ install_package_system_dependencies <- function(package_name,
     Sys.setenv(PKG_SYSREQS_PLATFORM = "alpine")
   }
 
-  cli::cli_alert("{.fun install_package_system_dependencies}: Installing R package dependencies for {.pkg {package_name[1]}} with tag {.field {tail(tag, 1)}}.")
+  cli::cli_alert("Installing R package dependencies")
   Sys.setenv(PKG_SYSREQS = TRUE)
   Sys.setenv(PKG_SYSREQS_VERBOSE = TRUE)
   # FIXME: https://github.com/r-lib/pak/issues/610
@@ -53,11 +53,11 @@ install_package_system_dependencies <- function(package_name,
   }
 
   if (debug) {
-    cli::cli_alert("{.fun install_package_system_dependencies}: Removing temporary clone dir at {.path {local_clone_dir_single}}.")
+    cli::cli_alert("Removing temporary clone dir at {.path {local_clone_dir_single}}.")
   }
 
   total_build_time <- round(Sys.time() - t1, 2)
-  cli::cli_alert("Dependency installation time ({.pkg {package_name[[1]]}}): {.strong {total_build_time} {units(difftime(Sys.time(), t1))}}.")
+  cli::cli_alert("R package dependencies installation time ({.pkg {package_name[[1]]}}): {.strong {total_build_time} {units(difftime(Sys.time(), t1))}}.")
 
   unlink(sprintf("%s", local_clone_dir_single), recursive = TRUE, force = TRUE)
 }

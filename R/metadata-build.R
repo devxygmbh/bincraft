@@ -79,7 +79,7 @@ store_build_metadata <- function(
       rate = retry_config, quiet = FALSE
     )()
   } else if (nrow(existing_entries) == 0) {
-    cli::cli_alert("{.fun store_build_metadata}: Storing build metadata for {.pkg {package_name}} {.field {tag}}.")
+    cli::cli_alert("Storing build metadata for {.pkg {package_name}} {.field {tag}}.")
     # if no entry exists already, we can insert the info via dbWriteTable by passing a DF
     metadata <- data.frame(
       name = package_name,
