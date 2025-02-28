@@ -14,6 +14,7 @@
 #' @template param-local_clone_dir
 #' @template param-interval
 #' @template param-archive
+#' @template param-force
 #' @template param-metadata_db_host
 #' @template param-metadata_db_type
 #' @template param-metadata_db_name

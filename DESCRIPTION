@@ -13,6 +13,7 @@ Imports:
     data.table,
     DBI,
     dplyr,
+    emoji,
     fs,
     future,
     future.apply,

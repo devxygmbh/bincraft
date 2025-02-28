@@ -18,6 +18,7 @@ process_cran_updates(
   store_build_metadata = FALSE,
   archive = FALSE,
   upload = FALSE,
+  force = FALSE,
   metadata_db_type = "postgres",
   metadata_db_host = NULL,
   metadata_db_name = NULL,
@@ -72,6 +73,9 @@ Whether to archive packages.}
 
 \item{upload}{(\link{logical})\cr
 Whether to upload the built packages to the specified remote.}
+
+\item{force}{(\link{logical})\cr
+Whether to force-build packages}
 
 \item{metadata_db_type}{(\link{character})\cr
 Type of metadata database}

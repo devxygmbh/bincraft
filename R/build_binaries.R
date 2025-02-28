@@ -307,6 +307,7 @@ build_binary_package <- function(
 #' @importFrom cli cli_alert
 #' @importFrom pkgbuild build
 #' @importFrom fs file_size file_move
+#' @importFrom emoji emoji
 #' @export
 build_single_tag <- function(
     package_name,
@@ -392,7 +393,7 @@ build_single_tag <- function(
     )
   }
 
-  cli::cli_alert("🔨️ Building package {.pkg {package_name}} with tag {.field {tag}}.")
+  cli::cli_alert("{emoji('hammer')} Building package {.pkg {package_name}} with tag {.field {tag}}.")
 
   if (debug) {
     quiet <- FALSE
