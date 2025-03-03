@@ -152,7 +152,7 @@ process_cran_updates <- function(
       if (length(files_filtered) > 0) {
         s3fs::s3_file_delete(files_filtered)
         cli::cli_alert_success("{.fun process_cran_updates}: Successfully removed {.pkg {basename(files_filtered)}} from S3.")
-        remove_from_metadata(.x)
+        remove_from_metadata(.x, metadata_db_type = metadata_db_type, metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name, metadata_db_table = metadata_db_table, metadata_db_port = metadata_db_port, metadata_db_user = metadata_db_user, metadata_db_password = metadata_db_password, metadata_db_sslmode = metadata_db_sslmode)
         cli::cli_alert_success("{.fun process_cran_updates}: Successfully set {.pkg {.x}} as 'removed' in metadata table.")
       } else {
         cli::cli_alert("{.fun process_cran_updates}: No tarballs found for package {.pkg {.x}} - already removed?")
