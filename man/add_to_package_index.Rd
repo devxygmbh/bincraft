@@ -6,9 +6,9 @@
 \usage{
 add_to_package_index(
   package_name = NULL,
-  s3_endpoint = NULL,
-  s3_region = NULL,
-  s3_bucket = NULL,
+  s3_endpoint,
+  s3_region,
+  s3_bucket,
   local_output_dir_root = "/mnt/cache/binaries",
   codename = NULL,
   debug = FALSE,

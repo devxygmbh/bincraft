@@ -5,9 +5,9 @@
 \title{Upload binary to S3}
 \usage{
 upload_single_binary(
-  s3_endpoint = NULL,
-  s3_region = NULL,
-  s3_bucket = NULL,
+  s3_endpoint,
+  s3_region,
+  s3_bucket,
   local_output_dir_root = ".",
   codename = NULL,
   package_name,

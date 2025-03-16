@@ -6,9 +6,9 @@
 \usage{
 upload_source_tarball(
   package_name,
-  s3_endpoint = NULL,
-  s3_region = NULL,
-  s3_bucket = NULL,
+  s3_endpoint,
+  s3_region,
+  s3_bucket,
   codename = NULL,
   arch = NULL,
   s3_access_key_id = NULL,
