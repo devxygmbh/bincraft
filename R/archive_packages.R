@@ -17,7 +17,8 @@
 #' @examples
 #' \dontrun{
 #' archive_package("AATtools", codename = "rhel9")
-#' archive_package("adw", codename = "rhel8", arch = "amd64")
+#' archive_package("adw", codename = "rhel8", arch = "amd64", 
+#' s3_endpoint = 'https://fsn1.your-objectstorage.com', s3_region = 'fsn1', s3_bucket = 'devxy-r-package-binaries', s3_access_key_id = Sys.getenv('HETZNER_S3_ACCESS_KEY_K3S'), s3_secret_access_key = Sys.getenv('HETZNER_S3_SECRET_KEY_K3S'))
 #' }
 #'
 archive_package <- function(
@@ -70,15 +71,21 @@ archive_package <- function(
       s3fs::s3_dir_create(sprintf("%s/Archive/%s", remote_bin_dir, pkgname))
     }
     all_versions <- grep(sprintf("/%s_", pkgname), files, value = TRUE)
+    print(all_versions)
     # only archive if more than one package exists in the root
     if (length(all_versions) > 1) {
       # get most recent version from CRAN
 
       last_version <- strsplit(gh::gh(sprintf("GET /repos/cran/%s/commits", package_name))[[1]]$commit$message, "version ")[[1]][2]
+      cli::cli_alert_info(sprintf("Latest version queried from GH: %s", last_version))
+
       # check if last version is available in repo
       if (any(grepl(sprintf("^%s_%s.tar.gz", package_name, last_version), all_versions))) {
         index <- which(grepl(sprintf("_%s.tar.gz", last_version), all_versions, fixed = TRUE))
         old_versions <- all_versions[-index]
+        cli::cli_inform("Latest version is available in repo")
+        print(sprintf("index: %s", index))
+        print(sprintf("old_versions: %s", old_versions))
       } else {
         # this often fails with
         # caused by error in `curl::curl_fetch_memory(url)`:

@@ -271,6 +271,9 @@ build_binary_package <- function(
   }
 
   if (archive && any(result != "skipped")) {
+    # waiting a bit so s3 can register recent uploads 
+    cli::cli_inform("Waiting 30s to allow newly uploaded assets to become present")
+    Sys.sleep(30)
     archive_package(package_name[1], debug = debug, s3_endpoint = s3_endpoint, s3_bucket = s3_bucket, s3_region = s3_region, s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key)
   }
 
