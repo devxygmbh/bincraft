@@ -3,7 +3,7 @@ when:
 
 clone:
   git:
-    image: docker.io/woodpeckerci/plugin-git:2.6.2
+    image: docker.io/woodpeckerci/plugin-git:2.6.3
     settings:
       tags: true
 
