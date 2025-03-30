@@ -107,3 +107,30 @@ retry_config <- purrr::rate_backoff(
   max_times = 10,
   jitter = FALSE
 )
+
+download_source_tarball <- function(url, destfile) {
+  status_or_error <- tryCatch(
+    {
+      status_code <- download.file(url, destfile, quiet = TRUE)
+      if (status_code != 0) {
+        # If download.file returns non-zero, treat it as an error condition
+        stop(sprintf(
+          "download.file failed for %s with status code %d",
+          basename(url),
+          status_code
+        ))
+      }
+      TRUE
+    },
+    error = function(e) {
+      stop(conditionMessage(e))
+    }
+  )
+  return(invisible(TRUE))
+}
+
+insistent_downloader <- purrr::insistently(
+  download_source_tarball,
+  rate = purrr::rate_backoff(max_times = 3 + 1, pause_base = 1),
+  quiet = FALSE
+)

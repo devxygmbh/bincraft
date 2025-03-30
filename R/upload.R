@@ -25,7 +25,6 @@ upload_single_binary <- function(
     debug = FALSE,
     s3_access_key_id = NULL,
     s3_secret_access_key = NULL) {
-
   codename <- set_codename(codename)
 
   cli::cli_h2("Uploading ({.pkg {package_name[1]}})")
@@ -122,7 +121,40 @@ upload_source_tarball <- function(
   version <- strsplit(gh::gh(sprintf("GET /repos/cran/%s/commits", package_name))[[1]]$commit$message, "version ")[[1]][2]
 
   tmpfile <- tempfile()
-  download.file(sprintf("https://cloud.r-project.org/src/contrib/%s_%s.tar.gz", package_name, version), tmpfile, quiet = TRUE)
+  # this can fail, e.g. if there was a new package published and shortly after removed by CRAN again due to some hickups. To account for it, we retry the download 3 times and then abort with a message that does not let the whole process to be stopped with an error
+  download_url <- sprintf(
+    "https://cloud.r-project.org/src/contrib/%s_%s.tar.gz",
+    package_name,
+    version
+  )
+  download_successful <- FALSE
+  final_result <- tryCatch(
+    {
+      # Call the insistent function
+      insistent_downloader(url = download_url, destfile = tmpfile)
+      # If insistently succeeds without error, set flag to TRUE
+      download_successful <- TRUE
+      TRUE # Return TRUE from the tryCatch block on success
+    },
+    error = function(e) {
+      # This block executes only if insistently gives up after all retries
+      warning(sprintf(
+        "Failed to download %s after %d retries: %s. Skipping this package.",
+        basename(download_url),
+        3,
+        conditionMessage(e) # Display the final error message
+      ))
+      # Set flag to FALSE and return FALSE from the tryCatch block
+      download_successful <- FALSE
+      FALSE
+    }
+  )
+  if (!download_successful) {
+    cli::cli_alert_warning(
+      "Failure downloading source tarball for package {.pkg {package_name}} ({.field {version}})"
+    )
+    return(TRUE)
+  }
 
   s3fs::s3_file_upload(tmpfile, sprintf("s3://%s/%s_%s.tar.gz", remote_bin_path, package_name, version), overwrite = TRUE)
 
