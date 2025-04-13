@@ -122,7 +122,7 @@ process_cran_updates <- function(
       }
     })
   }
-  
+
   # Get list of updated and new packages for a specific day
   updated_pkgs <- get_updated_cran_packages(interval)
   new_pkgs <- get_new_cran_packages(interval)
@@ -147,11 +147,14 @@ process_cran_updates <- function(
     name <- NULL
 
     `%nin%` <- Negate(`%in%`)
-    win_only <- withr::with_options(list(
-      repos = structure(c(CRAN = "https://cloud.r-project.org"))
-    ), tools::CRAN_package_db()) |>
-      filter(`OS_type` == "windows") |>
-      pull(Package)
+    win_only <- purrr::insistently(
+      ~ withr::with_options(list(
+        repos = structure(c(CRAN = "https://cloud.r-project.org"))
+      ), tools::CRAN_package_db()) |>
+        filter(`OS_type` == "windows") |>
+        pull(Package),
+      rate = retry_config, quiet = FALSE
+    )()
 
     all_pkgs <- all_pkgs |>
       filter(`name` %nin% win_only)
@@ -160,5 +163,4 @@ process_cran_updates <- function(
       build_binary_package(.x, .y, platform = platform, upload = upload, archive = archive, force = force, store_build_metadata = store_build_metadata, s3_endpoint = s3_endpoint, s3_bucket = s3_bucket, s3_region = s3_region, s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key, metadata_db_type = metadata_db_type, metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name, metadata_db_table = metadata_db_table, metadata_db_port = metadata_db_port, metadata_db_user = metadata_db_user, metadata_db_password = metadata_db_password, metadata_db_sslmode = metadata_db_sslmode)
     })
   }
-
 }
