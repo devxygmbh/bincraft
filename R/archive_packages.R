@@ -13,12 +13,15 @@
 #' @importFrom stringr str_split
 #' @importFrom utils available.packages tail
 #' @importFrom gh gh
+#' @importFrom ntfy ntfy_send
 #' @export
 #' @examples
 #' \dontrun{
 #' archive_package("AATtools", codename = "rhel9")
-#' archive_package("adw", codename = "rhel8", arch = "amd64", 
-#' s3_endpoint = 'https://fsn1.your-objectstorage.com', s3_region = 'fsn1', s3_bucket = 'devxy-r-package-binaries', s3_access_key_id = Sys.getenv('HETZNER_S3_ACCESS_KEY_K3S'), s3_secret_access_key = Sys.getenv('HETZNER_S3_SECRET_KEY_K3S'))
+#' archive_package("adw",
+#'   codename = "rhel8", arch = "amd64",
+#'   s3_endpoint = "https://fsn1.your-objectstorage.com", s3_region = "fsn1", s3_bucket = "devxy-r-package-binaries", s3_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"), s3_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S")
+#' )
 #' }
 #'
 archive_package <- function(
@@ -99,8 +102,21 @@ archive_package <- function(
         }
       }
       cli::cli_alert("Archiving {.field {basename(old_versions)}}, keeping {.field {basename(all_versions[index])}}.")
-      s3fs::s3_file_move(old_versions, sprintf("%s/Archive/%s/%s", remote_bin_dir, pkgname, basename(old_versions)), max_batch = fs::fs_bytes("300MB"), overwrite = TRUE)
-      cli::cli_alert_success("Successfully archived package {.pkg {pkgname}}.")
+      # account for duplicated (= faulty) packages
+      if (anyDuplicated(s3fs::s3_file_info(old_versions)$key) > 0) {
+        for (i in old_versions) {
+          if (anyDuplicated(s3fs::s3_file_info(i)$key)) {
+            cli::cli_alert_danger("{.field {i}} is duplicated, deleting it.")
+            ntfy::ntfy_send(sprintf("Package %s is duplicated and has been deleted, it must be rebuilt.", i))
+            s3fs::s3_file_delete(i)
+            old_versions <- setdiff(old_versions, i)
+          }
+        }
+      }
+      if (length(old_versions) > 0) {
+        s3fs::s3_file_move(old_versions, sprintf("%s/Archive/%s/%s", remote_bin_dir, pkgname, basename(old_versions)), max_batch = fs::fs_bytes("300MB"), overwrite = TRUE)
+        cli::cli_alert_success("Successfully archived package {.pkg {pkgname}}.")
+      }
     } else {
       cli::cli_alert("Skipping {.pkg {pkgname}} as only one package versions exists.")
     }

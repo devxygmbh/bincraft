@@ -54,7 +54,8 @@ Archive packages in CRAN-like repositories2
 \examples{
 \dontrun{
 archive_package("AATtools", codename = "rhel9")
-archive_package("adw", codename = "rhel8", arch = "amd64")
+archive_package("adw", codename = "rhel8", arch = "amd64", 
+s3_endpoint = 'https://fsn1.your-objectstorage.com', s3_region = 'fsn1', s3_bucket = 'devxy-r-package-binaries', s3_access_key_id = Sys.getenv('HETZNER_S3_ACCESS_KEY_K3S'), s3_secret_access_key = Sys.getenv('HETZNER_S3_SECRET_KEY_K3S'))
 }
 
 }
