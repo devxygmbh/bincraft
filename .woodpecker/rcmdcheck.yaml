@@ -8,7 +8,7 @@ when:
 
 steps:
   'Check package':
-    image: docker.io/devxygmbh/r-alpine:4.4-3.20
+    image: docker.io/devxygmbh/r-alpine:4.5-3.20
     pull: true
     environment:
       GITHUB_PAT:

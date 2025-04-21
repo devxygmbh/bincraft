@@ -1,4 +1,4 @@
-image: docker.io/devxygmbh/r-alpine:4.4-3.21
+image: docker.io/devxygmbh/r-alpine:4.5-3.21
 
 deploy-pages:
   variables:
