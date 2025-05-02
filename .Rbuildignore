@@ -22,3 +22,5 @@ docs/
 pkgdown/
 .gitlab-ci.yml
 poc.R
+.drawio
+.bkp

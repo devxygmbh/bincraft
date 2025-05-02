@@ -2,7 +2,7 @@
 % Please edit documentation in R/archive_packages.R
 \name{archive_package}
 \alias{archive_package}
-\title{Archive packages in CRAN-like repositories2}
+\title{Archive packages in CRAN-like repositories}
 \usage{
 archive_package(
   package_name,
@@ -49,7 +49,7 @@ S3 access key ID}
 S3 secret access key}
 }
 \description{
-Archive packages in CRAN-like repositories2
+Archive packages in CRAN-like repositories
 }
 \examples{
 \dontrun{
