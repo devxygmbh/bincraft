@@ -107,8 +107,8 @@ archive_package <- function(
         for (i in old_versions) {
           if (anyDuplicated(s3fs::s3_file_info(i)$key)) {
             cli::cli_alert_danger("{.field {i}} is duplicated, deleting it.")
-            ntfy::ntfy_send(sprintf("Package %s is duplicated and has been deleted, it must be rebuilt.", i))
             s3fs::s3_file_delete(i)
+            ntfy::ntfy_send(sprintf("Package %s is duplicated and has been deleted, it must be rebuilt.", i))
             old_versions <- setdiff(old_versions, i)
           }
         }
