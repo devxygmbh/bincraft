@@ -5,7 +5,7 @@
 .editorconfig
 .markdownlint.yaml
 .prettierrc.json
-.woodpecker
+.crow
 devxy-r-package-binaries/
 ^PACKAGES.*
 s3:*

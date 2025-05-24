@@ -56,7 +56,10 @@ Archive packages in CRAN-like repositories
 archive_package("AATtools", codename = "rhel9")
 archive_package("adw",
   codename = "rhel8", arch = "amd64",
-  s3_endpoint = "https://hel1.your-objectstorage.com", s3_region = "hel1", s3_bucket = "devxy-r-package-binaries-hel1", s3_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"), s3_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S")
+  s3_endpoint = "https://hel1.your-objectstorage.com", s3_region = "hel1",
+  s3_bucket = "devxy-r-package-binaries-hel1",
+  s3_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
+  s3_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S")
 )
 }
 

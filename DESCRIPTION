@@ -29,6 +29,7 @@ Imports:
     s3fs (>= 0.1.7),
     stringr,
     utils,
+    RSQLite,
     withr,
     xml2
 Suggests:
