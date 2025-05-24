@@ -6,7 +6,7 @@ Authors@R:
 Description: Help to build, archive, remove and update R binary packages
     for Linux. Supports various Linux distributions.
 License: GPL (>= 3)
-URL: https://devxy.gitlab.io/bincraftR
+URL: https://codefloe.com/rpkgs/bincraftr, https://bincraftr.doc.rpkgs.com
 Imports:
     cli,
     cranlike,
