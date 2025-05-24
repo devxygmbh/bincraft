@@ -8,7 +8,7 @@ when:
 
 steps:
   'Check package':
-    image: docker.io/devxygmbh/r-alpine:4.5-3.20
+    image: docker.io/devxygmbh/r-alpine:4.5-3.21
     pull: true
     environment:
       GITHUB_PAT:
@@ -21,17 +21,3 @@ steps:
       - R -q -e 'pak::pak(dependencies = TRUE)'
       - R -q -e 'pak::pak("r-lib/rcmdcheck", dependencies = TRUE)'
       - R -q -e 'rcmdcheck::rcmdcheck(args = "--no-manual", error_on = "warning")'
-    backend_options:
-      kubernetes:
-        resources:
-          requests:
-            memory: 1300Mi
-            cpu: 2000m
-          limits:
-            memory: 2000Mi
-            cpu: 4000m
-        tolerations:
-          - key: 'CI'
-            operator: 'Equal'
-            value: 'true'
-            effect: 'NoSchedule'
