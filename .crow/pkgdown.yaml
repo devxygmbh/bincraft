@@ -1,0 +1,45 @@
+
+when:
+  - event: pull_request
+    path: ['R/**', 'pkgdown/**']
+  - event: push
+    branch: ${CI_REPO_DEFAULT_BRANCH}
+    path: ['R/**', 'pkgdown/**', '.crow/pkgdown.yaml']
+  - event: manual
+  - event: tag
+
+steps:
+  - name: Build pkgdown
+    image: docker.io/devxygmbh/r-alpine:4.5-3.21
+    environment:
+      GITHUB_PAT:
+        from_secret: GITHUB_PAT
+    pull: true
+    commands:
+      # FIXME: unclear why textshaping deps are not detected (harfbuzz-dev libfribidi-dev freetype-dev)
+      - apk add -q --no-cache pandoc 
+      - R -q -e 'install.packages("pak", repos = sprintf("https://r-lib.github.io/p/pak/devel/%s/%s/%s", .Platform$pkgType, R.Version()$os, R.Version()$arch))'
+      - R -q -e 'options(Ncpus = 4)'
+      - R -q -e 'dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE)'
+      - R -q -e 'pak::pak()'
+      - R -q -e 'pak::pak("pkgdown")'
+      - R -q -e 'pkgdown::build_site()'
+      - mv docs/ public/
+
+  - name: "Push changes to branch"
+    image: docker.io/appleboy/drone-git-push:1.1.1
+    settings:
+      remote: ${CI_REPO_CLONE_SSH_URL}
+      branch: pkgdown
+      path: public/
+      commit: true
+      force: true
+      ssh_key:
+        from_secret: rpkgs_bot_ssh_key
+      commit_message: "[skip ci] Update pkgdown ${CI_COMMIT_SHA}"
+      author_name: rpkgs-bot
+      author_email: bot@rpkgs.com
+    when:
+    - event: push
+      branch: ${CI_REPO_DEFAULT_BRANCH}
+    - event: tag
