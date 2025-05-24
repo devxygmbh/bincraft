@@ -1,9 +1,12 @@
-url: https://devxy.gitlab.io/bincraftR
+url: https://bincraft.doc.rpkgs.com
 template:
   bootstrap: 5
   light-switch: true
 
 reference:
+  - title: Repository
+  - contents:
+      - init_repo
   - title: Build
     # desc: Functions related to building
   - contents:
