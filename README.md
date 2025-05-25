@@ -1,4 +1,4 @@
-# bincraftR <img src="img/logo.png" width="130" align="right" alt="logo">
+# bincraftR <a href="https://bincraftr.doc.rpkgs.com"><img src="man/figures/logo.png" align="right" height="120" alt="bincraftR website" /></a>
 
 {bincraftR} provides the ability to build R package binaries for Linux.
 It the core engine of the [rpkgs.com](https://rpkgs.com) project.

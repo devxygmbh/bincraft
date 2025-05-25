@@ -2,9 +2,16 @@ url: https://bincraftr.doc.rpkgs.com
 template:
   bootstrap: 5
   light-switch: true
+  bslib:
+    bootswatch: yeti
+    primary: "#306cc9"
+
+    base_font: {google: "Roboto"}
+    heading_font: {google: "Montserrat"}
+    code_font: {google: "JetBrains Mono"}
 
 reference:
-  - title: Repository
+  - title: Bootstrapping
   - contents:
       - init_repo
   - title: Build
@@ -19,15 +26,15 @@ reference:
   - title: Metadata
   - contents:
       - contains("metadata")
-  - title: Process changes packages
+  - title: Package Changes
   - contents:
       - contains("cran_packages")
+      - process_cran_updates
       - process_cranberries_rss
       - get_cranberries_feed
-  - title: Process package index
+  - title: Repo Index
   - contents:
       - contains("index")
-      - process_cran_updates
   - title: Helpers
     contents:
       - check_for_binary
