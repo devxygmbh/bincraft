@@ -12,7 +12,7 @@ depends_on:
 
 steps:
   changelog:
-    image: docker.io/thegeeklab/git-sv:1.0.14
+    image: docker.io/thegeeklab/git-sv:2.0.1
     commands:
       - apk add --no-cache -q sed
       - git sv current-version
