@@ -23,13 +23,17 @@ steps:
       - R -q -e 'pak::pak()'
       - R -q -e 'pak::pak("pkgdown")'
       - R -q -e 'pkgdown::build_site()'
+      # docs/ is in gitignore
+      - mv docs/ /tmp/public
+      - mv .git /tmp/.git
+      - rm -rf ./* .[^.]* ..?*
+      - mv /tmp/public/* ./ && mv /tmp/.git ./
 
   - name: 'Push changes to branch'
     image: docker.io/appleboy/drone-git-push:1.1.1
     settings:
       remote: ${CI_REPO_CLONE_SSH_URL}
       branch: pkgdown
-      path: docs/
       commit: true
       force: true
       ssh_key:
