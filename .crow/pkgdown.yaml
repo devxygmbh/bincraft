@@ -15,7 +15,6 @@ steps:
         from_secret: GITHUB_PAT
     pull: true
     commands:
-      # FIXME: unclear why textshaping deps are not detected (harfbuzz-dev libfribidi-dev freetype-dev)
       - apk add -q --no-cache pandoc
       - R -q -e 'install.packages("pak", repos = sprintf("https://r-lib.github.io/p/pak/devel/%s/%s/%s", .Platform$pkgType, R.Version()$os, R.Version()$arch))'
       - R -q -e 'options(Ncpus = 4)'
@@ -26,8 +25,9 @@ steps:
       # docs/ is in gitignore
       - mv docs/ /tmp/public
       - mv .git /tmp/.git
+      - mv statichost.yml /tmp/statichost.yml
       - rm -rf ./* .[^.]* ..?*
-      - mv /tmp/public/* ./ && mv /tmp/.git ./
+      - mv /tmp/public/* ./ && mv /tmp/.git ./ && mv /tmp/statichost.yml .
 
   - name: 'Push changes to branch'
     image: docker.io/appleboy/drone-git-push:1.1.1
