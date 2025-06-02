@@ -43,7 +43,7 @@ steps:
       branch: main
       commit: true
       ssh_key:
-        from_secret: devxy_bot_ssh_key
+        from_secret: rpkgs_bot_ssh_key
       commit_message: "[skip ci] Update version in DESCRIPTION after release"
       commit_author: devxy-bot
       commit_author_email: no-reply@devxy.io
