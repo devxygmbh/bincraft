@@ -239,7 +239,7 @@ build_binary_package <- function(
                 # Remove packages with errors from diff
                 if (length(packages_with_errors) > 0) {
                   diff <- setdiff(diff, packages_with_errors)
-                  cli::cli_alert_info("Filtered out {length(packages_with_errors)} package(s) with previous errors. {length(diff)} package(s) remaining to build.")
+                  cli::cli_alert_info("Filtered out {length(packages_with_errors)}/{length(pkgs_to_build)} package(s) with previous errors. {length(diff)} package(s) remaining to build.")
                 }
               },
               error = function(e) {
