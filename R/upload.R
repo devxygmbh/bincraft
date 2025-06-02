@@ -53,6 +53,8 @@ upload_single_binary <- function(
   )
 
   exists <- s3fs::s3_file_exists(sprintf("%s/%s", remote_bin_path, tarball_name))
+  archive_exists <- s3fs::s3_file_exists(sprintf("%s/Archive/%s", remote_bin_path, tarball_name))
+  exists <- exists || archive_exists
 
   # suppress progressr output here
   progressr::handlers("void")
