@@ -237,9 +237,9 @@ build_binary_package <- function(
   }
 
   if (debug) {
-    result = mapply(worker_fun, package_name, tag, MoreArgs = list(p, debug))
+    result <- mapply(worker_fun, package_name, tag, MoreArgs = list(p, debug))
   } else {
-    result = future.apply::future_mapply(worker_fun, package_name, tag,
+    result <- future.apply::future_mapply(worker_fun, package_name, tag,
       future.seed = TRUE, MoreArgs = list(p, debug)
     )
   }
@@ -361,7 +361,10 @@ build_single_tag <- function(
   if (file.exists(sprintf("%s/%s_%s.tar.gz", binary_output_path, package_name, tag))) {
     cli::cli_alert_info("Tarball for package {.pkg {package_name}} with tag {.field {tag}} already exists. Skipping build.")
     return("skipped")
-  } else if (!force && !is.null(s3_bucket) && s3fs::s3_file_exists(sprintf("%s/%s", remote_bin_path, tarball_name))) {
+  } else if (
+    (!force && !is.null(s3_bucket) && (s3fs::s3_file_exists(sprintf("%s/%s", remote_bin_path, tarball_name))) ||
+      s3fs::s3_file_exists(sprintf("%s/Archive/%s/%s", remote_bin_path, package_name, tarball_name)))
+  ) {
     cli::cli_alert_info("Package {.pkg {package_name}} with tag {.field {tag}} already exists in S3 and {.code force = FALSE}. Skipping build.")
     return("skipped")
   }
