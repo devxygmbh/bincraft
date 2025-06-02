@@ -133,39 +133,102 @@ build_binary_package <- function(
     recursive = TRUE
   )
 
-  # this is used in CI to determine the last successful build in case the build gets interrupted before all packages got processed
-  if (Sys.getenv("CI") != "") {
-    pkgs <- as.character(available.packages("https://cloud.r-project.org/src/contrib")[, "Package"])
-    index <- which(grepl(sprintf("^%s$", package_name), pkgs))
-    cat(sprintf("%s - %s - %s", package_name, index, date()), file = sprintf("%s/%s.txt", Sys.getenv("CI_WORKSPACE"), Sys.getenv("CI_WORKFLOW_NAME")))
-    # this writes a cached file so that future builds can continue to pick where they left of without changing the workflow
-    cat(sprintf("%s", index), file = sprintf("/mnt/cache/%s.txt", Sys.getenv("CI_WORKFLOW_NAME")))
+  # check whether any build attempts need to be made
+  if (!force && !is.null(s3_bucket)) {
+    codename <- set_codename(codename)
+    remote_bin_path <- set_bin_path(local_output_dir_root = s3_bucket, codename)
+    s3fs::s3_file_system(
+      aws_access_key_id = s3_access_key_id,
+      aws_secret_access_key = s3_secret_access_key,
+      endpoint = s3_endpoint,
+      region_name = s3_region,
+      refresh = TRUE
+    )
+    # get last CRAN version to search for it in S3 root
+    last_version <- strsplit(
+      gh::gh(sprintf("GET /repos/cran/%s/commits", package_name))[[
+        1
+      ]]$commit$message,
+      "version "
+    )[[1]][2]
+    root_pkg <- s3fs::s3_file_exists(sprintf("%s/%s_%s.tar.gz", remote_bin_path, package_name, last_version))
+
+    if (root_pkg) {
+      # list archived packages
+      archived_pkgs <- basename(s3fs::s3_dir_ls(sprintf("%s/Archive/%s", remote_bin_path, package_name)))
+      root_pkg_name <- sprintf("%s_%s.tar.gz", package_name, last_version)
+      pkgs_all <- c(root_pkg_name, archived_pkgs)
+
+      gert::git_config_global_set("advice.detachedHead", "false")
+      # get all pkgs to build
+      if (is.null(tag) || tag == "latest") {
+        if (is.null(url)) {
+          url <- sprintf("https://github.com/cran/%s", package_name)
+        }
+        gert::git_clone(url,
+          path = sprintf("%s/%s", tempdir(), "tmp1"),
+          verbose = FALSE
+        )
+        # gert cannot sort by date (which is a problem for properly sorting tags like 1.0-10 and others)
+        if (!is.null(tag) && tag == "latest") {
+          tag <- system("git tag --sort=-creatordate | head -1", intern = TRUE)
+        } else {
+          # Retrieve all tags
+          all_tags <- gert::git_tag_list(repo = sprintf("%s/%s", tempdir(), "tmp1"))
+          # filter out tags that start with R- (= non-valid ones)
+          all_tags <- all_tags[!grepl("R-", all_tags$name), ]
+
+          unlink(sprintf("%s/%s", tempdir(), "tmp1"), force = TRUE, recursive = TRUE)
+          tag <- all_tags$name
+        }
+        pkgs_to_build <- sprintf("%s_%s.tar.gz", package_name, tag)
+        if (all(pkgs_to_build %in% pkgs_all)) {
+          cli::cli_alert_info("{.fun build_binary_package}: All packages to be built already exist in the remote bucket. Skipping due to {.code force = FALSE}.")
+          return("skipped")
+        } else {
+          diff <- setdiff(pkgs_to_build, pkgs_all)
+          tag <- sapply(diff, function(x) {
+            parts <- strsplit(x, "_")[[1]]
+            if (length(parts) < 2) {
+              return(NA)
+            }
+            version_part <- parts[2]
+            strsplit(version_part, ".tar.gz")[[1]][1]
+          })
+          cli::cli_alert("Building the following version(s) ({length(diff)}/{length(pkgs_to_build)}) as they are not present in the remote bucket: {.field {diff}}")
+        }
+      }
+    }
   }
 
   cli::cli_h2("Installing system dependencies ({.pkg {package_name}})")
 
-  gert::git_config_global_set("advice.detachedHead", "false")
+  if (!exists("pkgs_to_build")) {
+    gert::git_config_global_set("advice.detachedHead", "false")
 
-  if (is.null(tag) || tag == "latest") {
-    if (is.null(url)) {
-      url <- sprintf("https://github.com/cran/%s", package_name)
-    }
-    gert::git_clone(url,
-      path = sprintf("%s/%s", tempdir(), "tmp1"),
-      verbose = FALSE
-    )
-    # gert cannot sort by date (which is a problem for properly sorting tags like 1.0-10 and others)
-    if (!is.null(tag) && tag == "latest") {
-      tag <- system("git tag --sort=-creatordate | head -1", intern = TRUE)
-    } else {
-      # Retrieve all tags
-      all_tags <- gert::git_tag_list(repo = sprintf("%s/%s", tempdir(), "tmp1"))
-      # filter out tags that start with R- (= non-valid ones)
-      all_tags <- all_tags[!grepl("R-", all_tags$name), ]
+    if (is.null(tag) || tag == "latest") {
+      if (is.null(url)) {
+        url <- sprintf("https://github.com/cran/%s", package_name)
+      }
+      gert::git_clone(url,
+        path = sprintf("%s/%s", tempdir(), "tmp1"),
+        verbose = FALSE
+      )
+      # gert cannot sort by date (which is a problem for properly sorting tags like 1.0-10 and others)
+      if (!is.null(tag) && tag == "latest") {
+        tag <- system("git tag --sort=-creatordate | head -1", intern = TRUE)
+      } else {
+        # Retrieve all tags
+        all_tags <- gert::git_tag_list(repo = sprintf("%s/%s", tempdir(), "tmp1"))
+        # filter out tags that start with R- (= non-valid ones)
+        all_tags <- all_tags[!grepl("R-", all_tags$name), ]
 
-      unlink(sprintf("%s/%s", tempdir(), "tmp1"), force = TRUE, recursive = TRUE)
-      tag <- all_tags$name
+        unlink(sprintf("%s/%s", tempdir(), "tmp1"), force = TRUE, recursive = TRUE)
+        tag <- all_tags$name
+      }
+      package_name <- rep(package_name, length(tag))
     }
+  } else {
     package_name <- rep(package_name, length(tag))
   }
 
