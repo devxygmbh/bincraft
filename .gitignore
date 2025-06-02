@@ -8,3 +8,6 @@ exec.sh
 exec.R
 docs/
 *.bkp
+*.drawio
+CHANGELOG.md
+*.tar.gz

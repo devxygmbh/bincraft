@@ -8,8 +8,15 @@ when:
   - event: tag
 
 steps:
+  - name: Replace version for release runs
+    image: alpine:3.22
+    commands:
+      - "sed -i 's/Version: .*/Version: ${CI_COMMIT_TAG#v}/' DESCRIPTION"
+    when:
+      - event: tag
+
   - name: Build pkgdown
-    image: docker.io/devxygmbh/r-alpine:4.5-3.21
+    image: docker.io/devxygmbh/r-alpine:4.4-3.21
     environment:
       GITHUB_PAT:
         from_secret: GITHUB_PAT
