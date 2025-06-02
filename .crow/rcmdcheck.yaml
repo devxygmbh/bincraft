@@ -5,6 +5,7 @@ when:
     branch: ${CI_REPO_DEFAULT_BRANCH}
     path: 'R/**'
   - event: manual
+  - event: tag
 
 steps:
   'Check package':
