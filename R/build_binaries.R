@@ -187,6 +187,73 @@ build_binary_package <- function(
           return("skipped")
         } else {
           diff <- setdiff(pkgs_to_build, pkgs_all)
+
+          # check for possible errors in the metadata DB to avoid building versions which previously errored
+          if (store_build_metadata) {
+            # Extract package names and tags from diff for DB query
+            pkg_tag_pairs <- lapply(diff, function(x) {
+              parts <- strsplit(x, "_")[[1]]
+              if (length(parts) < 2) {
+                list(pkg = NA, tag = NA)
+              }
+              pkg_name <- parts[1]
+              version_part <- parts[2]
+              tag_val <- strsplit(version_part, ".tar.gz")[[1]][1]
+              list(pkg = pkg_name, tag = tag_val)
+            })
+
+            # Connect to DB and check for previous errors
+            tryCatch(
+              {
+                if (metadata_db_type == "postgres") {
+                  driver <- RPostgres::Postgres()
+                  con <- purrr::insistently(~
+                    DBI::dbConnect(driver,
+                      dbname = metadata_db_name, host = metadata_db_host,
+                      port = metadata_db_port, user = metadata_db_user, password = metadata_db_password,
+                      sslmode = metadata_db_sslmode
+                    ), rate = retry_config, quiet = FALSE)()
+                } else {
+                  cli::cli_alert_warning("Error checking is currently only supported for postgres databases.")
+                }
+
+                table_name <- DBI::dbQuoteIdentifier(con, metadata_db_table)
+
+                # Check each package/tag pair for previous errors
+                packages_with_errors <- c()
+                for (i in seq_along(pkg_tag_pairs)) {
+                  pair <- pkg_tag_pairs[[i]]
+                  if (!is.na(pair$pkg) && !is.na(pair$tag)) {
+                    query <- paste0("SELECT error_occurred FROM ", table_name, " WHERE name = $1 AND tag = $2 AND platform = $3 AND arch = $4")
+                    result <- purrr::insistently(~ DBI::dbGetQuery(con, query, params = list(pair$pkg, pair$tag, platform, arch)), rate = retry_config, quiet = FALSE)()
+
+                    if (nrow(result) > 0 && any(result$error_occurred == TRUE)) {
+                      packages_with_errors <- c(packages_with_errors, diff[i])
+                      cli::cli_alert_warning("Skipping {.pkg {pair$pkg}} {.field {pair$tag}} due to previous build error recorded in metadata DB.")
+                    }
+                  }
+                }
+
+                DBI::dbDisconnect(con)
+
+                # Remove packages with errors from diff
+                if (length(packages_with_errors) > 0) {
+                  diff <- setdiff(diff, packages_with_errors)
+                  cli::cli_alert_info("Filtered out {length(packages_with_errors)} package(s) with previous errors. {length(diff)} package(s) remaining to build.")
+                }
+              },
+              error = function(e) {
+                cli::cli_alert_warning("Could not check metadata DB for previous errors: {e$message}")
+              }
+            )
+          }
+
+          # Check if all packages were filtered out due to previous errors
+          if (length(diff) == 0) {
+            cli::cli_alert_info("{.fun build_binary_package}: All packages were filtered out due to previous build errors. Skipping.")
+            return("skipped")
+          }
+
           tag <- sapply(diff, function(x) {
             parts <- strsplit(x, "_")[[1]]
             if (length(parts) < 2) {
@@ -195,6 +262,9 @@ build_binary_package <- function(
             version_part <- parts[2]
             strsplit(version_part, ".tar.gz")[[1]][1]
           })
+
+
+
           cli::cli_alert("Building the following version(s) ({length(diff)}/{length(pkgs_to_build)}) as they are not present in the remote bucket: {.field {diff}}")
         }
       }
