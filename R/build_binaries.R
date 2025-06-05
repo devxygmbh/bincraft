@@ -344,8 +344,7 @@ get_all_tags <- function(package_name, tag, source_org_url) {
   gert::git_config_global_set("advice.detachedHead", "false")
 
   if (is.null(tag) || tag == "latest") {
-      url <- sprintf("%s/%s", source_org_url, package_name) # nolint
-    gert::git_clone(source_org_url,
+    gert::git_clone(sprintf("%s/%s", source_org_url, package_name), # nolint
       path = file.path(tempdir(), "tmp1"),
       verbose = FALSE
     )
