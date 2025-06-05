@@ -483,7 +483,6 @@ create_worker_function <- function(
     metadata_db_user, metadata_db_sslmode, s3_endpoint, s3_bucket,
     s3_region, s3_access_key_id, s3_secret_access_key, local_bin_path) {
   function(x, y, p, debug_flag) {
-    p(message = sprintf("Building '%s'", y))
     tryCatch(
       {
         result <- build_single_tag(x, y, binary_output_path, local_clone_dir,
@@ -497,8 +496,6 @@ create_worker_function <- function(
           s3_endpoint = s3_endpoint, s3_bucket = s3_bucket, s3_region = s3_region,
           s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key
         )
-
-        p(message = sprintf("Done building '%s'", y))
 
         tarball_name <- sprintf("%s_%s.tar.gz", x, y)
         if (file.exists(file.path(local_bin_path, tarball_name))) {
@@ -528,7 +525,6 @@ create_worker_function <- function(
         )
       }
     )
-    p(message = sprintf("Finished building %s %s", x, y))
     result
   }
 }
