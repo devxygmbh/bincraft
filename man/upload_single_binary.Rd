@@ -5,20 +5,26 @@
 \title{Upload binary to S3}
 \usage{
 upload_single_binary(
+  package_name,
+  tag,
   s3_endpoint,
   s3_region,
   s3_bucket,
   local_output_dir_root = ".",
   codename = NULL,
-  package_name,
-  tag,
   force = FALSE,
-  debug = FALSE,
+  is_debug = FALSE,
   s3_access_key_id = NULL,
   s3_secret_access_key = NULL
 )
 }
 \arguments{
+\item{package_name}{(\link{character})\cr
+Package name}
+
+\item{tag}{(\link{character})\cr
+Tag/version. Tags starting with "R-" are filtered out.}
+
 \item{s3_endpoint}{(\link{character})\cr
 S3 endpoint}
 
@@ -34,16 +40,10 @@ Path to local build root}
 \item{codename}{(\link{character})\cr
 Linux distribution identifier}
 
-\item{package_name}{(\link{character})\cr
-Package name}
-
-\item{tag}{(\link{character})\cr
-Tag/version. Tags starting with "R-" are filtered out.}
-
 \item{force}{(\link{logical})\cr
 Whether to force-build packages}
 
-\item{debug}{(\link{logical})\cr
+\item{is_debug}{(\link{logical})\cr
 Whether to enable debug logging}
 
 \item{s3_access_key_id}{(\link{character})\cr

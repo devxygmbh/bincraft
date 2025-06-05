@@ -8,6 +8,7 @@ exec.sh
 exec.R
 docs/
 *.bkp
+flir/cache_*
 *.drawio
 CHANGELOG.md
 *.tar.gz

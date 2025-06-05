@@ -24,3 +24,8 @@ pkgdown/
 poc.R
 .drawio
 .bkp
+statichost.yml
+
+# flir files
+^flir$
+.lintr

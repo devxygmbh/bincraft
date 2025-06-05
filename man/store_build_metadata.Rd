@@ -8,6 +8,7 @@ store_build_metadata(
   package_name,
   tag,
   platform,
+  arch,
   error_occurred,
   metadata_db_type = "postgres",
   metadata_db_host = NULL,
@@ -17,7 +18,6 @@ store_build_metadata(
   metadata_db_user = NULL,
   metadata_db_password = NULL,
   metadata_db_sslmode = NULL,
-  arch,
   force = FALSE,
   error = NA,
   build_duration = NA,
@@ -33,6 +33,9 @@ Tag/version. Tags starting with "R-" are filtered out.}
 
 \item{platform}{(\link{character})\cr
 Platform identifier}
+
+\item{arch}{(\link{character})\cr
+Architecture}
 
 \item{error_occurred}{(\link{logical})\cr
 Whether or not an error occurred during build}
@@ -52,9 +55,6 @@ Whether or not an error occurred during build}
 \item{metadata_db_password}{Database password}
 
 \item{metadata_db_sslmode}{Database sslmode}
-
-\item{arch}{(\link{character})\cr
-Architecture}
 
 \item{force}{(\link{logical})\cr
 Whether to force-build packages}

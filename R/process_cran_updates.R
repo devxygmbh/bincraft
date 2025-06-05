@@ -71,13 +71,13 @@ process_cran_updates <- function(
     s3_access_key_id = NULL,
     s3_secret_access_key = NULL) {
   if (is.null(s3_endpoint)) {
-    stop("s3_endpoint must be defined")
+    stop("s3_endpoint must be defined", call. = FALSE)
   }
   if (is.null(s3_region)) {
-    stop("s3_region must be defined")
+    stop("s3_region must be defined", call. = FALSE)
   }
   if (is.null(s3_bucket)) {
-    stop("s3_bucket must be defined")
+    stop("s3_bucket must be defined", call. = FALSE)
   }
 
   if (process_removed) {
@@ -98,25 +98,38 @@ process_cran_updates <- function(
     codename <- set_codename(codename)
 
     local_arch <- Sys.info()[["machine"]]
-    if (grepl("arm64", local_arch) || grepl("aarch64", local_arch)) {
+    if (grepl("arm64", local_arch, fixed = TRUE) || grepl("aarch64", local_arch, fixed = TRUE)) {
       arch <- "arm64"
-    } else if (grepl("amd64", local_arch) || grepl("x86_64", local_arch)) {
+    } else if (grepl("amd64", local_arch, fixed = TRUE) || grepl("x86_64", local_arch, fixed = TRUE)) {
       arch <- "amd64"
     }
 
-    local_bin_dir <- set_bin_path(local_output_dir_root, codename)
-    remote_bin_dir <- sprintf("%s/%s/%s/latest/src/contrib", s3_bucket, arch, codename)
+    remote_bin_dir <- file.path(s3_bucket, arch, codename, "latest", "src", "contrib")
 
     files <- s3fs::s3_dir_ls(remote_bin_dir)
 
-    foo <- lapply(removed_pkgs$name, function(.x) {
+    lapply(removed_pkgs$name, function(.x) {
       cli::cli_alert("{.fun process_cran_updates}: Removing package {.pkg {.x}} from S3.")
       files_filtered <- grep(sprintf("/%s_", .x), files, value = TRUE)
-      if (length(files_filtered) > 0) {
+      if (length(files_filtered) > 0L) {
         s3fs::s3_file_delete(files_filtered)
-        cli::cli_alert_success("{.fun process_cran_updates}: Successfully removed {.pkg {basename(files_filtered)}} from S3.")
-        remove_from_metadata(.x, metadata_db_type = metadata_db_type, metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name, metadata_db_table = metadata_db_table, metadata_db_port = metadata_db_port, metadata_db_user = metadata_db_user, metadata_db_password = metadata_db_password, metadata_db_sslmode = metadata_db_sslmode)
-        cli::cli_alert_success("{.fun process_cran_updates}: Successfully set {.pkg {.x}} as 'removed' in metadata table.")
+        cli::cli_alert_success(
+          "{.fun process_cran_updates}: Successfully removed {.pkg {basename(files_filtered)}} from S3."
+        )
+        remove_from_metadata(
+          .x,
+          metadata_db_type = metadata_db_type,
+          metadata_db_host = metadata_db_host,
+          metadata_db_name = metadata_db_name,
+          metadata_db_table = metadata_db_table,
+          metadata_db_port = metadata_db_port,
+          metadata_db_user = metadata_db_user,
+          metadata_db_password = metadata_db_password,
+          metadata_db_sslmode = metadata_db_sslmode
+        )
+        cli::cli_alert_success(
+          "{.fun process_cran_updates}: Successfully set {.pkg {.x}} as 'removed' in metadata table."
+        )
       } else {
         cli::cli_alert("{.fun process_cran_updates}: No tarballs found for package {.pkg {.x}} - already removed?")
       }
@@ -142,25 +155,44 @@ process_cran_updates <- function(
     print(new_pkgs)
 
     # make R CMD Check happy
-    OS_type <- NULL
-    Package <- NULL
     name <- NULL
 
     `%nin%` <- Negate(`%in%`)
+
+    cran_repos <- c(CRAN = "https://cloud.r-project.org")
+    names(cran_repos) <- "CRAN"
+
     win_only <- purrr::insistently(
-      ~ withr::with_options(list(
-        repos = structure(c(CRAN = "https://cloud.r-project.org"))
-      ), tools::CRAN_package_db()) |>
+      ~ withr::with_options(list(repos = cran_repos), tools::CRAN_package_db()) |>
         filter(`OS_type` == "windows") |>
         pull(Package),
       rate = retry_config, quiet = FALSE
     )()
 
-    all_pkgs <- all_pkgs |>
-      filter(`name` %nin% win_only)
+    all_pkgs <- filter(all_pkgs, `name` %nin% win_only)
 
     purrr::walk2(all_pkgs$name, all_pkgs$version, ~ {
-      build_binary_package(.x, .y, platform = platform, upload = upload, archive = archive, force = force, store_build_metadata = store_build_metadata, s3_endpoint = s3_endpoint, s3_bucket = s3_bucket, s3_region = s3_region, s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key, metadata_db_type = metadata_db_type, metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name, metadata_db_table = metadata_db_table, metadata_db_port = metadata_db_port, metadata_db_user = metadata_db_user, metadata_db_password = metadata_db_password, metadata_db_sslmode = metadata_db_sslmode)
+      build_binary_package(
+        .x, .y,
+        platform = platform,
+        upload = upload,
+        archive = archive,
+        force = force,
+        store_build_metadata = store_build_metadata,
+        s3_endpoint = s3_endpoint,
+        s3_bucket = s3_bucket,
+        s3_region = s3_region,
+        s3_access_key_id = s3_access_key_id,
+        s3_secret_access_key = s3_secret_access_key,
+        metadata_db_type = metadata_db_type,
+        metadata_db_host = metadata_db_host,
+        metadata_db_name = metadata_db_name,
+        metadata_db_table = metadata_db_table,
+        metadata_db_port = metadata_db_port,
+        metadata_db_user = metadata_db_user,
+        metadata_db_password = metadata_db_password,
+        metadata_db_sslmode = metadata_db_sslmode
+      )
     })
   }
 }

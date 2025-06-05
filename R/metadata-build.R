@@ -23,6 +23,7 @@ store_build_metadata <- function(
     package_name,
     tag,
     platform,
+    arch,
     error_occurred,
     metadata_db_type = "postgres",
     metadata_db_host = NULL,
@@ -32,7 +33,6 @@ store_build_metadata <- function(
     metadata_db_user = NULL,
     metadata_db_password = NULL,
     metadata_db_sslmode = NULL,
-    arch,
     force = FALSE,
     error = NA,
     build_duration = NA,
@@ -49,13 +49,20 @@ store_build_metadata <- function(
     ), rate = retry_config, quiet = FALSE)()
 
   table_name <- DBI::dbQuoteIdentifier(con, metadata_db_table)
-  query <- paste0("SELECT * FROM ", table_name, " WHERE name = $1 AND tag = $2 AND platform = $3 AND arch = $4")
-  existing_entries <- purrr::insistently(~ dbGetQuery(con, query, params = list(package_name, tag, platform, arch)), rate = retry_config, quiet = FALSE)()
+  query <- paste0("SELECT * FROM ", table_name, " WHERE name = $1 AND tag = $2 AND platform = $3 AND arch = $4") # nolint
+  existing_entries <- purrr::insistently(
+    ~ dbGetQuery(con, query,
+      params = list(package_name, tag, platform, arch)
+    ),
+    rate = retry_config, quiet = FALSE
+  )()
 
-  if (nrow(existing_entries) >= 1 && !force) {
-    cli::cli_alert("{.fun store_build_metadata}: Build metadata for {.field {.pkg {package_name}}} {.field {tag}} already exists.")
-  } else if (nrow(existing_entries) >= 1 && force) {
-    cli::cli_alert_info("{.fun store_build_metadata}: Force overwriting build metadata for {.pkg {package_name}} {.field {tag}} ({platform}) because {.code force = TRUE} was set.")
+  if (nrow(existing_entries) >= 1L && !force) {
+    cli::cli_alert("{.fun store_build_metadata}: Build metadata for {.field {.pkg {package_name}}} {.field {tag}}
+                   already exists.")
+  } else if (nrow(existing_entries) >= 1L && force) {
+    cli::cli_alert_info("{.fun store_build_metadata}: Force overwriting build metadata for {.pkg {package_name}}
+                        {.field {tag}} ({platform}) because {.code force = TRUE} was set.")
 
     query <- paste0(
       "UPDATE ", table_name, " SET timestamp = $1, error_occurred = $2, error_text = $3, ",
@@ -78,10 +85,10 @@ store_build_metadata <- function(
       ),
       rate = retry_config, quiet = FALSE
     )()
-  } else if (nrow(existing_entries) == 0) {
+  } else if (nrow(existing_entries) == 0L) {
     cli::cli_alert("Storing build metadata for {.pkg {package_name}} {.field {tag}}.")
     # if no entry exists already, we can insert the info via dbWriteTable by passing a DF
-    metadata <- data.frame(
+    metadata <- data.frame( # nolint
       name = package_name,
       tag = tag,
       platform = platform,
@@ -91,7 +98,8 @@ store_build_metadata <- function(
       size = size,
       timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
       duration = build_duration,
-      removed = FALSE
+      removed = FALSE,
+      stringsAsFactors = FALSE
     )
     # Write the data frame to the SQLite database
     purrr::insistently(
@@ -127,7 +135,7 @@ remove_from_metadata <- function(
     metadata_db_password = NULL,
     metadata_db_sslmode = NULL) {
   if (metadata_db_type == "postgres") {
-    driver <- RPostgres::Postgres()
+    driver <- RPostgres::Postgres() # nolint
   }
   con <- purrr::insistently(~
     dbConnect(driver,
@@ -137,7 +145,7 @@ remove_from_metadata <- function(
     ), rate = retry_config, quiet = FALSE)()
 
   table_name <- DBI::dbQuoteIdentifier(con, metadata_db_table)
-  query <- paste0("UPDATE ", table_name, " SET removed = true WHERE name = $1")
+  query <- paste0("UPDATE ", table_name, " SET removed = true WHERE name = $1") # nolint
   purrr::insistently(
     ~ dbExecute(con, query, params = list(package_name)),
     rate = retry_config,

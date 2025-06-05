@@ -18,7 +18,7 @@ reference:
     # desc: Functions related to building
   - contents:
       - starts_with("build_")
-      - install_package_system_dependencies
+      - install_pkg_sys_deps
   - title: Upload & Archive
   - contents:
       - contains("archive")
@@ -38,5 +38,5 @@ reference:
   - title: Helpers
     contents:
       - check_for_binary
-      - set_bin_path
-      - set_codename
+      - starts_with("set_")
+      - starts_with("get_")

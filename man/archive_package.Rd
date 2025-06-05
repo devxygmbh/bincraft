@@ -6,13 +6,13 @@
 \usage{
 archive_package(
   package_name,
-  codename = NULL,
-  local_output_dir_root = ".",
   s3_endpoint,
   s3_region,
   s3_bucket,
+  codename = NULL,
+  local_output_dir_root = ".",
   arch = NULL,
-  debug = FALSE,
+  is_debug = FALSE,
   s3_access_key_id = NULL,
   s3_secret_access_key = NULL
 )
@@ -20,12 +20,6 @@ archive_package(
 \arguments{
 \item{package_name}{(\link{character})\cr
 Package name}
-
-\item{codename}{(\link{character})\cr
-Linux distribution identifier}
-
-\item{local_output_dir_root}{(\link{character})\cr
-Path to local build root}
 
 \item{s3_endpoint}{(\link{character})\cr
 S3 endpoint}
@@ -36,10 +30,16 @@ S3 region}
 \item{s3_bucket}{(\link{character})\cr
 S3 bucket name}
 
+\item{codename}{(\link{character})\cr
+Linux distribution identifier}
+
+\item{local_output_dir_root}{(\link{character})\cr
+Path to local build root}
+
 \item{arch}{(\link{character})\cr
 Architecture}
 
-\item{debug}{(\link{logical})\cr
+\item{is_debug}{(\link{logical})\cr
 Whether to enable debug logging}
 
 \item{s3_access_key_id}{(\link{character})\cr

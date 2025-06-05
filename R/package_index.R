@@ -5,7 +5,7 @@
 #' @template param-s3_region
 #' @template param-s3_bucket
 #' @template param-local_output_dir_root
-#' @template param-debug
+#' @template param-is_debug
 #' @template param-s3-access-key-id
 #' @template param-s3-secret-access-key
 #'
@@ -13,26 +13,26 @@
 #' @importFrom s3fs s3_dir_ls s3_file_system
 #' @export
 add_to_package_index <- function(
-    package_name = NULL,
     s3_endpoint,
     s3_region,
     s3_bucket,
-    local_output_dir_root = "/mnt/cache/binaries",
+    package_name = NULL,
+    local_output_dir_root = file.path("mnt", "cache", "binaries"),
     codename = NULL,
-    debug = FALSE,
+    is_debug = FALSE,
     s3_access_key_id = NULL,
     s3_secret_access_key = NULL) {
   codename <- set_codename(codename)
 
   local_arch <- Sys.info()[["machine"]]
-  if (grepl("arm64", local_arch) || grepl("aarch64", local_arch)) {
+  if (grepl("arm64", local_arch, fixed = TRUE) || grepl("aarch64", local_arch, fixed = TRUE)) {
     arch <- "arm64"
-  } else if (grepl("amd64", local_arch) || grepl("x86_64", local_arch)) {
+  } else if (grepl("amd64", local_arch, fixed = TRUE) || grepl("x86_64", local_arch, fixed = TRUE)) {
     arch <- "amd64"
   }
 
   local_bin_dir <- set_bin_path(local_output_dir_root, codename)
-  remote_bin_dir <- sprintf("%s/%s/%s/latest/src/contrib", s3_bucket, arch, codename)
+  remote_bin_dir <- file.path(s3_bucket, arch, codename, "latest", "src", "contrib")
 
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
@@ -43,8 +43,8 @@ add_to_package_index <- function(
   )
 
   # get latest PACKAGES file from S3
-  if (!s3fs::s3_file_exists(sprintf("%s/PACKAGES", remote_bin_dir))) {
-    s3fs::s3_file_download(sprintf("%s/PACKAGES", remote_bin_dir), sprintf("%s/PACKAGES", local_bin_dir))
+  if (!s3fs::s3_file_exists(file.path(remote_bin_dir, "PACKAGES"))) {
+    s3fs::s3_file_download(file.path(remote_bin_dir, "PACKAGES"), file.path(local_bin_dir, "PACKAGES"))
   }
   file_names <- list.files(local_bin_dir, pattern = sprintf("%s*", package_name))
 
@@ -60,7 +60,7 @@ add_to_package_index <- function(
 #' @template param-s3_endpoint
 #' @template param-s3_region
 #' @template param-s3_bucket
-#' @template param-debug
+#' @template param-is_debug
 #' @template param-local_output_dir_root
 #' @template param-arch
 #' @template param-s3-access-key-id
@@ -70,13 +70,13 @@ add_to_package_index <- function(
 #' @importFrom cranlike update_PACKAGES
 #' @export
 upload_package_index <- function(
-    package_name = NULL,
     s3_endpoint,
     s3_region,
     s3_bucket,
+    package_name = NULL,
     local_output_dir_root = ".",
     codename = NULL,
-    debug = FALSE,
+    is_debug = FALSE,
     arch = NULL,
     s3_access_key_id = NULL,
     s3_secret_access_key = NULL) {
@@ -86,15 +86,14 @@ upload_package_index <- function(
 
   if (is.null(arch)) {
     local_arch <- Sys.info()[["machine"]]
-    if (grepl("arm64", local_arch) || grepl("aarch64", local_arch)) {
+    if (grepl("arm64", local_arch, fixed = TRUE) || grepl("aarch64", local_arch, fixed = TRUE)) {
       arch <- "arm64"
-    } else if (grepl("amd64", local_arch) || grepl("x86_64", local_arch)) {
+    } else if (grepl("amd64", local_arch, fixed = TRUE) || grepl("x86_64", local_arch, fixed = TRUE)) {
       arch <- "amd64"
     }
   }
 
-  local_bin_dir <- set_bin_path(local_output_dir_root, codename)
-  remote_bin_dir <- sprintf("%s/%s/%s/latest/src/contrib", s3_bucket, arch, codename)
+  remote_bin_dir <- file.path(s3_bucket, arch, codename, "latest", "src", "contrib")
 
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
@@ -108,27 +107,33 @@ upload_package_index <- function(
   pkgs <- s3fs::s3_dir_ls(remote_bin_dir)
   cli::cli_alert_success("Finished listing remote packages")
   # We remove 4 from the count as we don't want to count the PACKAGES* files + Archive/ dir
-  pkg_count <- length(pkgs) - 5
-  unique_pkgs <- length(unique(sapply(strsplit(basename(pkgs), "_"), function(x) x[1]))) - 5
+  pkg_count <- length(pkgs) - 5L # nolint
+  unique_pkgs <- length(unique(vapply(
+    strsplit(basename(pkgs), "_", fixed = TRUE), # nolint
+    function(x) x[1L], character(1L)
+  ))) - 5L
 
   t1 <- Sys.time()
   cranlike::update_PACKAGES(sprintf("s3://%s", remote_bin_dir))
 
   # write Meta/archive.rds for remotes::install_version
-  cli::cli_alert_success("Started creating/updating {.path Meta/archive.rds}")
-  files <- s3fs::s3_dir_ls(sprintf("%s/Archive", remote_bin_dir), recurse = TRUE, regexp = "*.tar.gz")
+  cli::cli_alert_success("Started creating/updating {.path {file.path('Meta', 'archive.rds')}}") # nolint
+  files <- s3fs::s3_dir_ls(file.path(remote_bin_dir, "Archive"), recurse = TRUE, regexp = "*.tar.gz")
   archive_rds <- write_archive_rds(files)
   tmp <- tempfile()
   saveRDS(archive_rds, tmp)
-  s3fs::s3_file_upload(tmp, sprintf("%s/Meta/archive.rds", remote_bin_dir), overwrite = TRUE, CacheControl = "no-store")
-  cli::cli_alert_success("Successfully uploaded {.path Meta/archive.rds}")
+  s3fs::s3_file_upload(tmp, file.path(remote_bin_dir, "Meta", "archive.rds"),
+    overwrite = TRUE, CacheControl = "no-store"
+  )
+  cli::cli_alert_success("Successfully uploaded {.path {file.path('Meta', 'archive.rds')}}")
 
-  total_build_time <- round(Sys.time() - t1, 2)
-  cli::cli_alert("Time updating PACKAGES index for {.field {pkg_count}} ({.field {unique_pkgs}} unique) packages: {.strong {total_build_time} {units(difftime(Sys.time(), t1))}}.")
+  total_build_time <- round(Sys.time() - t1, 2L) # nolint
+  cli::cli_alert("Time updating PACKAGES index for {.field {pkg_count}}
+    ({.field {unique_pkgs}} unique) packages: {.strong {total_build_time} {units(difftime(Sys.time(), t1))}}.")
 
   purrr::walk2(
     c("PACKAGES", "PACKAGES.db", "PACKAGES.rds", "PACKAGES.gz"),
-    sprintf("%s/%s", remote_bin_dir, c("PACKAGES", "PACKAGES.db", "PACKAGES.rds", "PACKAGES.gz")),
+    file.path(remote_bin_dir, c("PACKAGES", "PACKAGES.db", "PACKAGES.rds", "PACKAGES.gz")),
     \(x, y) s3fs::s3_file_upload(x, y, overwrite = TRUE, CacheControl = "no-store")
   )
 

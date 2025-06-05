@@ -2,7 +2,7 @@
 % Please edit documentation in R/archive_packages.R
 \name{write_archive_rds}
 \alias{write_archive_rds}
-\title{Create Meta/archive.rds for remotes package}
+\title{Create Meta/archive.rds for \{remotes\} package}
 \usage{
 write_archive_rds(files)
 }
@@ -10,5 +10,5 @@ write_archive_rds(files)
 \item{files}{Input files}
 }
 \description{
-Inspired from \url{https://stackoverflow.com/questions/35584396/how-to-generate-meta-archive-rds-to-be-compatible-with-devtoolsinstall-version}
+Inspired from \url{https://stackoverflow.com/questions/35584396/how-to-generate-meta-archive-rds-to-be-compatible-with-devtoolsinstall-version} # nolint
 }

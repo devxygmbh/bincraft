@@ -6,18 +6,18 @@
 \usage{
 build_single_tag(
   package_name,
-  tag = NULL,
   platform,
   arch,
   binary_output_path,
   local_clone_dir,
+  tag = NULL,
   codename = NULL,
   s3_endpoint = NULL,
   s3_region = NULL,
   s3_bucket = NULL,
   s3_access_key_id = NULL,
   s3_secret_access_key = NULL,
-  debug = FALSE,
+  is_debug = FALSE,
   force = FALSE,
   install_system_dependencies = TRUE,
   deps_verbose = FALSE,
@@ -36,9 +36,6 @@ build_single_tag(
 \item{package_name}{(\link{character})\cr
 Package name}
 
-\item{tag}{(\link{character})\cr
-Tag/version. Tags starting with "R-" are filtered out.}
-
 \item{platform}{(\link{character})\cr
 Platform identifier}
 
@@ -50,6 +47,9 @@ Local output path for binaries}
 
 \item{local_clone_dir}{(\link{character})\cr
 Path to clone git repos into}
+
+\item{tag}{(\link{character})\cr
+Tag/version. Tags starting with "R-" are filtered out.}
 
 \item{codename}{(\link{character})\cr
 Linux distribution identifier}
@@ -69,7 +69,7 @@ S3 access key ID}
 \item{s3_secret_access_key}{(\link{character})\cr
 S3 secret access key}
 
-\item{debug}{(\link{logical})\cr
+\item{is_debug}{(\link{logical})\cr
 Whether to enable debug logging}
 
 \item{force}{(\link{logical})\cr

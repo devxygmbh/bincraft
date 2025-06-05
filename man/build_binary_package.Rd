@@ -15,7 +15,7 @@ build_binary_package(
   arch = NULL,
   install_system_dependencies = TRUE,
   deps_verbose = FALSE,
-  debug = FALSE,
+  is_debug = FALSE,
   force = FALSE,
   upload = FALSE,
   archive = FALSE,
@@ -29,7 +29,7 @@ build_binary_package(
   metadata_db_password = NULL,
   metadata_db_sslmode = NULL,
   future_strategy = "sequential",
-  future_workers = 1,
+  future_workers = 1L,
   s3_endpoint = NULL,
   s3_region = NULL,
   s3_bucket = NULL,
@@ -69,7 +69,7 @@ Whether to infer and install system dependencies of packages}
 \item{deps_verbose}{(\link{logical})\cr
 Whether to enable verbose output via env var \code{PKG_SYSREQS_VERBOSE}}
 
-\item{debug}{(\link{logical})\cr
+\item{is_debug}{(\link{logical})\cr
 Whether to enable debug logging}
 
 \item{force}{(\link{logical})\cr
@@ -131,15 +131,19 @@ S3 secret access key}
 Builds binary packages from a given URL for a specific architecture.
 Git tags are used to determine all possible versions to build.
 
-System dependencies are automatically installed through \link{pak}.
+System dependencies are automatically installed through \pkg{pak}.
 
-The function also automatically archives older versions into an \verb{Archive/} directory to keep only the most recent one in the repository root.
+The function also automatically archives older versions into an \verb{Archive/}
+directory to keep only the most recent one in the repository root.
 }
 \examples{
 \dontrun{
 # build from cran
 build_binary_package("brew", archive = FALSE)
-build_binary_package("brew", url = "https://github.com/cran/brew", archive = FALSE)
+build_binary_package("brew",
+  url = "https://github.com/cran/brew",
+  archive = FALSE
+)
 }
 
 }

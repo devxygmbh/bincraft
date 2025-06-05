@@ -4,23 +4,23 @@
 set_codename <- function(codename) {
   if (is.null(codename)) {
     if (Sys.info()["sysname"] == "Linux") {
-      if (any(grepl("alpine", system2("cat", args = c("/etc/os-release"), stdout = TRUE)))) {
-        version <- system2("grep",
-          args = c("'^VERSION_ID=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'"), stdout = TRUE
+      if (any(grepl("alpine", system2("cat", args = "/etc/os-release", stdout = TRUE), fixed = TRUE))) { # nolint
+        os_version <- system2("grep",
+          args = "'^VERSION_ID=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'", stdout = TRUE
         )
-        version_stripped <- substr(gsub("\\.", "", version), 1, 3)
+        version_stripped <- substr(gsub("\\.", "", os_version, fixed = TRUE), 1L, 3L)
         codename <- paste0("alpine", version_stripped)
       } else {
         dist_fam <- system2("grep",
-          args = c("'^ID_LIKE=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'"), stdout = TRUE
+          args = "'^ID_LIKE=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'", stdout = TRUE
         )
         if (dist_fam == "debian") {
           codename <- system2("grep",
-            args = c("'^VERSION_CODENAME=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'"), stdout = TRUE
+            args = "'^VERSION_CODENAME=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'", stdout = TRUE
           )
         } else if (grepl("rhel|fedora", dist_fam)) {
           platform_id <- system2("grep",
-            args = c("'^PLATFORM_ID=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'"), stdout = TRUE
+            args = "'^PLATFORM_ID=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'", stdout = TRUE
           )
           if (platform_id == "platform:el9") {
             codename <- "rhel9"
@@ -30,9 +30,9 @@ set_codename <- function(codename) {
         }
       }
     }
-    return(codename)
+    codename
   } else {
-    return(codename)
+    codename
   }
 }
 
@@ -42,17 +42,15 @@ set_codename <- function(codename) {
 #' @export
 set_bin_path <- function(local_output_dir_root, codename) {
   local_arch <- Sys.info()[["machine"]]
-  if (grepl("arm64", local_arch) || grepl("aarch64", local_arch)) {
+  if (grepl("arm64", local_arch, fixed = TRUE) || grepl("aarch64", local_arch, fixed = TRUE)) {
     arch <- "arm64"
-  } else if (grepl("amd64", local_arch) || grepl("x86_64", local_arch)) {
+  } else if (grepl("amd64", local_arch, fixed = TRUE) || grepl("x86_64", local_arch, fixed = TRUE)) {
     arch <- "amd64"
   }
 
-  path <- sprintf(
-    "%s/%s/%s/latest/src/contrib",
+  file.path(
     local_output_dir_root, arch, codename
   )
-  return(path)
 }
 
 #' Checks whether a binary for the latest package version exists
@@ -77,13 +75,13 @@ check_for_binary <- function(
     s3_access_key_id = NULL,
     s3_secret_access_key = NULL) {
   if (is.null(s3_endpoint)) {
-    stop("s3_endpoint must be defined")
+    stop("s3_endpoint must be defined", call. = FALSE)
   }
   if (is.null(s3_region)) {
-    stop("s3_region must be defined")
+    stop("s3_region must be defined", call. = FALSE)
   }
   if (is.null(s3_bucket)) {
-    stop("s3_bucket must be defined")
+    stop("s3_bucket must be defined", call. = FALSE)
   }
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
@@ -94,43 +92,43 @@ check_for_binary <- function(
   )
   codename <- set_codename(codename)
   remote_bin_path <- set_bin_path(local_output_dir_root = s3_bucket, codename)
-  version <- strsplit(gh::gh(sprintf("GET /repos/cran/%s/commits", package_name))[[1]]$commit$message, "version ")[[1]][2]
-  exists <- s3fs::s3_file_exists(sprintf("s3://%s/%s_%s.tar.gz", remote_bin_path, package_name, version))
-  return(exists)
+  os_version <- strsplit(gh::gh(sprintf("GET /repos/cran/%s/commits", package_name))[[1]]$commit$message, "version ")[[1L]][2L] # nolint
+  binary_exists <- s3fs::s3_file_exists(sprintf("s3://%s/%s_%s.tar.gz", remote_bin_path, package_name, os_version))
+  return(binary_exists)
 }
 
 #' @importFrom purrr rate_backoff
 retry_config <- purrr::rate_backoff(
-  pause_base = 1,
-  pause_cap = 60,
-  pause_min = 1,
-  max_times = 10,
+  pause_base = 1L,
+  pause_cap = 60L,
+  pause_min = 1L,
+  max_times = 10L,
   jitter = FALSE
 )
 
 download_source_tarball <- function(url, destfile) {
-  status_or_error <- tryCatch(
+  tryCatch(
     {
       status_code <- download.file(url, destfile, quiet = TRUE)
-      if (status_code != 0) {
+      if (status_code != 0L) {
         # If download.file returns non-zero, treat it as an error condition
         stop(sprintf(
           "download.file failed for %s with status code %d",
           basename(url),
           status_code
-        ))
+        ), call. = FALSE)
       }
       TRUE
     },
     error = function(e) {
-      stop(conditionMessage(e))
+      stop(conditionMessage(e), call. = FALSE)
     }
   )
-  return(invisible(TRUE))
+  invisible(TRUE)
 }
 
 insistent_downloader <- purrr::insistently(
   download_source_tarball,
-  rate = purrr::rate_backoff(max_times = 3 + 1, pause_base = 1),
+  rate = purrr::rate_backoff(max_times = 3L + 1L, pause_base = 1L),
   quiet = FALSE
 )

@@ -5,22 +5,19 @@
 \title{Upload package index files to S3}
 \usage{
 upload_package_index(
-  package_name = NULL,
   s3_endpoint,
   s3_region,
   s3_bucket,
+  package_name = NULL,
   local_output_dir_root = ".",
   codename = NULL,
-  debug = FALSE,
+  is_debug = FALSE,
   arch = NULL,
   s3_access_key_id = NULL,
   s3_secret_access_key = NULL
 )
 }
 \arguments{
-\item{package_name}{(\link{character})\cr
-Package name}
-
 \item{s3_endpoint}{(\link{character})\cr
 S3 endpoint}
 
@@ -30,13 +27,16 @@ S3 region}
 \item{s3_bucket}{(\link{character})\cr
 S3 bucket name}
 
+\item{package_name}{(\link{character})\cr
+Package name}
+
 \item{local_output_dir_root}{(\link{character})\cr
 Path to local build root}
 
 \item{codename}{(\link{character})\cr
 Linux distribution identifier}
 
-\item{debug}{(\link{logical})\cr
+\item{is_debug}{(\link{logical})\cr
 Whether to enable debug logging}
 
 \item{arch}{(\link{character})\cr

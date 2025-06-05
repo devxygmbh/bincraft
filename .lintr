@@ -1,0 +1,4 @@
+linters: all_linters(
+    line_length_linter(120L),
+    indentation_linter = NULL
+    )
