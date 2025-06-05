@@ -487,7 +487,8 @@ create_worker_function <- function(
   function(x, y, debug_flag) {
     tryCatch(
       {
-        result <- build_single_tag(x, y, binary_output_path, local_clone_dir,
+        result <- build_single_tag(x, y, binary_output_path = binary_output_path,
+          local_clone_dir = local_clone_dir,
           platform = platform, arch = arch, is_debug = debug_flag, force = force,
           install_system_dependencies = install_system_dependencies,
           deps_verbose = deps_verbose, store_build_metadata = store_build_metadata,
