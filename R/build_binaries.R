@@ -95,7 +95,7 @@ build_binary_package <- function(
     s3_secret_access_key = NULL) {
   # Initialize and prepare
   setup_result <- initialize_build_environment(
-    package_name, codename, platform, arch, debug,
+    package_name, codename, platform, arch, is_debug,
     local_output_dir_root, force, s3_bucket, s3_access_key_id,
     s3_secret_access_key, s3_endpoint, s3_region
   )
@@ -116,7 +116,7 @@ build_binary_package <- function(
     store_build_metadata, metadata_db_type, metadata_db_host,
     metadata_db_name, metadata_db_table, metadata_db_port,
     metadata_db_user, metadata_db_password, metadata_db_sslmode,
-    platform, arch, debug
+    platform, arch, is_debug
   )
 
   if (pkg_info$should_skip) {
@@ -129,7 +129,7 @@ build_binary_package <- function(
   # Build packages
   result <- execute_package_builds(
     package_name, tag, binary_output_path, local_clone_dir,
-    platform, arch, debug, force, install_system_dependencies,
+    platform, arch, is_debug, force, install_system_dependencies,
     deps_verbose, store_build_metadata, metadata_db_host,
     metadata_db_name, metadata_db_port, metadata_db_table,
     metadata_db_password, metadata_db_user, metadata_db_sslmode,
@@ -140,7 +140,7 @@ build_binary_package <- function(
 
   # Handle upload and archiving
   handle_post_build_actions(
-    package_name, tag, result, upload, archive, force, debug,
+    package_name, tag, result, upload, archive, force, is_debug,
     s3_endpoint, s3_bucket, s3_region, s3_access_key_id,
     s3_secret_access_key
   )

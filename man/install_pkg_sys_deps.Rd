@@ -2,7 +2,7 @@
 % Please edit documentation in R/install-deps.R
 \name{install_pkg_sys_deps}
 \alias{install_pkg_sys_deps}
-\title{Install system dependencies for R package}
+\title{Install system dependencies for an R package}
 \usage{
 install_pkg_sys_deps(
   package_name,
@@ -33,5 +33,5 @@ Whether to enable verbose output via env var \code{PKG_SYSREQS_VERBOSE}}
 Whether to enable debug logging}
 }
 \description{
-Install system dependencies for R package
+Install system dependencies for an R package
 }
