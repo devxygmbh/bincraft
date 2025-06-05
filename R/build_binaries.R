@@ -315,7 +315,8 @@ check_s3_packages <- function(
 
     if (length(pkg_differences) == 0L) {
       cli::cli_alert_info(
-        "{.fun build_binary_package}: All packages were filtered out due to previous build errors. Skipping."
+        "{.fun build_binary_package}: All packages were filtered out due to previous build errors being present
+        in the metadata database. Skipping.", wrap = TRUE
       )
       return(list(should_skip = TRUE))
     }
@@ -331,7 +332,8 @@ check_s3_packages <- function(
 
     cli::cli_alert(
       "Building the following version(s) ({length(pkg_differences)}/{length(pkgs_to_build)}) ", # nolint
-      "as they are not present in the remote bucket: {.field {pkg_differences}}"
+      "as they are not present in the remote bucket: {.field {pkg_differences}}",
+      wrap = TRUE
     )
 
     list(should_skip = FALSE, filtered_tags = filtered_tags)
