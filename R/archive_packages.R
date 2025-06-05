@@ -9,8 +9,6 @@
 #' @template param-local_output_dir_root
 #' @template param-s3-access-key-id
 #' @template param-s3-secret-access-key
-#'
-
 #' @importFrom utils available.packages tail
 #' @importFrom purrr walk
 #' @importFrom gh gh
@@ -100,7 +98,7 @@ archive_package <- function(
         # caused by error in `curl::curl_fetch_memory(url)`:
         # ! SSL peer certificate or SSH remote key was not OK: [crandb.r-pkg.org]
         # SSL certificate problem: unable to get local issuer certificate
-        versions <- insistently(
+        versions <- purrr::insistently(
           ~ rev(pak::pkg_history(pkgname)$Version),
           rate = retry_config,
           quiet = FALSE
@@ -109,11 +107,11 @@ archive_package <- function(
           if (
             any(grepl(
               paste0("^", i, "$"),
-              sapply(strsplit(
-                sapply(strsplit(all_versions, "_", fixed = TRUE), function(x) x[2L]),
+              vapply(strsplit(
+                vapply(strsplit(all_versions, "_", fixed = TRUE), function(x) x[2L], character(1L)),
                 ".tar.gz",
                 fixed = TRUE
-              ), function(x) x[1L])
+              ), function(x) x[1L], character(1L))
             ))
           ) {
             index <- grep(sprintf("_%s.tar.gz", i), all_versions)
