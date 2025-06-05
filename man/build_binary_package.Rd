@@ -8,7 +8,7 @@ build_binary_package(
   package_name,
   tag = NULL,
   codename = NULL,
-  url = NULL,
+  source_org_url = "https://github.com/cran",
   local_output_dir_root = ".",
   local_clone_dir = "/tmp",
   platform = NULL,
@@ -47,8 +47,10 @@ Tag/version. Tags starting with "R-" are filtered out.}
 \item{codename}{(\link{character})\cr
 Linux distribution identifier}
 
-\item{url}{(\link{character})\cr
-URL from which to build binaries from. By default, a CRAN package is assumed and looked up at 'https://github.com/cran/\if{html}{\out{<package>}}'/.
+\item{source_org_url}{(\link{character})\cr
+Git organization URL in which to search for the package sources.
+The final URL will a combination from this argument and the package name.
+This also implies that the package source must exist in a repository with the same name.
 Must be a https:// URL, local paths are not supported.}
 
 \item{local_output_dir_root}{(\link{character})\cr
@@ -141,7 +143,7 @@ directory to keep only the most recent one in the repository root.
 # build from cran
 build_binary_package("brew", archive = FALSE)
 build_binary_package("brew",
-  url = "https://github.com/cran/brew",
+  source_org_url = "https://my.git.com/rpkgs/",
   archive = FALSE
 )
 }

@@ -10,6 +10,7 @@ build_single_tag(
   arch,
   binary_output_path,
   local_clone_dir,
+  source_org_url,
   tag = NULL,
   codename = NULL,
   s3_endpoint = NULL,
@@ -47,6 +48,12 @@ Local output path for binaries}
 
 \item{local_clone_dir}{(\link{character})\cr
 Path to clone git repos into}
+
+\item{source_org_url}{(\link{character})\cr
+Git organization URL in which to search for the package sources.
+The final URL will a combination from this argument and the package name.
+This also implies that the package source must exist in a repository with the same name.
+Must be a https:// URL, local paths are not supported.}
 
 \item{tag}{(\link{character})\cr
 Tag/version. Tags starting with "R-" are filtered out.}

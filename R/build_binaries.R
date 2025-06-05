@@ -31,7 +31,7 @@
 #' @template param-metadata_db_sslmode
 #' @template param-upload
 #' @template param-force
-#' @template param-url
+#' @template param-source_org_url
 #'
 #' @template param-s3_endpoint
 #' @template param-s3_region
@@ -56,7 +56,7 @@
 #' # build from cran
 #' build_binary_package("brew", archive = FALSE)
 #' build_binary_package("brew",
-#'   url = "https://github.com/cran/brew",
+#'   source_org_url = "https://my.git.com/rpkgs/",
 #'   archive = FALSE
 #' )
 #' }
@@ -66,7 +66,7 @@ build_binary_package <- function(
     package_name,
     tag = NULL,
     codename = NULL,
-    url = NULL,
+    source_org_url = "https://github.com/cran",
     local_output_dir_root = ".",
     local_clone_dir = "/tmp",
     platform = NULL,
@@ -111,7 +111,7 @@ build_binary_package <- function(
 
   # Determine packages to build
   pkg_info <- determine_packages_to_build(
-    package_name, tag, url, force, s3_bucket, s3_access_key_id,
+    package_name, tag, source_org_url, force, s3_bucket, s3_access_key_id,
     s3_secret_access_key, s3_endpoint, s3_region, binary_output_path,
     store_build_metadata, metadata_db_type, metadata_db_host,
     metadata_db_name, metadata_db_table, metadata_db_port,
@@ -205,7 +205,7 @@ initialize_build_environment <- function(
 }
 
 determine_packages_to_build <- function(
-    package_name, tag, url, force, s3_bucket,
+    package_name, tag, source_org_url, force, s3_bucket,
     s3_access_key_id, s3_secret_access_key,
     s3_endpoint, s3_region, binary_output_path,
     store_build_metadata, metadata_db_type,
@@ -218,7 +218,7 @@ determine_packages_to_build <- function(
   # check whether any build attempts need to be made
   if (!force && !is.null(s3_bucket)) {
     s3_result <- check_s3_packages(
-      package_name, tag, url, s3_bucket, s3_access_key_id,
+      package_name, tag, source_org_url, s3_bucket, s3_access_key_id,
       s3_secret_access_key, s3_endpoint, s3_region,
       store_build_metadata, metadata_db_type, metadata_db_host,
       metadata_db_name, metadata_db_table, metadata_db_port,
@@ -240,7 +240,7 @@ determine_packages_to_build <- function(
   cli::cli_h2("Installing system dependencies ({.pkg {package_name}})")
 
   if (!pkgs_to_build_exists) {
-    tag_result <- get_all_tags(package_name, tag, url)
+    tag_result <- get_all_tags(package_name, tag, source_org_url)
     tag <- tag_result$tag
     package_name <- rep(package_name, length(tag))
   }
@@ -253,7 +253,7 @@ determine_packages_to_build <- function(
 }
 
 check_s3_packages <- function(
-    package_name, tag, url, s3_bucket, s3_access_key_id,
+    package_name, tag, source_org_url, s3_bucket, s3_access_key_id,
     s3_secret_access_key, s3_endpoint, s3_region,
     store_build_metadata, metadata_db_type,
     metadata_db_host, metadata_db_name, metadata_db_table,
@@ -290,7 +290,7 @@ check_s3_packages <- function(
   gert::git_config_global_set("advice.detachedHead", "false")
 
   if (is.null(tag) || tag == "latest") {
-    tag_result <- get_all_tags(package_name, tag, url)
+    tag_result <- get_all_tags(package_name, tag, source_org_url)
     tag <- tag_result$tag
 
     pkgs_to_build <- sprintf("%s_%s.tar.gz", package_name, tag)
@@ -342,14 +342,12 @@ check_s3_packages <- function(
   list(should_skip = FALSE)
 }
 
-get_all_tags <- function(package_name, tag, url) {
+get_all_tags <- function(package_name, tag, source_org_url) {
   gert::git_config_global_set("advice.detachedHead", "false")
 
   if (is.null(tag) || tag == "latest") {
-    if (is.null(url)) {
-      url <- sprintf("https://github.com/cran/%s", package_name)
-    }
-    gert::git_clone(url,
+      url <- sprintf("%s/%s", source_org_url, package_name) # nolint
+    gert::git_clone(source_org_url,
       path = file.path(tempdir(), "tmp1"),
       verbose = FALSE
     )
@@ -592,6 +590,7 @@ handle_post_build_actions <- function(
 #' @template param-tag
 #' @template param-arch
 #' @template param-platform
+#' @template param-source_org_url
 #' @template param-is_debug
 #' @template param-local_clone_dir
 #' @template param-install_system_dependencies
@@ -625,6 +624,7 @@ build_single_tag <- function(
     arch,
     binary_output_path,
     local_clone_dir,
+    source_org_url,
     tag = NULL,
     codename = NULL,
     s3_endpoint = NULL,
@@ -666,7 +666,7 @@ build_single_tag <- function(
   }
 
   # Clone repository
-  clone_repository(package_name, tag, local_clone_dir_single)
+  clone_repository(package_name, tag, source_org_url, local_clone_dir_single)
 
   # Install system dependencies
   if (install_system_dependencies) {
@@ -745,10 +745,10 @@ check_build_skip_conditions <- function(
   list(should_skip = FALSE)
 }
 
-clone_repository <- function(package_name, tag, local_clone_dir_single) {
+clone_repository <- function(package_name, tag, source_org_url, local_clone_dir_single) {
   system2("git", args = c(
     "clone", "-q", sprintf("--branch=%s", tag),
-    sprintf("https://github.com/cran/%s", package_name), local_clone_dir_single
+    sprintf("%s/%s", source_org_url, package_name), local_clone_dir_single # nolint
   ))
 }
 
