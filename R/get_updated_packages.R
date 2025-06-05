@@ -2,11 +2,12 @@
 #' @template param-date
 #'
 #' @importFrom purrr map list_rbind
-#' @importFrom lubridate today
 #' @examples
 #' get_updated_cran_packages(lubridate::interval(lubridate::today() - 7, lubridate::today()))
 #' @export
-get_updated_cran_packages <- function(date = lubridate::today()) {
+get_updated_cran_packages <- function(date = if (requireNamespace("lubridate", quietly = TRUE)) {
+                                        lubridate::today()
+                                      }) {
   feed <- get_cranberries_feed()
 
   # Apply the function to each item and bind the results into a data frame
@@ -20,7 +21,6 @@ get_updated_cran_packages <- function(date = lubridate::today()) {
 #' @template param-date
 #'
 #' @importFrom purrr map list_rbind
-#' @importFrom lubridate today
 #' @export
 #' @examples
 #' \dontrun{
@@ -28,7 +28,9 @@ get_updated_cran_packages <- function(date = lubridate::today()) {
 #' get_new_cran_packages(lubridate::interval(lubridate::today() - 7, lubridate::today()))
 #' }
 #'
-get_new_cran_packages <- function(date = lubridate::today()) {
+get_new_cran_packages <- function(date = if (requireNamespace("lubridate", quietly = TRUE)) {
+                                    lubridate::today()
+                                  }) {
   feed <- get_cranberries_feed(type = "new")
 
   # Apply the function to each item and bind the results into a data frame
@@ -42,7 +44,6 @@ get_new_cran_packages <- function(date = lubridate::today()) {
 #' @template param-date
 #'
 #' @importFrom purrr map list_rbind
-#' @importFrom lubridate today
 #' @export
 #' @examples
 #' \dontrun{
@@ -50,7 +51,9 @@ get_new_cran_packages <- function(date = lubridate::today()) {
 #' get_removed_cran_packages(lubridate::interval(today() - 7, today()))
 #' }
 #'
-get_removed_cran_packages <- function(date = lubridate::today()) {
+get_removed_cran_packages <- function(date = if (requireNamespace("lubridate", quietly = TRUE)) {
+                                        lubridate::today()
+                                      }) {
   feed <- get_cranberries_feed(type = "removed")
 
   # Apply the function to each item and bind the results into a data frame
@@ -64,72 +67,75 @@ get_removed_cran_packages <- function(date = lubridate::today()) {
   return(results)
 }
 
-#' Get Cranberries fieed
-#' @importFrom xml2 read_xml xml_find_all
+#' Get Cranberries feed
 #' @export
 #' @param type Which type of packages to query. Allowed are `"updated"`, `"new"` and `"removed"`
 get_cranberries_feed <- function(type = "updated") {
-  feed <- sprintf("https://dirk.eddelbuettel.com/cranberries/cran/%s/index.rss", type)
+  if (requireNamespace("xml2", quietly = TRUE)) {
+    feed <- sprintf("https://dirk.eddelbuettel.com/cranberries/cran/%s/index.rss", type)
 
-  # Fetch and parse the RSS feed
-  rss_content <- xml2::read_xml(feed)
+    # Fetch and parse the RSS feed
+    rss_content <- xml2::read_xml(feed)
 
-  # Extract item nodes
-  items <- xml2::xml_find_all(rss_content, "//item")
+    # Extract item nodes
+    items <- xml2::xml_find_all(rss_content, "//item")
 
-  return(items)
+    return(items)
+  }
 }
 
 #' Process CRANberries RSS feed
 #' @template param-date
 #' @param feed RSS feed
 #'
-#' @importFrom lubridate dmy_hms as_date interval %within%
-#' @importFrom xml2 xml_text xml_find_first
 #' @export
-process_cranberries_rss <- function(feed, date = lubridate::today()) {
-  pkg_title <- xml2::xml_text(xml_find_first(feed, "title"))
-  pub_date_text <- xml2::xml_text(xml_find_first(feed, "pubDate"))
-  pub_date <- lubridate::as_date(dmy_hms(pub_date_text))
-  if (inherits(date, "Date")) {
-    date <- lubridate::interval(date, date)
-  }
-
-  if (pub_date %within% date) {
-    if (grepl("updated", pkg_title, fixed = TRUE)) {
-      package_info <- strsplit(pkg_title, " ", fixed = TRUE)[[1L]]
-      package_name <- package_info[2L]
-      package_version_new <- package_info[7L]
-      package_version_old <- package_info[12L]
-      previous_update_date <- package_info[14L]
-
-      return(data.frame(
-        name = package_name,
-        version = package_version_new,
-        date = pub_date,
-        version_old = package_version_old,
-        previous_update_date = previous_update_date
-      ))
-    } else if (grepl("New package", pkg_title, fixed = TRUE)) {
-      package_info <- strsplit(pkg_title, " ", fixed = TRUE)[[1L]]
-      package_name <- package_info[3L]
-      package_version_new <- package_info[7L]
-
-      return(data.frame(
-        name = package_name,
-        version = package_version_new,
-        date = pub_date
-      ))
-    } else if (grepl("was removed", pkg_title, fixed = TRUE)) {
-      package_info <- strsplit(pkg_title, " ", fixed = TRUE)[[1L]]
-      package_name <- package_info[2L]
-
-      return(data.frame(
-        name = package_name,
-        date = pub_date
-      ))
+process_cranberries_rss <- function(feed, date = if (requireNamespace("lubridate", quietly = TRUE)) {
+                                      lubridate::today()
+                                    }) {
+  if (requireNamespace("xml2", quietly = TRUE)) {
+    pkg_title <- xml2::xml_text(xml2::xml_find_first(feed, "title"))
+    pub_date_text <- xml2::xml_text(xml2::xml_find_first(feed, "pubDate"))
+    pub_date <- lubridate::as_date(lubridate::dmy_hms(pub_date_text))
+    if (inherits(date, "Date")) {
+      date <- lubridate::interval(date, date)
     }
-  } else {
-    NULL
+
+    if (lubridate::`%within%`(pub_date, date)) {
+      if (grepl("updated", pkg_title, fixed = TRUE)) {
+        package_info <- strsplit(pkg_title, " ", fixed = TRUE)[[1L]]
+        package_name <- package_info[2L]
+        package_version_new <- package_info[7L]
+        package_version_old <- package_info[12L]
+        previous_update_date <- package_info[14L]
+
+        return(data.frame(
+          name = package_name,
+          version = package_version_new,
+          date = pub_date,
+          version_old = package_version_old,
+          previous_update_date = previous_update_date
+        ))
+      } else if (grepl("New package", pkg_title, fixed = TRUE)) {
+        package_info <- strsplit(pkg_title, " ", fixed = TRUE)[[1L]]
+        package_name <- package_info[3L]
+        package_version_new <- package_info[7L]
+
+        return(data.frame(
+          name = package_name,
+          version = package_version_new,
+          date = pub_date
+        ))
+      } else if (grepl("was removed", pkg_title, fixed = TRUE)) {
+        package_info <- strsplit(pkg_title, " ", fixed = TRUE)[[1L]]
+        package_name <- package_info[2L]
+
+        return(data.frame(
+          name = package_name,
+          date = pub_date
+        ))
+      }
+    } else {
+      NULL
+    }
   }
 }

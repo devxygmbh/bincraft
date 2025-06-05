@@ -43,10 +43,8 @@
 #' @param future_strategy future parallelization strategy
 #' @param future_workers Parallel workers count
 #'
-#' @import progressr
 #' @importFrom future plan
 #' @importFrom future.apply future_mapply
-#' @importFrom progressr with_progress progressor
 #' @importFrom gert git_config_global_set git_clone
 #' @importFrom pak local_install_dev_deps
 #' @importFrom pkgbuild build
@@ -382,7 +380,7 @@ filter_packages_with_errors <- function(pkg_differences, metadata_db_type, metad
 
   tryCatch(
     {
-      if (metadata_db_type == "postgres") {
+      if (metadata_db_type == "postgres" && requireNamespace("RPostgres", quietly = TRUE)) {
         con <- purrr::insistently(~
           DBI::dbConnect(RPostgres::Postgres(), # nolint
             dbname = metadata_db_name, host = metadata_db_host,
@@ -455,13 +453,6 @@ execute_package_builds <- function(
     rscript_startup = quote(withr::with_options(crayon.enabled = TRUE))
   )
 
-  if (is_debug) {
-    progressr::handlers("debug")
-  } else {
-    progressr::handlers("progress")
-  }
-  p <- progressr::progressor(along = tag)
-
   worker_fun <- create_worker_function(
     binary_output_path, local_clone_dir, platform, arch, is_debug, force,
     install_system_dependencies, deps_verbose, store_build_metadata,
@@ -472,10 +463,10 @@ execute_package_builds <- function(
   )
 
   if (is_debug) {
-    result <- Map(worker_fun, package_name, tag, MoreArgs = list(p, is_debug))
+    result <- Map(worker_fun, package_name, tag, MoreArgs = list(is_debug))
   } else {
     result <- future.apply::future_mapply(worker_fun, package_name, tag,
-      future.seed = TRUE, MoreArgs = list(p, is_debug)
+      future.seed = TRUE, MoreArgs = list(is_debug)
     )
   }
 
@@ -511,7 +502,7 @@ create_worker_function <- function(
         p(message = sprintf("Done building '%s'", y))
 
         tarball_name <- sprintf("%s_%s.tar.gz", x, y)
-        if (fs::file_exists(file.path(local_bin_path, tarball_name))) {
+        if (file.exists(file.path(local_bin_path, tarball_name))) {
           cli::cli_alert_success("Finished processing package {.pkg {x}} with tag {.field {y}}.")
         } else if (result != "skipped") {
           cli::cli_alert_warning("Error in building package {.pkg {x}} with tag {.field {y}}:
@@ -615,8 +606,6 @@ handle_post_build_actions <- function(
 #'
 #' @importFrom cli cli_alert
 #' @importFrom pkgbuild build
-#' @importFrom fs file_size file_move
-#' @importFrom emoji emoji
 #' @export
 build_single_tag <- function(
     package_name,
@@ -781,7 +770,7 @@ execute_package_build <- function(package_name, tag, local_clone_dir_single, bin
                                   is_debug, platform, arch, metadata_db_host, metadata_db_name,
                                   metadata_db_port, metadata_db_table, metadata_db_password,
                                   metadata_db_user, metadata_db_sslmode) {
-  cli::cli_alert("{emoji('hammer')} Building package {.pkg {package_name}} with tag {.field {tag}}.")
+  cli::cli_alert("Building package {.pkg {package_name}} with tag {.field {tag}}.")
 
   quiet <- !is_debug
   t1 <- Sys.time()
@@ -798,7 +787,7 @@ execute_package_build <- function(package_name, tag, local_clone_dir_single, bin
       )
       if (is_debug) {
         message(sprintf("DEBUG: Listing dir 'binary_output_path': %s", binary_output_path))
-        print(fs::dir_ls(binary_output_path))
+        print(list.files(binary_output_path))
       }
 
       build_time <- round(as.numeric(difftime(Sys.time(), t1, units = "secs")), 2L)
@@ -843,9 +832,9 @@ handle_build_output_files <- function(package_name, tag, binary_output_path, loc
   unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
 
   # Check if final file exists and get its size
-  file_exists <- fs::file_exists(final_tarball_path)
+  file_exists <- file.exists(final_tarball_path)
   file_size <- if (file_exists) {
-    round(as.numeric(fs::file_size(final_tarball_path)) / (1024L^2L), 2L)
+    round(as.numeric(file.size(final_tarball_path)) / (1024L^2L), 2L)
   } else {
     NA
   }
@@ -869,7 +858,7 @@ get_system_architecture_info <- function(binary_output_path) {
     tarball_arch <- "x86_64"
   }
 
-  if (any(grepl("-redhat-linux", fs::dir_ls(binary_output_path, recurse = TRUE), fixed = TRUE))) {
+  if (any(grepl("-redhat-linux", list.files(binary_output_path, recursive = TRUE), fixed = TRUE))) {
     tarball_id <- "redhat"
   }
 
@@ -890,14 +879,14 @@ move_and_rename_tarball <- function(package_name, tag, binary_output_path, syste
       {.path {source_path}} to {.path {dest_path}}")
   }
 
-  if (fs::file_exists(source_path)) {
-    fs::file_move(source_path, dest_path)
+  if (file.exists(source_path)) {
+    file.rename(source_path, dest_path)
   } else {
     cli::cli_alert_info("{.fun build_single_tag}: File for package
       {.pkg {package_name}} {.field {tag}} at {.path {source_path}} does not exist - skipping.")
     if (is_debug) {
       message(sprintf("DEBUG: Listing dir 'binary_output_path': %s", binary_output_path))
-      message(fs::dir_ls(binary_output_path))
+      message(list.files(binary_output_path))
     }
   }
 }

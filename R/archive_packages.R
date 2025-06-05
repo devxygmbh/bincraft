@@ -10,11 +10,10 @@
 #' @template param-s3-access-key-id
 #' @template param-s3-secret-access-key
 #'
-#' @importFrom stringr str_split
+
 #' @importFrom utils available.packages tail
 #' @importFrom purrr walk
 #' @importFrom gh gh
-#' @importFrom ntfy ntfy_send
 #' @export
 #' @examples
 #' \dontrun{
@@ -64,8 +63,6 @@ archive_package <- function(
 
   remote_bin_dir <- file.path(s3_bucket, arch, codename, "latest", "src", "contrib")
 
-  # suppress progressr output here
-  progressr::handlers("void")
   # don't parallelise
   future::plan("sequential")
 
@@ -112,11 +109,11 @@ archive_package <- function(
           if (
             any(grepl(
               paste0("^", i, "$"),
-              stringr::str_split(
-                stringr::str_split(all_versions, stringr::fixed("_"), simplify = TRUE)[, 2L],
+              sapply(strsplit(
+                sapply(strsplit(all_versions, "_", fixed = TRUE), function(x) x[2L]),
                 ".tar.gz",
-                simplify = TRUE
-              )[, 1L]
+                fixed = TRUE
+              ), function(x) x[1L])
             ))
           ) {
             index <- grep(sprintf("_%s.tar.gz", i), all_versions)
@@ -134,10 +131,6 @@ archive_package <- function(
           if (anyDuplicated(s3fs::s3_file_info(i)$key)) {
             cli::cli_alert_danger("{.field {i}} is duplicated, deleting it.")
             s3fs::s3_file_delete(i)
-            ntfy::ntfy_send(sprintf(
-              "Package %s is duplicated and has been deleted, it must be rebuilt.",
-              i
-            ))
             old_versions <- setdiff(old_versions, i)
           }
         }
@@ -150,7 +143,7 @@ archive_package <- function(
             pkgname,
             basename(old_versions)
           ),
-          max_batch = fs::fs_bytes("300MB"),
+          max_batch = parse_bytes("300MB"),
           overwrite = TRUE
         )
         cli::cli_alert_success(

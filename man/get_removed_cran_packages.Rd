@@ -4,7 +4,11 @@
 \alias{get_removed_cran_packages}
 \title{Get removed CRAN packages}
 \usage{
-get_removed_cran_packages(date = lubridate::today())
+get_removed_cran_packages(
+  date = if (requireNamespace("lubridate", quietly = TRUE)) {
+     lubridate::today()
+ }
+)
 }
 \arguments{
 \item{date}{(\link{character})\cr

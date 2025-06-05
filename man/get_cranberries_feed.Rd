@@ -2,7 +2,7 @@
 % Please edit documentation in R/get_updated_packages.R
 \name{get_cranberries_feed}
 \alias{get_cranberries_feed}
-\title{Get Cranberries fieed}
+\title{Get Cranberries feed}
 \usage{
 get_cranberries_feed(type = "updated")
 }
@@ -10,5 +10,5 @@ get_cranberries_feed(type = "updated")
 \item{type}{Which type of packages to query. Allowed are \code{"updated"}, \code{"new"} and \code{"removed"}}
 }
 \description{
-Get Cranberries fieed
+Get Cranberries feed
 }

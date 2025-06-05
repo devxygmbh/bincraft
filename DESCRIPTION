@@ -3,46 +3,36 @@ Title: Toolbox For Building R Package Binaries on Linux
 Version: 2.1.0.9999
 Authors@R:
     person("Patrick", "Schratz", , "mail@devxy.io", role = c("aut", "cre"))
-Description: Help to build, archive, remove and update R binary packages
-    for Linux. Supports various Linux distributions.
+Description: Build, archive, remove and update R binary packages
+    on Linux. Binaries are stored in S3. Creation and curation of package index files is supported.
+    Build metadata can be optionally stored in a database.
 License: GPL (>= 3)
 URL: https://codefloe.com/rpkgs/bincraftr, https://bincraftr.doc.rpkgs.com
 Depends:
-  R (>= 4.1.0)
+    R (>= 4.1.0)
 Imports:
     cli,
     cranlike,
     data.table,
     DBI,
     dplyr,
-    emoji,
-    fs,
     future,
     future.apply,
     gert,
     gh,
-    lubridate,
-    ntfy,
     pak,
     pkgbuild,
-    progressr,
     purrr,
-    RPostgres,
     s3fs (>= 0.1.7),
-    stringr,
     utils,
-    RSQLite,
-    withr,
-    xml2
+    withr
 Suggests:
     bit,
     bit64,
-    cachem,
-    callr,
-    dbplyr,
-    hms,
-    httr2,
-    parallelly
+    lubridate,
+    RPostgres,
+    RSQLite,
+    xml2
 Remotes:
     pat-s/cranlike@s3,
     pat-s/desc@description-from-remote

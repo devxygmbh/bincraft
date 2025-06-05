@@ -18,7 +18,6 @@
 #' @template param-metadata_db_sslmode
 #'
 #' @importFrom utils menu
-#' @importFrom RSQLite SQLite
 #'
 #' @note
 #' When using SQLITE, make sure that the file is also available in the desired built environment,
@@ -64,9 +63,9 @@ init_repo <- function(
   }
 
   ### Check DB
-  if (metadata_db_type == "sqlite") {
+  if (metadata_db_type == "sqlite" && requireNamespace("RSQLite", quietly = TRUE)) {
     res <- DBI::dbCanConnect(RSQLite::SQLite(), metadata_db_host)
-  } else if (metadata_db_type == "postgres") {
+  } else if (metadata_db_type == "postgres" && requireNamespace("RPostgres", quietly = TRUE)) {
     res <- DBI::dbCanConnect(
       RPostgres::Postgres(),
       dbname = metadata_db_name,

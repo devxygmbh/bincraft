@@ -132,3 +132,20 @@ insistent_downloader <- purrr::insistently(
   rate = purrr::rate_backoff(max_times = 3L + 1L, pause_base = 1L),
   quiet = FALSE
 )
+
+parse_bytes <- function(x) {
+  x <- toupper(gsub("\\s+", "", x))
+  num <- as.numeric(gsub("[^0-9.]", "", x))
+  unit <- gsub("[0-9.]", "", x)
+  multipliers <- c(
+    B = 1L,
+    KB = 1024L,
+    MB = 1024L^2L,
+    GB = 1024L^3L,
+    TB = 1024L^4L,
+    PB = 1024L^5L
+  )
+  # Default to bytes if no unit
+  if (unit == "") unit <- "B"
+  num * multipliers[unit]
+}

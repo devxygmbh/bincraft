@@ -61,8 +61,6 @@ upload_single_binary <- function(
   archive_exists <- s3fs::s3_file_exists(archive_path)
   file_exists <- file_exists | archive_exists
 
-  # suppress progressr output here
-  progressr::handlers("void")
   # don't parallelise
   future::plan("sequential")
 
@@ -88,7 +86,7 @@ upload_single_binary <- function(
     )
 
     if (file_exists && force) {
-      upload_args$max_batch <- fs::fs_bytes("300MB")
+      upload_args$max_batch <- parse_bytes("300MB")
       upload_args$overwrite <- TRUE
     }
 

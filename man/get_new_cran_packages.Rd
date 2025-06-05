@@ -4,7 +4,11 @@
 \alias{get_new_cran_packages}
 \title{Get new CRAN packages}
 \usage{
-get_new_cran_packages(date = lubridate::today())
+get_new_cran_packages(
+  date = if (requireNamespace("lubridate", quietly = TRUE)) {
+     lubridate::today()
+ }
+)
 }
 \arguments{
 \item{date}{(\link{character})\cr

@@ -4,7 +4,12 @@
 \alias{process_cranberries_rss}
 \title{Process CRANberries RSS feed}
 \usage{
-process_cranberries_rss(feed, date = lubridate::today())
+process_cranberries_rss(
+  feed,
+  date = if (requireNamespace("lubridate", quietly = TRUE)) {
+     lubridate::today()
+ }
+)
 }
 \arguments{
 \item{feed}{RSS feed}

@@ -37,7 +37,7 @@ store_build_metadata <- function(
     error = NA,
     build_duration = NA,
     size = NA) {
-  if (metadata_db_type == "postgres") {
+  if (metadata_db_type == "postgres" && requireNamespace("RPostgres", quietly = TRUE)) {
     driver <- RPostgres::Postgres()
   }
 
@@ -58,11 +58,10 @@ store_build_metadata <- function(
   )()
 
   if (nrow(existing_entries) >= 1L && !force) {
-    cli::cli_alert("{.fun store_build_metadata}: Build metadata for {.field {.pkg {package_name}}} {.field {tag}}
-                   already exists.")
+    cli::cli_alert("{.fun store_build_metadata}: Build metadata for {.field {.pkg {package_name}}} {.field {tag}} already exists.")
   } else if (nrow(existing_entries) >= 1L && force) {
     cli::cli_alert_info("{.fun store_build_metadata}: Force overwriting build metadata for {.pkg {package_name}}
-                        {.field {tag}} ({platform}) because {.code force = TRUE} was set.")
+      {.field {tag}} ({platform}) because {.code force = TRUE} was set.")
 
     query <- paste0(
       "UPDATE ", table_name, " SET timestamp = $1, error_occurred = $2, error_text = $3, ",
