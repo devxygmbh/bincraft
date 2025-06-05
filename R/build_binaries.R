@@ -482,7 +482,7 @@ create_worker_function <- function(
     metadata_db_port, metadata_db_table, metadata_db_password,
     metadata_db_user, metadata_db_sslmode, s3_endpoint, s3_bucket,
     s3_region, s3_access_key_id, s3_secret_access_key, local_bin_path) {
-  function(x, y, p, debug_flag) {
+  function(x, y, debug_flag) {
     tryCatch(
       {
         result <- build_single_tag(x, y, binary_output_path, local_clone_dir,
