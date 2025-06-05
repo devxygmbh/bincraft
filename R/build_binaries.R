@@ -109,7 +109,7 @@ build_binary_package <- function(
 
   # Determine packages to build
   pkg_info <- determine_packages_to_build(
-    package_name, tag, source_org_url, force, s3_bucket, s3_access_key_id,
+    package_name, tag, source_org_url, codename, force, s3_bucket, s3_access_key_id,
     s3_secret_access_key, s3_endpoint, s3_region, binary_output_path,
     store_build_metadata, metadata_db_type, metadata_db_host,
     metadata_db_name, metadata_db_table, metadata_db_port,
@@ -126,8 +126,8 @@ build_binary_package <- function(
 
   # Build packages
   result <- execute_package_builds(
-    package_name, tag, binary_output_path, local_clone_dir,
-    platform, arch, is_debug, force, install_system_dependencies,
+    package_name, tag, binary_output_path, source_org_url, local_clone_dir,
+    platform, arch, codename, is_debug, force, install_system_dependencies,
     deps_verbose, store_build_metadata, metadata_db_host,
     metadata_db_name, metadata_db_port, metadata_db_table,
     metadata_db_password, metadata_db_user, metadata_db_sslmode,
@@ -138,7 +138,7 @@ build_binary_package <- function(
 
   # Handle upload and archiving
   handle_post_build_actions(
-    package_name, tag, result, upload, archive, force, is_debug,
+    package_name, tag, result, codename, upload, archive, force, is_debug,
     s3_endpoint, s3_bucket, s3_region, s3_access_key_id,
     s3_secret_access_key
   )
@@ -204,7 +204,7 @@ initialize_build_environment <- function(
 }
 
 determine_packages_to_build <- function(
-    package_name, tag, source_org_url, force, s3_bucket,
+    package_name, tag, source_org_url, codename, force, s3_bucket,
     s3_access_key_id, s3_secret_access_key,
     s3_endpoint, s3_region, binary_output_path,
     store_build_metadata, metadata_db_type,
@@ -217,7 +217,7 @@ determine_packages_to_build <- function(
   # check whether any build attempts need to be made
   if (!force && !is.null(s3_bucket)) {
     s3_result <- check_s3_packages(
-      package_name, tag, source_org_url, s3_bucket, s3_access_key_id,
+      package_name, tag, source_org_url, codename, s3_bucket, s3_access_key_id,
       s3_secret_access_key, s3_endpoint, s3_region,
       store_build_metadata, metadata_db_type, metadata_db_host,
       metadata_db_name, metadata_db_table, metadata_db_port,
@@ -252,13 +252,13 @@ determine_packages_to_build <- function(
 }
 
 check_s3_packages <- function(
-    package_name, tag, source_org_url, s3_bucket, s3_access_key_id,
+    package_name, tag, source_org_url, codename = NULL, s3_bucket, s3_access_key_id,
     s3_secret_access_key, s3_endpoint, s3_region,
     store_build_metadata, metadata_db_type,
     metadata_db_host, metadata_db_name, metadata_db_table,
     metadata_db_port, metadata_db_user, metadata_db_password,
     metadata_db_sslmode, platform, arch) {
-  codename <- set_codename(NULL)
+  codename <- set_codename(codename)
   remote_bin_path <- set_bin_path(local_output_dir_root = s3_bucket, codename)
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
@@ -317,7 +317,8 @@ check_s3_packages <- function(
     if (length(pkg_differences) == 0L) {
       cli::cli_alert_info(
         "{.fun build_binary_package}: All packages were filtered out due to previous build errors being present
-        in the metadata database. Skipping.", wrap = TRUE
+        in the metadata database. Skipping.",
+        wrap = TRUE
       )
       return(list(should_skip = TRUE))
     }
@@ -436,8 +437,8 @@ filter_packages_with_errors <- function(pkg_differences, metadata_db_type, metad
 }
 
 execute_package_builds <- function(
-    package_name, tag, binary_output_path, local_clone_dir,
-    platform, arch, is_debug, force, install_system_dependencies,
+    package_name, tag, binary_output_path, source_org_url, local_clone_dir,
+    platform, arch, codename, is_debug, force, install_system_dependencies,
     deps_verbose, store_build_metadata, metadata_db_host,
     metadata_db_name, metadata_db_port, metadata_db_table,
     metadata_db_password, metadata_db_user, metadata_db_sslmode,
@@ -455,19 +456,62 @@ execute_package_builds <- function(
     rscript_startup = quote(withr::with_options(crayon.enabled = TRUE))
   )
 
-  worker_fun <- create_worker_function(
-    binary_output_path, local_clone_dir, platform, arch, is_debug, force,
-    install_system_dependencies, deps_verbose, store_build_metadata,
-    metadata_db_host, metadata_db_name, metadata_db_port, metadata_db_table,
-    metadata_db_password, metadata_db_user, metadata_db_sslmode,
-    s3_endpoint, s3_bucket, s3_region, s3_access_key_id, s3_secret_access_key,
-    local_bin_path
-  )
+  worker_function <- {
+    function(x, y, debug_flag) {
+      tryCatch(
+        {
+          result <- build_single_tag(package_name = x, tag = y,
+            binary_output_path = binary_output_path,
+            local_clone_dir = local_clone_dir,
+            source_org_url = source_org_url,
+            codename = codename,
+            platform = platform, arch = arch, is_debug = debug_flag, force = force,
+            install_system_dependencies = install_system_dependencies,
+            deps_verbose = deps_verbose, store_build_metadata = store_build_metadata,
+            metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
+            metadata_db_port = metadata_db_port, metadata_db_table = metadata_db_table,
+            metadata_db_password = metadata_db_password, metadata_db_user = metadata_db_user,
+            metadata_db_sslmode = metadata_db_sslmode,
+            s3_endpoint = s3_endpoint, s3_bucket = s3_bucket, s3_region = s3_region,
+            s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key
+          )
+
+          tarball_name <- sprintf("%s_%s.tar.gz", x, y)
+          if (file.exists(file.path(local_bin_path, tarball_name))) {
+            cli::cli_alert_success("Finished processing package {.pkg {x}} with tag {.field {y}}.")
+          } else if (result != "skipped") {
+            cli::cli_alert_warning("Error in building package {.pkg {x}} with tag {.field {y}}:
+          Uncommon/unspecific error during build.", wrap = TRUE)
+            store_build_metadata(x, y, platform,
+              error_occurred = TRUE, force = TRUE, arch = arch, error = "Unspecific error during build",
+              metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
+              metadata_db_port = metadata_db_port, metadata_db_table = metadata_db_table,
+              metadata_db_password = metadata_db_password, metadata_db_user = metadata_db_user,
+              metadata_db_sslmode = metadata_db_sslmode
+            )
+          }
+        },
+        error = function(e) {
+          cli::cli_alert_warning("Error in building package {.pkg {x}} with tag {.field {y}}: {e}")
+          local_clone_dir_single <- file.path(local_clone_dir, sprintf("%s_%s", x, y))
+          unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
+          store_build_metadata(x, y, platform,
+            error_occurred = TRUE, arch = arch, force = TRUE, error = e$stderr,
+            metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
+            metadata_db_port = metadata_db_port, metadata_db_table = metadata_db_table,
+            metadata_db_password = metadata_db_password, metadata_db_user = metadata_db_user,
+            metadata_db_sslmode = metadata_db_sslmode
+          )
+        }
+      )
+      result
+    }
+  }
 
   if (is_debug) {
-    result <- Map(worker_fun, package_name, tag, MoreArgs = list(is_debug))
+    result <- Map(worker_function, package_name, tag, MoreArgs = list(is_debug))
   } else {
-    result <- future.apply::future_mapply(worker_fun, package_name, tag,
+    result <- future.apply::future_mapply(worker_function, package_name, tag,
       future.seed = TRUE, MoreArgs = list(is_debug)
     )
   }
@@ -478,63 +522,9 @@ execute_package_builds <- function(
   result
 }
 
-create_worker_function <- function(
-    binary_output_path, local_clone_dir, platform, arch,
-    is_debug, force, install_system_dependencies, deps_verbose,
-    store_build_metadata, metadata_db_host, metadata_db_name,
-    metadata_db_port, metadata_db_table, metadata_db_password,
-    metadata_db_user, metadata_db_sslmode, s3_endpoint, s3_bucket,
-    s3_region, s3_access_key_id, s3_secret_access_key, local_bin_path) {
-  function(x, y, debug_flag) {
-    tryCatch(
-      {
-        result <- build_single_tag(x, y, binary_output_path = binary_output_path,
-          local_clone_dir = local_clone_dir,
-          platform = platform, arch = arch, is_debug = debug_flag, force = force,
-          install_system_dependencies = install_system_dependencies,
-          deps_verbose = deps_verbose, store_build_metadata = store_build_metadata,
-          metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
-          metadata_db_port = metadata_db_port, metadata_db_table = metadata_db_table,
-          metadata_db_password = metadata_db_password, metadata_db_user = metadata_db_user,
-          metadata_db_sslmode = metadata_db_sslmode,
-          s3_endpoint = s3_endpoint, s3_bucket = s3_bucket, s3_region = s3_region,
-          s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key
-        )
-
-        tarball_name <- sprintf("%s_%s.tar.gz", x, y)
-        if (file.exists(file.path(local_bin_path, tarball_name))) {
-          cli::cli_alert_success("Finished processing package {.pkg {x}} with tag {.field {y}}.")
-        } else if (result != "skipped") {
-          cli::cli_alert_warning("Error in building package {.pkg {x}} with tag {.field {y}}:
-          Uncommon/unspecific error during build.", wrap = TRUE)
-          store_build_metadata(x, y, platform,
-            error_occurred = TRUE, force = TRUE, arch = arch, error = "Unspecific error during build",
-            metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
-            metadata_db_port = metadata_db_port, metadata_db_table = metadata_db_table,
-            metadata_db_password = metadata_db_password, metadata_db_user = metadata_db_user,
-            metadata_db_sslmode = metadata_db_sslmode
-          )
-        }
-      },
-      error = function(e) {
-        cli::cli_alert_warning("Error in building package {.pkg {x}} with tag {.field {y}}: {e}")
-        local_clone_dir_single <- file.path(local_clone_dir, sprintf("%s_%s", x, y))
-        unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
-        store_build_metadata(x, y, platform,
-          error_occurred = TRUE, arch = arch, force = TRUE, error = e$stderr,
-          metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
-          metadata_db_port = metadata_db_port, metadata_db_table = metadata_db_table,
-          metadata_db_password = metadata_db_password, metadata_db_user = metadata_db_user,
-          metadata_db_sslmode = metadata_db_sslmode
-        )
-      }
-    )
-    result
-  }
-}
 
 handle_post_build_actions <- function(
-    package_name, tag, result, upload, archive, force,
+    package_name, tag, result, codename, upload, archive, force,
     is_debug, s3_endpoint, s3_bucket, s3_region,
     s3_access_key_id, s3_secret_access_key) {
   if (upload && any(result != "skipped")) {
@@ -542,7 +532,7 @@ handle_post_build_actions <- function(
       tryCatch(
         {
           upload_single_binary(
-            package_name = x, tag = y, force = force, is_debug = is_debug,
+            package_name = x, tag = y, force = force, codename = codename, is_debug = is_debug,
             s3_endpoint = s3_endpoint, s3_bucket = s3_bucket, s3_region = s3_region,
             s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key
           )
@@ -554,11 +544,13 @@ handle_post_build_actions <- function(
     }, package_name, tag)
 
     if (!check_for_binary(package_name[1L],
+      codename = codename,
       s3_endpoint = s3_endpoint, s3_bucket = s3_bucket,
       s3_region = s3_region, s3_access_key_id = s3_access_key_id,
       s3_secret_access_key = s3_secret_access_key
     )) {
       upload_source_tarball(package_name[1L],
+        codename = codename,
         s3_endpoint = s3_endpoint, s3_bucket = s3_bucket,
         s3_region = s3_region, s3_access_key_id = s3_access_key_id,
         s3_secret_access_key = s3_secret_access_key
@@ -568,6 +560,7 @@ handle_post_build_actions <- function(
 
   if (archive && any(result != "skipped")) {
     archive_package(package_name[1L],
+      codename = codename,
       is_debug = is_debug, s3_endpoint = s3_endpoint, s3_bucket = s3_bucket,
       s3_region = s3_region, s3_access_key_id = s3_access_key_id,
       s3_secret_access_key = s3_secret_access_key
@@ -645,8 +638,8 @@ build_single_tag <- function(
 
   # Check if build should be skipped
   skip_result <- check_build_skip_conditions(
-    package_name, tag, binary_output_path, s3_bucket, s3_access_key_id,
-    s3_secret_access_key, s3_endpoint, s3_region, codename, force
+    package_name, tag, binary_output_path, codename, s3_bucket, s3_access_key_id,
+    s3_secret_access_key, s3_endpoint, s3_region, force
   )
 
   if (skip_result$should_skip) {
@@ -701,9 +694,9 @@ build_single_tag <- function(
 }
 
 check_build_skip_conditions <- function(
-    package_name, tag, binary_output_path, s3_bucket,
+    package_name, tag, binary_output_path, codename, s3_bucket,
     s3_access_key_id, s3_secret_access_key,
-    s3_endpoint, s3_region, codename, force) {
+    s3_endpoint, s3_region, force) {
   if (file.exists(file.path(binary_output_path, sprintf("%s_%s.tar.gz", package_name, tag)))) {
     cli::cli_alert_info("Tarball for package {.pkg {package_name}}
       with tag {.field {tag}} already exists. Skipping build.")

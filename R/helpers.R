@@ -8,7 +8,7 @@ set_codename <- function(codename) {
         os_version <- system2("grep",
           args = "'^VERSION_ID=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'", stdout = TRUE
         )
-        version_stripped <- substr(gsub("\\.", "", os_version, fixed = TRUE), 1L, 3L)
+        version_stripped <- substr(gsub("\\.", "", os_version), 1L, 3L)
         codename <- paste0("alpine", version_stripped)
       } else {
         dist_fam <- system2("grep",
@@ -49,7 +49,7 @@ set_bin_path <- function(local_output_dir_root, codename) {
   }
 
   file.path(
-    local_output_dir_root, arch, codename
+    local_output_dir_root, arch, codename, "latest/src/contrib"
   )
 }
 
