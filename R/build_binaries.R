@@ -445,7 +445,7 @@ execute_package_builds <- function(
   cli::cli_h2("Building ({.pkg {package_name[1]}})")
 
   cli::cli_alert("[{format(Sys.time(), format='%H:%M:%S')}] Building binaries for
-    {.pkg {package_name[1]}} with tags {.field {tag}}.")
+    {.pkg {package_name[1]}} with tags {.field {tag}}.", wrap = TRUE)
 
   future::plan(future_strategy,
     workers = future_workers,
@@ -502,7 +502,7 @@ create_worker_function <- function(
           cli::cli_alert_success("Finished processing package {.pkg {x}} with tag {.field {y}}.")
         } else if (result != "skipped") {
           cli::cli_alert_warning("Error in building package {.pkg {x}} with tag {.field {y}}:
-          Uncommon/unspecific error during build.")
+          Uncommon/unspecific error during build.", wrap = TRUE)
           store_build_metadata(x, y, platform,
             error_occurred = TRUE, force = TRUE, arch = arch, error = "Unspecific error during build",
             metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
@@ -721,7 +721,7 @@ check_build_skip_conditions <- function(
     if (!force && (s3fs::s3_file_exists(sprintf("%s/%s", remote_bin_path, tarball_name)) ||
       s3fs::s3_file_exists(sprintf("%s/Archive/%s/%s", remote_bin_path, package_name, tarball_name)))) { # nolint
       cli::cli_alert_info("Package {.pkg {package_name}} with tag {.field {tag}}
-        already exists in S3 and {.code force = FALSE}. Skipping build.")
+        already exists in S3 and {.code force = FALSE}. Skipping build.", wrap = TRUE)
       list(should_skip = TRUE, reason = "skipped")
     }
   }
@@ -748,7 +748,7 @@ handle_system_dependencies <- function(
     },
     error = function(e) {
       cli::cli_alert_warning("Error in installing dependencies for package {.pkg {package_name[1]}}
-        with tag {.field {tag[1]}}: {e}")
+        with tag {.field {tag[1]}}: {e}", wrap = TRUE)
       store_build_metadata(package_name[1L], tag[1L], platform,
         arch = arch, error_occurred = TRUE, force = TRUE, error = conditionMessage(e),
         metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
@@ -790,7 +790,7 @@ execute_package_build <- function(package_name, tag, local_clone_dir_single, bin
     },
     error = function(e) {
       cli::cli_alert_warning("Error in starting build command for package {.pkg {package_name}}
-        with tag {.field {tag}}: {e}")
+        with tag {.field {tag}}: {e}", wrap = TRUE)
       unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
       store_build_metadata(package_name, tag, platform,
         arch = arch, error_occurred = TRUE, force = TRUE, error = sprintf("Error trying to initiate pkgbuild -
@@ -813,7 +813,7 @@ handle_build_output_files <- function(package_name, tag, binary_output_path, loc
 
   if (file.exists(final_tarball_path)) {
     cli::cli_alert_warning('{.fun build_single_tag}: Binary {sprintf("%s_%s.tar.gz",
-      package_name, tag)} already exists. Skipping copy.')
+      package_name, tag)} already exists. Skipping copy.', wrap = TRUE)
   } else {
     move_and_rename_tarball(package_name, tag, binary_output_path, system_info, is_debug)
   }
@@ -871,14 +871,14 @@ move_and_rename_tarball <- function(package_name, tag, binary_output_path, syste
 
   if (is_debug) {
     cli::cli_alert_info("{.fun build_single_tag}: DEBUG: Moving package from
-      {.path {source_path}} to {.path {dest_path}}")
+      {.path {source_path}} to {.path {dest_path}}", wrap = TRUE)
   }
 
   if (file.exists(source_path)) {
     file.rename(source_path, dest_path)
   } else {
     cli::cli_alert_info("{.fun build_single_tag}: File for package
-      {.pkg {package_name}} {.field {tag}} at {.path {source_path}} does not exist - skipping.")
+      {.pkg {package_name}} {.field {tag}} at {.path {source_path}} does not exist - skipping.", wrap = TRUE)
     if (is_debug) {
       message(sprintf("DEBUG: Listing dir 'binary_output_path': %s", binary_output_path))
       message(list.files(binary_output_path))
