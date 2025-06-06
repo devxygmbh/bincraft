@@ -38,7 +38,7 @@ upload_single_binary <- function(
 
   if (!file.exists(local_tarball_path)) {
     cli::cli_alert(
-      "{.fun upload_single_binary}: File {.pkg {package_name}} {.field {tag}} does not exist locally - skipping upload."
+      "{.fun upload_single_binary}: File {.pkg {package_name}} {.field {tag}} does not exist locally - skipping upload.", wrap = TRUE
     )
     return(TRUE)
   }
@@ -69,10 +69,8 @@ upload_single_binary <- function(
   if (should_upload) {
     if (file_exists && force) {
       cli::cli_alert_info(
-        paste0(
-          "{.fun upload_single_binary}: Force uploading package {.pkg {package_name}} {.field {tag}} ",
-          "to {.path {remote_tarball_path}} because {.code force = TRUE} was set."
-        )
+          "{.fun upload_single_binary}: Force uploading package {.pkg {package_name}} {.field {tag}} 
+          to {.path {remote_tarball_path}} because {.code force = TRUE} was set.", wrap = TRUE
       )
     } else {
       cli::cli_alert(
@@ -95,7 +93,7 @@ upload_single_binary <- function(
     cli::cli_alert_success("Successfully uploaded package {.pkg {package_name}} with tag {.field {tag}}.")
     cli::cli_alert(
       "{.fun upload_single_binary}: Deleting binary for {.pkg {package_name}}
-      {.field {tag}} at path {.path {local_tarball_path}}."
+      {.field {tag}} at path {.path {local_tarball_path}}.", wrap = TRUE
     )
     file.remove(local_tarball_path)
   } else {
