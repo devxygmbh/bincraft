@@ -1,4 +1,4 @@
-Package: bincraftR
+Package: bincraft
 Title: Toolbox For Building R Package Binaries on Linux
 Version: 2.1.0.9999
 Authors@R:
@@ -7,7 +7,7 @@ Description: Build, archive, remove and update R binary packages
     on Linux. Binaries are stored in S3. Creation and curation of package index files is supported.
     Build metadata can be optionally stored in a database.
 License: GPL (>= 3)
-URL: https://codefloe.com/rpkgs/bincraftr, https://bincraftr.doc.rpkgs.com
+URL: https://codefloe.com/rpkgs/bincraft, https://bincraft.doc.rpkgs.com
 Depends:
     R (>= 4.1.0)
 Imports:

@@ -1,9 +1,9 @@
-# bincraftR <a href="https://bincraftr.doc.rpkgs.com"><img src="man/figures/logo.png" align="right" height="120" alt="bincraftR website" /></a>
+# bincraft <a href="https://bincraft.doc.rpkgs.com"><img src="man/figures/logo.png" align="right" width="150" alt="bincraft website" /></a>
 
-{bincraftR} provides the ability to build R package binaries for Linux.
+{bincraft} provides the ability to build R package binaries for Linux.
 It is the core engine of the [rpkgs.com](https://rpkgs.com) project.
 
-️# Highlights ✨️
+## Highlights ✨️
 
 - Auto-resolve package and system dependencies during installation
 - Archive multiple versions of a package into a CRAN-like archive structure 
@@ -19,4 +19,4 @@ Besides building binaries, the package optionally allows to store the build meta
 > The package functions must be run within the desired distribution for which binaries should be built for.
 > See [rpkgs/build-cran-binaries/docker](https://codefloe.com/rpkgs/build-cran-binaries/src/branch/main/docker) for containerfiles which have been built for this purpose.
 
-See the [pkgdown documentation](https://bincraftr.doc.rpkgs.com) for more details.
+See the [pkgdown documentation](https://bincraft.doc.rpkgs.com) for more details.
