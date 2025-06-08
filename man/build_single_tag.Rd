@@ -13,6 +13,7 @@ build_single_tag(
   source_org_url,
   tag = NULL,
   codename = NULL,
+  is_r_minor_sensitive = FALSE,
   s3_endpoint = NULL,
   s3_region = NULL,
   s3_bucket = NULL,
@@ -60,6 +61,10 @@ Tag/version. Tags starting with "R-" are filtered out.}
 
 \item{codename}{(\link{character})\cr
 Linux distribution identifier}
+
+\item{is_r_minor_sensitive}{(\link{logical})\cr
+If TRUE, treats the package to be minor version specific and
+injects a version identifier into the file path.}
 
 \item{s3_endpoint}{(\link{character})\cr
 S3 endpoint}

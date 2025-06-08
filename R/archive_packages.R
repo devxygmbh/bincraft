@@ -6,6 +6,7 @@
 #' @template param-s3_region
 #' @template param-s3_bucket
 #' @template param-is_debug
+#' @template param-is_r_minor_sensitive
 #' @template param-local_output_dir_root
 #' @template param-s3-access-key-id
 #' @template param-s3-secret-access-key
@@ -31,6 +32,7 @@ archive_package <- function(
     s3_region,
     s3_bucket,
     codename = NULL,
+    is_r_minor_sensitive = FALSE,
     local_output_dir_root = ".",
     arch = NULL,
     is_debug = FALSE,
@@ -64,14 +66,30 @@ archive_package <- function(
   # don't parallelise
   future::plan("sequential")
 
-  files <- s3fs::s3_dir_ls(remote_bin_dir)
+  if (!is_r_minor_sensitive) {
+    files <- s3fs::s3_dir_ls(remote_bin_dir)
+  } else {
+    files <- s3fs::s3_dir_ls(file.path(remote_bin_dir, is_r_minor_sensitive))
+  }
+
+  if (!is_r_minor_sensitive) {
+    remote_search_path <- file.path(remote_bin_dir, "Archive", package_name)
+  } else {
+    minor_version <- cat(paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = "."))
+    remote_search_path <- file.path(remote_bin_dir, minor_version, "Archive", package_name)
+  }
 
   purrr::walk(package_name, function(pkgname) {
     cli::cli_h2("Archiving ({.pkg {pkgname}})")
+    if (!is_r_minor_sensitive) {
+      remote_search_path <- file.path(remote_bin_dir, "Archive", pkgname)
+    } else {
+      remote_search_path <- file.path(remote_bin_dir, minor_version, "Archive", pkgname)
+    }
     if (
-      !s3fs::s3_dir_exists(file.path(remote_bin_dir, "Archive", pkgname))
+      !s3fs::s3_dir_exists(remote_search_path)
     ) {
-      s3fs::s3_dir_create(file.path(remote_bin_dir, "Archive", pkgname))
+      s3fs::s3_dir_create(remote_search_path)
     }
     all_versions <- grep(sprintf("/%s_", pkgname), files, value = TRUE)
     # only archive if more than one package exists in the root
@@ -134,13 +152,23 @@ archive_package <- function(
         }
       }
       if (length(old_versions) > 0L) {
-        s3fs::s3_file_move(
-          old_versions,
-          file.path(
+        if (!is_r_minor_sensitive) {
+          archive_path <- file.path(
             remote_bin_dir,
             pkgname,
             basename(old_versions)
-          ),
+          )
+        } else {
+          archive_path <- file.path(
+            remote_bin_dir,
+            minor_version,
+            pkgname,
+            basename(old_versions)
+          )
+        }
+        s3fs::s3_file_move(
+          old_versions,
+          archive_path,
           max_batch = parse_bytes("300MB"),
           overwrite = TRUE
         )

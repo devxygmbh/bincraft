@@ -48,6 +48,11 @@ set_bin_path <- function(local_output_dir_root, codename) {
     arch <- "amd64"
   }
 
+  if (is.null(codename)) {
+    cli::cli_alert_warning("{.function set_bin_path}: `codename` is `NULL`, setting it to the value of `R.version$platform`: '{R.version$platform}'")
+codename = R.version$platform
+  }
+
   file.path(
     local_output_dir_root, arch, codename, "latest/src/contrib"
   )
@@ -59,6 +64,7 @@ set_bin_path <- function(local_output_dir_root, codename) {
 #' @template param-s3_region
 #' @template param-s3_bucket
 #' @template param-codename
+#' @template param-is_r_minor_sensitive
 #' @template param-arch
 #' @template param-s3-access-key-id
 #' @template param-s3-secret-access-key
@@ -70,6 +76,7 @@ check_for_binary <- function(
     s3_region = NULL,
     s3_bucket = NULL,
     codename = NULL,
+    is_r_minor_sensitive = FALSE,
     arch = NULL,
     version = "latest",
     s3_access_key_id = NULL,

@@ -10,6 +10,7 @@ check_for_binary(
   s3_region = NULL,
   s3_bucket = NULL,
   codename = NULL,
+  is_r_minor_sensitive = FALSE,
   arch = NULL,
   version = "latest",
   s3_access_key_id = NULL,
@@ -31,6 +32,10 @@ S3 bucket name}
 
 \item{codename}{(\link{character})\cr
 Linux distribution identifier}
+
+\item{is_r_minor_sensitive}{(\link{logical})\cr
+If TRUE, treats the package to be minor version specific and
+injects a version identifier into the file path.}
 
 \item{arch}{(\link{character})\cr
 Architecture}

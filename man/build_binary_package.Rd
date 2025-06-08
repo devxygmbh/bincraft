@@ -13,6 +13,7 @@ build_binary_package(
   local_clone_dir = "/tmp",
   platform = NULL,
   arch = NULL,
+  is_r_minor_sensitive = FALSE,
   install_system_dependencies = TRUE,
   deps_verbose = FALSE,
   is_debug = FALSE,
@@ -64,6 +65,10 @@ Platform identifier}
 
 \item{arch}{(\link{character})\cr
 Architecture}
+
+\item{is_r_minor_sensitive}{(\link{logical})\cr
+If TRUE, treats the package to be minor version specific and
+injects a version identifier into the file path.}
 
 \item{install_system_dependencies}{(\link{logical})\cr
 Whether to infer and install system dependencies of packages}

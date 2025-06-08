@@ -39,6 +39,9 @@ store_build_metadata <- function(
     size = NA) {
   if (metadata_db_type == "postgres" && requireNamespace("RPostgres", quietly = TRUE)) {
     driver <- RPostgres::Postgres()
+  } else {
+    cli::cli_alert_info("{.function store_build_metadata}: {.pkg RPostgres} must be installed when ` metadata_db_type = 'postgres'`")
+    return()
   }
 
   con <- purrr::insistently(~
@@ -48,8 +51,10 @@ store_build_metadata <- function(
       sslmode = metadata_db_sslmode
     ), rate = retry_config, quiet = FALSE)()
 
+  r_version <- cat(paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = "."))
+
   table_name <- DBI::dbQuoteIdentifier(con, metadata_db_table)
-  query <- paste0("SELECT * FROM ", table_name, " WHERE name = $1 AND tag = $2 AND platform = $3 AND arch = $4") # nolint
+  query <- paste0("SELECT * FROM ", table_name, " WHERE name = $1 AND tag = $2 AND platform = $3 AND arch = $4 and r_version = $5") # nolint
   existing_entries <- purrr::insistently(
     ~ dbGetQuery(con, query,
       params = list(package_name, tag, platform, arch)
@@ -66,7 +71,7 @@ store_build_metadata <- function(
 
     query <- paste0(
       "UPDATE ", table_name, " SET timestamp = $1, error_occurred = $2, error_text = $3, ",
-      "duration = $4, size = $5, removed = $6 WHERE name = $7 and tag = $8 and platform = $9"
+      "duration = $4, size = $5, removed = $6 WHERE name = $7 and tag = $8 and platform = $9 and r_version = $10"
     )
     insistently(
       ~ dbExecute(
@@ -80,7 +85,8 @@ store_build_metadata <- function(
           FALSE,
           package_name,
           tag,
-          platform
+          platform,
+          r_version
         )
       ),
       rate = retry_config, quiet = FALSE
@@ -99,6 +105,7 @@ store_build_metadata <- function(
       timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
       duration = build_duration,
       removed = FALSE,
+      r_version = r_version,
       stringsAsFactors = FALSE
     )
     # Write the data frame to the SQLite database

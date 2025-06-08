@@ -11,6 +11,7 @@ upload_source_tarball(
   s3_bucket,
   codename = NULL,
   arch = NULL,
+  is_r_minor_sensitive = FALSE,
   s3_access_key_id = NULL,
   s3_secret_access_key = NULL
 )
@@ -33,6 +34,10 @@ Linux distribution identifier}
 
 \item{arch}{(\link{character})\cr
 Architecture}
+
+\item{is_r_minor_sensitive}{(\link{logical})\cr
+If TRUE, treats the package to be minor version specific and
+injects a version identifier into the file path.}
 
 \item{s3_access_key_id}{(\link{character})\cr
 S3 access key ID}

@@ -10,6 +10,7 @@ archive_package(
   s3_region,
   s3_bucket,
   codename = NULL,
+  is_r_minor_sensitive = FALSE,
   local_output_dir_root = ".",
   arch = NULL,
   is_debug = FALSE,
@@ -32,6 +33,10 @@ S3 bucket name}
 
 \item{codename}{(\link{character})\cr
 Linux distribution identifier}
+
+\item{is_r_minor_sensitive}{(\link{logical})\cr
+If TRUE, treats the package to be minor version specific and
+injects a version identifier into the file path.}
 
 \item{local_output_dir_root}{(\link{character})\cr
 Path to local build root}

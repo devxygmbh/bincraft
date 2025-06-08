@@ -6,6 +6,7 @@
 #' @template param-s3_region
 #' @template param-s3_bucket
 #' @template param-is_debug
+#' @template param-is_r_minor_sensitive
 #' @template param-local_output_dir_root
 #' @template param-force
 #' @template param-s3-access-key-id
@@ -22,6 +23,7 @@ upload_single_binary <- function(
     local_output_dir_root = ".",
     codename = NULL,
     force = FALSE,
+    is_r_minor_sensitive = FALSE,
     is_debug = FALSE,
     s3_access_key_id = NULL,
     s3_secret_access_key = NULL) {
@@ -34,11 +36,12 @@ upload_single_binary <- function(
 
   tarball_name <- sprintf("%s_%s.tar.gz", package_name, tag)
   local_tarball_path <- file.path(local_bin_path, tarball_name)
-  remote_tarball_path <- file.path(remote_bin_path, tarball_name)
+
 
   if (!file.exists(local_tarball_path)) {
     cli::cli_alert(
-      "{.fun upload_single_binary}: File {.pkg {package_name}} {.field {tag}} does not exist locally - skipping upload.", wrap = TRUE
+      "{.fun upload_single_binary}: File {.pkg {package_name}} {.field {tag}} does not exist locally - skipping upload.",
+      wrap = TRUE
     )
     return(TRUE)
   }
@@ -56,9 +59,18 @@ upload_single_binary <- function(
     refresh = TRUE
   )
 
-  file_exists <- s3fs::s3_file_exists(remote_tarball_path)
-  archive_path <- file.path(remote_bin_path, "Archive", package_name, tarball_name)
-  archive_exists <- s3fs::s3_file_exists(archive_path)
+  if (!is_r_minor_sensitive) {
+    remote_tarball_path <- file.path(remote_bin_path, tarball_name)
+    file_exists <- s3fs::s3_file_exists(remote_tarball_path)
+    archive_path <- file.path(remote_bin_path, "Archive", package_name, tarball_name)
+    archive_exists <- s3fs::s3_file_exists(archive_path)
+  } else {
+    minor_version <- cat(paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = "."))
+    remote_tarball_path <- file.path(remote_bin_path, minor_version, tarball_name)
+    file_exists <- s3fs::s3_file_exists(remote_tarball_path)
+    archive_path <- file.path(remote_bin_path, minor_version, "Archive", package_name, tarball_name)
+    archive_exists <- s3fs::s3_file_exists(archive_path)
+  }
   file_exists <- file_exists | archive_exists
 
   # don't parallelise
@@ -69,8 +81,9 @@ upload_single_binary <- function(
   if (should_upload) {
     if (file_exists && force) {
       cli::cli_alert_info(
-          "{.fun upload_single_binary}: Force uploading package {.pkg {package_name}} {.field {tag}} 
-          to {.path {remote_tarball_path}} because {.code force = TRUE} was set.", wrap = TRUE
+        "{.fun upload_single_binary}: Force uploading package {.pkg {package_name}} {.field {tag}}
+          to {.path {remote_tarball_path}} because {.code force = TRUE} was set.",
+        wrap = TRUE
       )
     } else {
       cli::cli_alert(
@@ -87,13 +100,15 @@ upload_single_binary <- function(
       upload_args$max_batch <- parse_bytes("300MB")
       upload_args$overwrite <- TRUE
     }
+    browser()
 
     do.call(s3fs::s3_file_upload, upload_args)
 
     cli::cli_alert_success("Successfully uploaded package {.pkg {package_name}} with tag {.field {tag}}.")
     cli::cli_alert(
       "{.fun upload_single_binary}: Deleting binary for {.pkg {package_name}}
-      {.field {tag}} at path {.path {local_tarball_path}}.", wrap = TRUE
+      {.field {tag}} at path {.path {local_tarball_path}}.",
+      wrap = TRUE
     )
     file.remove(local_tarball_path)
   } else {
@@ -109,6 +124,7 @@ upload_single_binary <- function(
 #' @template param-s3_region
 #' @template param-s3_bucket
 #' @template param-codename
+#' @template param-is_r_minor_sensitive
 #' @template param-arch
 #' @template param-s3_endpoint
 #' @template param-s3_region
@@ -125,6 +141,7 @@ upload_source_tarball <- function(
     s3_bucket,
     codename = NULL,
     arch = NULL,
+    is_r_minor_sensitive = FALSE,
     s3_access_key_id = NULL,
     s3_secret_access_key = NULL) {
   s3fs::s3_file_system(
@@ -178,11 +195,21 @@ upload_source_tarball <- function(
     return(TRUE)
   }
 
-  s3fs::s3_file_upload(tmpfile, sprintf(
-    "s3://%s/%s_%s.tar.gz",
-    remote_bin_path, package_name, version
-  ), overwrite = TRUE)
+  if (!is_r_minor_sensitive) {
+    upload_path <- sprintf(
+      "s3://%s/%s_%s.tar.gz",
+      remote_bin_path, package_name, version
+    )
+  } else {
+    minor_version <- cat(paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = "."))
+    upload_path <- sprintf(
+      "s3://%s/%s/%s_%s.tar.gz",
+      remote_bin_path, minor_version, package_name, version
+    )
+  }
+
+  s3fs::s3_file_upload(tmpfile, upload_path, overwrite = TRUE)
 
   cli::cli_alert("Successfully uploaded source tarball for package
-    {.pkg {package_name}} {.field {version}} to {.path {remote_bin_path}}.")
+    {.pkg {package_name}} {.field {version}} to {.path {upload_path}}.")
 }

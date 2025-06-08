@@ -13,6 +13,7 @@ upload_single_binary(
   local_output_dir_root = ".",
   codename = NULL,
   force = FALSE,
+  is_r_minor_sensitive = FALSE,
   is_debug = FALSE,
   s3_access_key_id = NULL,
   s3_secret_access_key = NULL
@@ -42,6 +43,10 @@ Linux distribution identifier}
 
 \item{force}{(\link{logical})\cr
 Whether to force-build packages}
+
+\item{is_r_minor_sensitive}{(\link{logical})\cr
+If TRUE, treats the package to be minor version specific and
+injects a version identifier into the file path.}
 
 \item{is_debug}{(\link{logical})\cr
 Whether to enable debug logging}

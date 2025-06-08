@@ -19,6 +19,7 @@
 #' @template param-install_system_dependencies
 #' @template param-deps_verbose
 #' @template param-is_debug
+#' @template param-is_r_minor_sensitive
 #' @template param-archive
 #' @template param-store_build_metadata
 #' @template param-metadata_db_host
@@ -69,6 +70,7 @@ build_binary_package <- function(
     local_clone_dir = "/tmp",
     platform = NULL,
     arch = NULL,
+    is_r_minor_sensitive = FALSE,
     install_system_dependencies = TRUE,
     deps_verbose = FALSE,
     is_debug = FALSE,
@@ -109,7 +111,7 @@ build_binary_package <- function(
 
   # Determine packages to build
   pkg_info <- determine_packages_to_build(
-    package_name, tag, source_org_url, codename, force, s3_bucket, s3_access_key_id,
+    package_name, tag, source_org_url, codename, force, is_r_minor_sensitive, s3_bucket, s3_access_key_id,
     s3_secret_access_key, s3_endpoint, s3_region, binary_output_path,
     store_build_metadata, metadata_db_type, metadata_db_host,
     metadata_db_name, metadata_db_table, metadata_db_port,
@@ -127,7 +129,7 @@ build_binary_package <- function(
   # Build packages
   result <- execute_package_builds(
     package_name, tag, binary_output_path, source_org_url, local_clone_dir,
-    platform, arch, codename, is_debug, force, install_system_dependencies,
+    platform, arch, codename, is_r_minor_sensitive, is_debug, force, install_system_dependencies,
     deps_verbose, store_build_metadata, metadata_db_host,
     metadata_db_name, metadata_db_port, metadata_db_table,
     metadata_db_password, metadata_db_user, metadata_db_sslmode,
@@ -138,7 +140,7 @@ build_binary_package <- function(
 
   # Handle upload and archiving
   handle_post_build_actions(
-    package_name, tag, result, codename, upload, archive, force, is_debug,
+    package_name, tag, result, codename, upload, archive, force, is_r_minor_sensitive, is_debug,
     s3_endpoint, s3_bucket, s3_region, s3_access_key_id,
     s3_secret_access_key
   )
@@ -190,9 +192,8 @@ initialize_build_environment <- function(
     cli::cli_alert("{.fun build_binary_package}: Creating bin dir {.path {binary_output_path}}.")
     cli::cli_alert("{.fun build_binary_package}: Creating src dir {.path {dir_out_src}}.")
   }
-  dir.create(file.path(binary_output_path, "Archive"), file.path(dir_out_src, "Archive"),
-    recursive = TRUE
-  )
+  dir.create(file.path(binary_output_path, "Archive"), recursive = TRUE)
+  dir.create(file.path(dir_out_src, "Archive"), recursive = TRUE)
 
   list(
     binary_output_path = binary_output_path,
@@ -204,7 +205,8 @@ initialize_build_environment <- function(
 }
 
 determine_packages_to_build <- function(
-    package_name, tag, source_org_url, codename, force, s3_bucket,
+    package_name, tag, source_org_url, codename, force,
+    is_r_minor_sensitive, s3_bucket,
     s3_access_key_id, s3_secret_access_key,
     s3_endpoint, s3_region, binary_output_path,
     store_build_metadata, metadata_db_type,
@@ -217,7 +219,7 @@ determine_packages_to_build <- function(
   # check whether any build attempts need to be made
   if (!force && !is.null(s3_bucket)) {
     s3_result <- check_s3_packages(
-      package_name, tag, source_org_url, codename, s3_bucket, s3_access_key_id,
+      package_name, tag, source_org_url, codename, is_r_minor_sensitive, s3_bucket, s3_access_key_id,
       s3_secret_access_key, s3_endpoint, s3_region,
       store_build_metadata, metadata_db_type, metadata_db_host,
       metadata_db_name, metadata_db_table, metadata_db_port,
@@ -252,7 +254,8 @@ determine_packages_to_build <- function(
 }
 
 check_s3_packages <- function(
-    package_name, tag, source_org_url, codename = NULL, s3_bucket, s3_access_key_id,
+    package_name, tag, source_org_url, codename = NULL,
+    is_r_minor_sensitive, s3_bucket, s3_access_key_id,
     s3_secret_access_key, s3_endpoint, s3_region,
     store_build_metadata, metadata_db_type,
     metadata_db_host, metadata_db_name, metadata_db_table,
@@ -275,14 +278,24 @@ check_s3_packages <- function(
     fixed = TRUE
   )[[1L]][2L]
 
-  root_pkg <- s3fs::s3_file_exists(file.path(remote_bin_path, sprintf("%s_%s.tar.gz", package_name, last_version)))
+  if (!is_r_minor_sensitive) {
+    root_pkg <- s3fs::s3_file_exists(file.path(remote_bin_path, sprintf("%s_%s.tar.gz", package_name, last_version)))
+  } else {
+    minor_version <- cat(paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = "."))
+    root_pkg <- s3fs::s3_file_exists(file.path(remote_bin_path, sprintf("%s/%s_%s.tar.gz", minor_version, package_name, last_version)))
+  }
 
   if (!root_pkg) {
     return(list(should_skip = FALSE))
   }
 
   # list archived packages
-  archived_pkgs <- basename(s3fs::s3_dir_ls(file.path(remote_bin_path, "Archive", package_name)))
+  if (!is_r_minor_sensitive) {
+    archived_pkgs <- basename(s3fs::s3_dir_ls(file.path(remote_bin_path, "Archive", package_name)))
+  } else {
+    minor_version <- cat(paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = "."))
+    archived_pkgs <- basename(s3fs::s3_dir_ls(file.path(remote_bin_path, minor_version, "Archive", package_name)))
+  }
   root_pkg_name <- sprintf("%s_%s.tar.gz", package_name, last_version)
   pkgs_all <- c(root_pkg_name, archived_pkgs)
 
@@ -438,7 +451,7 @@ filter_packages_with_errors <- function(pkg_differences, metadata_db_type, metad
 
 execute_package_builds <- function(
     package_name, tag, binary_output_path, source_org_url, local_clone_dir,
-    platform, arch, codename, is_debug, force, install_system_dependencies,
+    platform, arch, codename, is_r_minor_sensitive, is_debug, force, install_system_dependencies,
     deps_verbose, store_build_metadata, metadata_db_host,
     metadata_db_name, metadata_db_port, metadata_db_table,
     metadata_db_password, metadata_db_user, metadata_db_sslmode,
@@ -460,11 +473,12 @@ execute_package_builds <- function(
     function(x, y, debug_flag) {
       tryCatch(
         {
-          result <- build_single_tag(package_name = x, tag = y,
+          result <- build_single_tag(
+            package_name = x, tag = y,
             binary_output_path = binary_output_path,
             local_clone_dir = local_clone_dir,
             source_org_url = source_org_url,
-            codename = codename,
+            codename = codename, is_r_minor_sensitive = is_r_minor_sensitive,
             platform = platform, arch = arch, is_debug = debug_flag, force = force,
             install_system_dependencies = install_system_dependencies,
             deps_verbose = deps_verbose, store_build_metadata = store_build_metadata,
@@ -525,15 +539,15 @@ execute_package_builds <- function(
 
 handle_post_build_actions <- function(
     package_name, tag, result, codename, upload, archive, force,
-    is_debug, s3_endpoint, s3_bucket, s3_region,
+    is_r_minor_sensitive, is_debug, s3_endpoint, s3_bucket, s3_region,
     s3_access_key_id, s3_secret_access_key) {
   if (upload && any(result != "skipped")) {
     Map(function(x, y) {
       tryCatch(
         {
           upload_single_binary(
-            package_name = x, tag = y, force = force, codename = codename, is_debug = is_debug,
-            s3_endpoint = s3_endpoint, s3_bucket = s3_bucket, s3_region = s3_region,
+            package_name = x, tag = y, force = force, codename = codename, is_r_minor_sensitive = is_r_minor_sensitive,
+            is_debug = is_debug, s3_endpoint = s3_endpoint, s3_bucket = s3_bucket, s3_region = s3_region,
             s3_access_key_id = s3_access_key_id, s3_secret_access_key = s3_secret_access_key
           )
         },
@@ -544,13 +558,13 @@ handle_post_build_actions <- function(
     }, package_name, tag)
 
     if (!check_for_binary(package_name[1L],
-      codename = codename,
+      codename = codename, is_r_minor_sensitive = is_r_minor_sensitive,
       s3_endpoint = s3_endpoint, s3_bucket = s3_bucket,
       s3_region = s3_region, s3_access_key_id = s3_access_key_id,
       s3_secret_access_key = s3_secret_access_key
     )) {
       upload_source_tarball(package_name[1L],
-        codename = codename,
+        codename = codename, is_r_minor_sensitive = is_r_minor_sensitive,
         s3_endpoint = s3_endpoint, s3_bucket = s3_bucket,
         s3_region = s3_region, s3_access_key_id = s3_access_key_id,
         s3_secret_access_key = s3_secret_access_key
@@ -560,7 +574,7 @@ handle_post_build_actions <- function(
 
   if (archive && any(result != "skipped")) {
     archive_package(package_name[1L],
-      codename = codename,
+      codename = codename, is_r_minor_sensitive = is_r_minor_sensitive,
       is_debug = is_debug, s3_endpoint = s3_endpoint, s3_bucket = s3_bucket,
       s3_region = s3_region, s3_access_key_id = s3_access_key_id,
       s3_secret_access_key = s3_secret_access_key
@@ -578,6 +592,7 @@ handle_post_build_actions <- function(
 #' @template param-local_clone_dir
 #' @template param-install_system_dependencies
 #' @template param-deps_verbose
+#' @template param-is_r_minor_sensitive
 #' @template param-force
 #' @template param-codename
 #' @template param-binary_output_path
@@ -608,6 +623,7 @@ build_single_tag <- function(
     source_org_url,
     tag = NULL,
     codename = NULL,
+    is_r_minor_sensitive = FALSE,
     s3_endpoint = NULL,
     s3_region = NULL,
     s3_bucket = NULL,

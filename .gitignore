@@ -12,3 +12,5 @@ flir/cache_*
 *.drawio
 CHANGELOG.md
 *.tar.gz
+local_*
+*.tgz
