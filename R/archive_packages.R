@@ -75,7 +75,7 @@ archive_package <- function(
   if (!is_r_minor_sensitive) {
     remote_search_path <- file.path(remote_bin_dir, "Archive", package_name)
   } else {
-    minor_version <- cat(paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = "."))
+    minor_version <- paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = ".")
     remote_search_path <- file.path(remote_bin_dir, minor_version, "Archive", package_name)
   }
 

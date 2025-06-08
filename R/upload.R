@@ -65,7 +65,7 @@ upload_single_binary <- function(
     archive_path <- file.path(remote_bin_path, "Archive", package_name, tarball_name)
     archive_exists <- s3fs::s3_file_exists(archive_path)
   } else {
-    minor_version <- cat(paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = "."))
+    minor_version <- paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = ".")
     remote_tarball_path <- file.path(remote_bin_path, minor_version, tarball_name)
     file_exists <- s3fs::s3_file_exists(remote_tarball_path)
     archive_path <- file.path(remote_bin_path, minor_version, "Archive", package_name, tarball_name)
@@ -100,7 +100,6 @@ upload_single_binary <- function(
       upload_args$max_batch <- parse_bytes("300MB")
       upload_args$overwrite <- TRUE
     }
-    browser()
 
     do.call(s3fs::s3_file_upload, upload_args)
 
@@ -201,7 +200,7 @@ upload_source_tarball <- function(
       remote_bin_path, package_name, version
     )
   } else {
-    minor_version <- cat(paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = "."))
+    minor_version <- paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = ".")
     upload_path <- sprintf(
       "s3://%s/%s/%s_%s.tar.gz",
       remote_bin_path, minor_version, package_name, version

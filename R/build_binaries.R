@@ -281,7 +281,7 @@ check_s3_packages <- function(
   if (!is_r_minor_sensitive) {
     root_pkg <- s3fs::s3_file_exists(file.path(remote_bin_path, sprintf("%s_%s.tar.gz", package_name, last_version)))
   } else {
-    minor_version <- cat(paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = "."))
+    minor_version <- paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = ".")
     root_pkg <- s3fs::s3_file_exists(file.path(remote_bin_path, sprintf("%s/%s_%s.tar.gz", minor_version, package_name, last_version)))
   }
 
@@ -293,7 +293,7 @@ check_s3_packages <- function(
   if (!is_r_minor_sensitive) {
     archived_pkgs <- basename(s3fs::s3_dir_ls(file.path(remote_bin_path, "Archive", package_name)))
   } else {
-    minor_version <- cat(paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = "."))
+    minor_version <- paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = ".")
     archived_pkgs <- basename(s3fs::s3_dir_ls(file.path(remote_bin_path, minor_version, "Archive", package_name)))
   }
   root_pkg_name <- sprintf("%s_%s.tar.gz", package_name, last_version)

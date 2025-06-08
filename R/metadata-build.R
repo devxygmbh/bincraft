@@ -51,7 +51,7 @@ store_build_metadata <- function(
       sslmode = metadata_db_sslmode
     ), rate = retry_config, quiet = FALSE)()
 
-  r_version <- cat(paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = "."))
+  r_version <- paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = ".")
 
   table_name <- DBI::dbQuoteIdentifier(con, metadata_db_table)
   query <- paste0("SELECT * FROM ", table_name, " WHERE name = $1 AND tag = $2 AND platform = $3 AND arch = $4 and r_version = $5") # nolint
