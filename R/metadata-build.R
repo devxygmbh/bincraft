@@ -57,7 +57,7 @@ store_build_metadata <- function(
   query <- paste0("SELECT * FROM ", table_name, " WHERE name = $1 AND tag = $2 AND platform = $3 AND arch = $4 and r_version = $5") # nolint
   existing_entries <- purrr::insistently(
     ~ dbGetQuery(con, query,
-      params = list(package_name, tag, platform, arch)
+      params = list(package_name, tag, platform, arch, r_version)
     ),
     rate = retry_config, quiet = FALSE
   )()
