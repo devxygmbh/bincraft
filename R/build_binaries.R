@@ -238,7 +238,7 @@ determine_packages_to_build <- function(
     }
   }
 
-  cli::cli_h2("Installing system dependencies ({.pkg {package_name}})")
+  cli::cli_h2("Installing system dependencies")
 
   if (!pkgs_to_build_exists) {
     tag_result <- get_all_tags(package_name, tag, source_org_url)
@@ -347,8 +347,8 @@ check_s3_packages <- function(
   }, character(1L))
 
   cli::cli_alert(
-    "Building the following version(s) ({length(pkg_differences)}/{length(pkgs_to_build)}) ", # nolint
-    "as they are not present in the remote bucket: {.field {pkg_differences}}",
+    "Building {length(pkg_differences)}/{length(pkgs_to_build)} versions
+     as they are not present in the remote bucket: {.field {pkg_differences}}",
     wrap = TRUE
   )
 
@@ -434,8 +434,9 @@ filter_packages_with_errors <- function(pkg_differences, metadata_db_type, metad
       if (length(packages_with_errors) > 0L) {
         pkg_differences <- setdiff(pkg_differences, packages_with_errors)
         cli::cli_alert_info(
-          "Filtered out {length(packages_with_errors)}/{length(pkgs_to_build)} package(s) with previous errors. ", # nolint
-          "{length(pkg_differences)} package(s) remaining to build."
+          "Filtered out {length(packages_with_errors)}/{length(pkgs_to_build)} package(s)
+          due to previous errors. {length(pkg_differences)} package(s) remaining to build."
+          , wrap = TRUE
         )
       }
     },

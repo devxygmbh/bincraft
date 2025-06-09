@@ -105,8 +105,7 @@ upload_single_binary <- function(
 
     cli::cli_alert_success("Successfully uploaded package {.pkg {package_name}} with tag {.field {tag}}.")
     cli::cli_alert(
-      "{.fun upload_single_binary}: Deleting binary for {.pkg {package_name}}
-      {.field {tag}} at path {.path {local_tarball_path}}.",
+      "{.fun upload_single_binary}: Deleting binary for {.pkg {package_name}} {.field {tag}} at path {.path {local_tarball_path}}.", # nolint
       wrap = TRUE
     )
     file.remove(local_tarball_path)
