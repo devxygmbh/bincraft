@@ -304,57 +304,55 @@ check_s3_packages <- function(
   if (is.null(tag) || tag == "latest") {
     tag_result <- get_all_tags(package_name, tag, source_org_url)
     tag <- tag_result$tag
-
-    pkgs_to_build <- sprintf("%s_%s.tar.gz", package_name, tag)
-
-    if (all(pkgs_to_build %in% pkgs_all)) {
-      cli::cli_alert_info(
-        "{.fun build_binary_package}: All packages to be built already exist in the remote bucket. ",
-        "Skipping due to {.code force = FALSE}."
-      )
-      return(list(should_skip = TRUE))
-    }
-
-    pkg_differences <- setdiff(pkgs_to_build, pkgs_all)
-
-    # check for possible errors in the metadata DB
-    if (store_build_metadata) {
-      pkg_differences <- filter_packages_with_errors(
-        pkg_differences, metadata_db_type, metadata_db_host,
-        metadata_db_name, metadata_db_table, metadata_db_port,
-        metadata_db_user, metadata_db_password, metadata_db_sslmode,
-        platform, arch, pkgs_to_build
-      )
-    }
-
-    if (length(pkg_differences) == 0L) {
-      cli::cli_alert_info(
-        "{.fun build_binary_package}: All packages were filtered out due to previous build errors being present
-        in the metadata database. Skipping.",
-        wrap = TRUE
-      )
-      return(list(should_skip = TRUE))
-    }
-
-    filtered_tags <- vapply(pkg_differences, function(x) {
-      parts <- strsplit(x, "_", fixed = TRUE)[[1L]]
-      if (length(parts) < 2L) {
-        return(NA_character_)
-      }
-      version_part <- parts[2L]
-      strsplit(version_part, ".tar.gz", fixed = TRUE)[[1L]][1L]
-    }, character(1L))
-
-    cli::cli_alert(
-      "Building the following version(s) ({length(pkg_differences)}/{length(pkgs_to_build)}) ", # nolint
-      "as they are not present in the remote bucket: {.field {pkg_differences}}",
-      wrap = TRUE
-    )
-
-    list(should_skip = FALSE, filtered_tags = filtered_tags)
   }
 
-  list(should_skip = FALSE)
+  pkgs_to_build <- sprintf("%s_%s.tar.gz", package_name, tag)
+
+  if (all(pkgs_to_build %in% pkgs_all)) {
+    cli::cli_alert_info(
+      "{.fun build_binary_package}: All packages to be built already exist in the remote bucket. ",
+      "Skipping due to {.code force = FALSE}."
+    )
+    return(list(should_skip = TRUE))
+  }
+
+  pkg_differences <- setdiff(pkgs_to_build, pkgs_all)
+
+  # check for possible errors in the metadata DB
+  if (store_build_metadata) {
+    pkg_differences <- filter_packages_with_errors(
+      pkg_differences, metadata_db_type, metadata_db_host,
+      metadata_db_name, metadata_db_table, metadata_db_port,
+      metadata_db_user, metadata_db_password, metadata_db_sslmode,
+      platform, arch, pkgs_to_build
+    )
+  }
+
+  if (length(pkg_differences) == 0L) {
+    cli::cli_alert_info(
+      "{.fun build_binary_package}: All packages were filtered out due to previous build errors being present
+        in the metadata database. Skipping.",
+      wrap = TRUE
+    )
+    return(list(should_skip = TRUE))
+  }
+
+  filtered_tags <- vapply(pkg_differences, function(x) {
+    parts <- strsplit(x, "_", fixed = TRUE)[[1L]]
+    if (length(parts) < 2L) {
+      return(NA_character_)
+    }
+    version_part <- parts[2L]
+    strsplit(version_part, ".tar.gz", fixed = TRUE)[[1L]][1L]
+  }, character(1L))
+
+  cli::cli_alert(
+    "Building the following version(s) ({length(pkg_differences)}/{length(pkgs_to_build)}) ", # nolint
+    "as they are not present in the remote bucket: {.field {pkg_differences}}",
+    wrap = TRUE
+  )
+
+  list(should_skip = FALSE, filtered_tags = filtered_tags)
 }
 
 get_all_tags <- function(package_name, tag, source_org_url) {

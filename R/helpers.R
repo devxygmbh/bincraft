@@ -50,7 +50,7 @@ set_bin_path <- function(local_output_dir_root, codename) {
 
   if (is.null(codename)) {
     cli::cli_alert_warning("{.function set_bin_path}: `codename` is `NULL`, setting it to the value of `R.version$platform`: '{R.version$platform}'")
-codename = R.version$platform
+    codename <- R.version$platform
   }
 
   file.path(
