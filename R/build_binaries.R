@@ -358,20 +358,18 @@ check_s3_packages <- function(
 get_all_tags <- function(package_name, tag, source_org_url) {
   gert::git_config_global_set("advice.detachedHead", "false")
 
-  if (is.null(tag) || tag == "latest") {
-    gert::git_clone(sprintf("%s/%s", source_org_url, package_name), # nolint
-      path = file.path(tempdir(), "tmp1"),
-      verbose = FALSE
-    )
+  gert::git_clone(sprintf("%s/%s", source_org_url, package_name), # nolint
+    path = file.path(tempdir(), "tmp1"),
+    verbose = FALSE
+  )
 
-    if (!is.null(tag) && tag == "latest") {
-      tag <- system("git tag --sort=-creatordate | head -1", intern = TRUE)
-    } else {
-      all_tags <- gert::git_tag_list(repo = file.path(tempdir(), "tmp1"))
-      all_tags <- all_tags[!grepl("R-", all_tags$name, fixed = TRUE), ]
-      unlink(file.path(tempdir(), "tmp1"), force = TRUE, recursive = TRUE)
-      tag <- all_tags$name
-    }
+  if (!is.null(tag) && tag == "latest") {
+    tag <- withr::with_dir(file.path(tempdir(), "tmp1"), system("git tag --sort=-creatordate | head -1", intern = TRUE))
+  } else {
+    all_tags <- gert::git_tag_list(repo = file.path(tempdir(), "tmp1"))
+    all_tags <- all_tags[!grepl("R-", all_tags$name, fixed = TRUE), ]
+    unlink(file.path(tempdir(), "tmp1"), force = TRUE, recursive = TRUE)
+    tag <- all_tags$name
   }
 
   list(tag = tag)
@@ -435,8 +433,8 @@ filter_packages_with_errors <- function(pkg_differences, metadata_db_type, metad
         pkg_differences <- setdiff(pkg_differences, packages_with_errors)
         cli::cli_alert_info(
           "Filtered out {length(packages_with_errors)}/{length(pkgs_to_build)} package(s)
-          due to previous errors. {length(pkg_differences)} package(s) remaining to build."
-          , wrap = TRUE
+          due to previous errors. {length(pkg_differences)} package(s) remaining to build.",
+          wrap = TRUE
         )
       }
     },
