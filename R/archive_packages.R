@@ -138,9 +138,6 @@ archive_package <- function(
           }
         }
       }
-      cli::cli_alert(
-        "Archiving {.field {basename(old_versions)}}, keeping {.field {basename(all_versions[index])}}."
-      )
       # account for duplicated (= faulty) packages
       if (anyDuplicated(s3fs::s3_file_info(old_versions)$key) > 0L) {
         for (i in old_versions) {
@@ -155,6 +152,7 @@ archive_package <- function(
         if (!is_r_minor_sensitive) {
           archive_path <- file.path(
             remote_bin_dir,
+            "Archive",
             pkgname,
             basename(old_versions)
           )
@@ -162,10 +160,14 @@ archive_package <- function(
           archive_path <- file.path(
             remote_bin_dir,
             minor_version,
+            "Archive",
             pkgname,
             basename(old_versions)
           )
         }
+        cli::cli_alert(
+          "Archiving {.field {basename(old_versions)}} to {.field {archive_path}}, keeping {.field {basename(all_versions[index])}}."
+        )
         s3fs::s3_file_move(
           old_versions,
           archive_path,
