@@ -347,8 +347,7 @@ check_s3_packages <- function(
   }, character(1L))
 
   cli::cli_alert(
-    "Building {length(pkg_differences)}/{length(pkgs_to_build)} versions
-     as they are not present in the remote bucket: {.field {pkg_differences}}",
+    "Building {length(pkg_differences)}/{length(pkgs_to_build)} versions as they are not present in the remote bucket: {.field {pkg_differences}}", # nolint
     wrap = TRUE
   )
 
@@ -458,8 +457,7 @@ execute_package_builds <- function(
   t1 <- Sys.time()
   cli::cli_h2("Building ({.pkg {package_name[1]}})")
 
-  cli::cli_alert("[{format(Sys.time(), format='%H:%M:%S')}] Building binaries for
-    {.pkg {package_name[1]}} with tags {.field {tag}}.", wrap = TRUE)
+  cli::cli_alert("[{format(Sys.time(), format='%H:%M:%S')}] Building binaries for {.pkg {package_name[1]}} with tags {.field {tag}}.", wrap = TRUE) # nolint
 
   future::plan(future_strategy,
     workers = future_workers,
