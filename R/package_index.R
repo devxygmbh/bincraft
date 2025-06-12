@@ -128,7 +128,7 @@ upload_package_index <- function(
   cli::cli_alert_success("Successfully uploaded {.path {file.path('Meta', 'archive.rds')}}")
 
   total_build_time <- round(Sys.time() - t1, 2L) # nolint
-  cli::cli_alert("Time updating PACKAGES index for {.field {pkg_count}} ({.field {unique_pkgs}} unique) packages: {.strong {total_build_time} {units(difftime(Sys.time(), t1))}}.", wrap = TRUE) # nolint
+  cli::cli_alert("Time updating PACKAGES index for {.field {pkg_count}} ({.field {unique_pkgs}} unique) packages: {.strong {total_build_time} {units(difftime(Sys.time(), t1))}}.") # nolint
 
   purrr::walk2(
     c("PACKAGES", "PACKAGES.db", "PACKAGES.rds", "PACKAGES.gz"),

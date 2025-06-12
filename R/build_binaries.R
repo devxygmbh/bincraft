@@ -316,7 +316,7 @@ check_s3_packages <- function(
   pkg_differences <- setdiff(pkgs_to_build, all_pkgs_s3)
 
   cli::cli_alert_info(
-    "Filtered out {(length(pkgs_to_build) - length(pkg_differences))}/{length(pkgs_to_build)} package(s) as they already exist in the remote. {length(pkg_differences)} package(s) remaining to build." # nolint
+    "Filtered out {(length(pkgs_to_build) - length(pkg_differences))}/{length(pkgs_to_build)} package(s) as they already exist in the remote bucket. {length(pkg_differences)} package(s) potentially remaining to build." # nolint
   )
 
   # check for possible errors in the metadata DB
@@ -331,9 +331,7 @@ check_s3_packages <- function(
 
   if (length(pkg_differences) == 0L) {
     cli::cli_alert_info(
-      "{.fun build_binary_package}: All packages were filtered out due to previous build errors being present
-        in the metadata database. Skipping.",
-      wrap = TRUE
+      "{.fun build_binary_package}: All packages were filtered out due to previous build errors being present in the metadata database. Skipping." # nolint
     )
     return(list(should_skip = TRUE))
   }
@@ -431,9 +429,7 @@ filter_packages_with_errors <- function(pkg_differences, metadata_db_type, metad
       if (length(packages_with_errors) > 0L) {
         pkg_differences <- setdiff(pkg_differences, packages_with_errors)
         cli::cli_alert_info(
-          "Filtered out {length(packages_with_errors)}/{length(pkgs_to_build)} package(s)
-          due to previous errors. {length(pkg_differences)} package(s) remaining to build.",
-          wrap = TRUE
+          "Filtered out {length(packages_with_errors)}/{length(pkgs_to_build)} package(s) due to previous errors. {length(pkg_differences)} package(s) remaining to build." # nolint
         )
       }
     },
@@ -457,7 +453,7 @@ execute_package_builds <- function(
   t1 <- Sys.time()
   cli::cli_h2("Building ({.pkg {package_name[1]}})")
 
-  cli::cli_alert("[{format(Sys.time(), format='%H:%M:%S')}] Building binaries for {.pkg {package_name[1]}} with tags {.field {tag}}.", wrap = TRUE) # nolint
+  cli::cli_alert("[{format(Sys.time(), format='%H:%M:%S')}] Building binaries for {.pkg {package_name[1]}} with tags {.field {tag}}.") # nolint
 
   future::plan(future_strategy,
     workers = future_workers,
@@ -489,8 +485,7 @@ execute_package_builds <- function(
           if (file.exists(file.path(local_bin_path, tarball_name))) {
             cli::cli_alert_success("Finished processing package {.pkg {x}} with tag {.field {y}}.")
           } else if (result != "skipped") {
-            cli::cli_alert_warning("Error in building package {.pkg {x}} with tag {.field {y}}:
-          Uncommon/unspecific error during build.", wrap = TRUE)
+            cli::cli_alert_warning("Error in building package {.pkg {x}} with tag {.field {y}}: Uncommon/unspecific error during build.") # nolint
             store_build_metadata(x, y, platform,
               error_occurred = TRUE, force = TRUE, arch = arch, error = "Unspecific error during build",
               metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
@@ -728,8 +723,7 @@ check_build_skip_conditions <- function(
 
     if (!force && (s3fs::s3_file_exists(sprintf("%s/%s", remote_bin_path, tarball_name)) ||
       s3fs::s3_file_exists(sprintf("%s/Archive/%s/%s", remote_bin_path, package_name, tarball_name)))) { # nolint
-      cli::cli_alert_info("Package {.pkg {package_name}} with tag {.field {tag}}
-        already exists in S3 and {.code force = FALSE}. Skipping build.", wrap = TRUE)
+      cli::cli_alert_info("Package {.pkg {package_name}} with tag {.field {tag}} already exists in S3 and {.code force = FALSE}. Skipping build.") # nolint
       list(should_skip = TRUE, reason = "skipped")
     }
   }
@@ -756,8 +750,7 @@ handle_system_dependencies <- function(
       return(list(success = TRUE))
     },
     error = function(e) {
-      cli::cli_alert_warning("Error in installing dependencies for package {.pkg {package_name[1]}}
-        with tag {.field {tag[1]}}: {e}", wrap = TRUE)
+      cli::cli_alert_warning("Error in installing dependencies for package {.pkg {package_name[1]}} with tag {.field {tag[1]}}: {e}")
       store_build_metadata(package_name[1L], tag[1L], platform,
         arch = arch, error_occurred = TRUE, force = TRUE, error = conditionMessage(e),
         metadata_db_host = metadata_db_host, metadata_db_name = metadata_db_name,
@@ -798,8 +791,7 @@ execute_package_build <- function(package_name, tag, local_clone_dir_single, bin
       return(list(success = TRUE, build_time = build_time))
     },
     error = function(e) {
-      cli::cli_alert_warning("Error in starting build command for package {.pkg {package_name}}
-        with tag {.field {tag}}: {e}", wrap = TRUE)
+      cli::cli_alert_warning("Error in starting build command for package {.pkg {package_name}} with tag {.field {tag}}: {e}")
       unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
       store_build_metadata(package_name, tag, platform,
         arch = arch, error_occurred = TRUE, force = TRUE, error = sprintf("Error trying to initiate pkgbuild -
@@ -821,8 +813,7 @@ handle_build_output_files <- function(package_name, tag, binary_output_path, loc
   final_tarball_path <- file.path(binary_output_path, sprintf("%s_%s.tar.gz", package_name, tag))
 
   if (file.exists(final_tarball_path)) {
-    cli::cli_alert_warning('{.fun build_single_tag}: Binary {sprintf("%s_%s.tar.gz",
-      package_name, tag)} already exists. Skipping copy.', wrap = TRUE)
+    cli::cli_alert_warning('{.fun build_single_tag}: Binary {sprintf("%s_%s.tar.gz", package_name, tag)} already exists. Skipping copy.') # nolint
   } else {
     move_and_rename_tarball(package_name, tag, binary_output_path, system_info, is_debug)
   }
@@ -879,15 +870,13 @@ move_and_rename_tarball <- function(package_name, tag, binary_output_path, syste
   dest_path <- file.path(binary_output_path, sprintf("%s_%s.tar.gz", package_name, tag))
 
   if (is_debug) {
-    cli::cli_alert_info("{.fun build_single_tag}: DEBUG: Moving package from
-      {.path {source_path}} to {.path {dest_path}}", wrap = TRUE)
+    cli::cli_alert_info("{.fun build_single_tag}: DEBUG: Moving package from {.path {source_path}} to {.path {dest_path}}")
   }
 
   if (file.exists(source_path)) {
     file.rename(source_path, dest_path)
   } else {
-    cli::cli_alert_info("{.fun build_single_tag}: File for package
-      {.pkg {package_name}} {.field {tag}} at {.path {source_path}} does not exist - skipping.", wrap = TRUE)
+    cli::cli_alert_info("{.fun build_single_tag}: File for package {.pkg {package_name}} {.field {tag}} at {.path {source_path}} does not exist - skipping.") # nolint
     if (is_debug) {
       message(sprintf("DEBUG: Listing dir 'binary_output_path': %s", binary_output_path))
       message(list.files(binary_output_path))

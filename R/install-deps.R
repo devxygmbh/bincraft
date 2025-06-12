@@ -62,8 +62,7 @@ install_pkg_sys_deps <- function(
   }
 
   total_build_time <- round(Sys.time() - t1, 2L) # nolint
-  cli::cli_alert("R package dependencies installation time ({.pkg {package_name[[1L]]}}):
-    {.strong {total_build_time} {units(difftime(Sys.time(), t1))}}.", wrap = TRUE)
+  cli::cli_alert("R package dependencies installation time ({.pkg {package_name[[1L]]}}): {.strong {total_build_time} {units(difftime(Sys.time(), t1))}}.") # nolint
 
   unlink(sprintf("%s", local_clone_dir_single), recursive = TRUE, force = TRUE)
 }
