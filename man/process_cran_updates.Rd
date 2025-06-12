@@ -123,7 +123,13 @@ Argument \code{interval} allows to specify a range which should be processed.
 \examples{
 \dontrun{
 process_cran_updates(
-  interval = lubridate::interval(lubridate::today() - 2, lubridate::today() - 20),
+  interval = lubridate::interval(lubridate::today() - 2, lubridate::today() - 4),
+  s3_endpoint = "https://hel1.your-objectstorage.com", s3_region = "hel1",
+  s3_bucket = "devxy-r-package-binaries-hel1", 
+  s3_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
+  s3_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S"),
+  process_removed = FALSE,
+  platform = "noble"
 )
 }
 

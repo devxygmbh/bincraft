@@ -109,6 +109,12 @@ build_binary_package <- function(
   platform <- setup_result$platform
   arch <- setup_result$arch
 
+  if (is.null(tag) || tag == "latest") {
+    tag_result <- filter_tags(package_name, tag, source_org_url)
+    tag <- tag_result$tag
+    package_name <- rep(package_name, length(tag))
+  }
+
   # Determine packages to build
   pkg_info <- determine_packages_to_build(
     package_name, tag, source_org_url, codename, force, is_r_minor_sensitive, s3_bucket, s3_access_key_id,
@@ -192,8 +198,8 @@ initialize_build_environment <- function(
     cli::cli_alert("{.fun build_binary_package}: Creating bin dir {.path {binary_output_path}}.")
     cli::cli_alert("{.fun build_binary_package}: Creating src dir {.path {dir_out_src}}.")
   }
-  dir.create(file.path(binary_output_path, "Archive"), recursive = TRUE)
-  dir.create(file.path(dir_out_src, "Archive"), recursive = TRUE)
+  dir.create(file.path(binary_output_path, "Archive"), recursive = TRUE, showWarnings = FALSE)
+  dir.create(file.path(dir_out_src, "Archive"), recursive = TRUE, showWarnings = FALSE)
 
   list(
     binary_output_path = binary_output_path,
@@ -236,14 +242,6 @@ determine_packages_to_build <- function(
       package_name <- rep(package_name, length(tag))
       pkgs_to_build_exists <- TRUE
     }
-  }
-
-  cli::cli_h2("Installing system dependencies")
-
-  if (!pkgs_to_build_exists) {
-    tag_result <- get_all_tags(package_name, tag, source_org_url)
-    tag <- tag_result$tag
-    package_name <- rep(package_name, length(tag))
   }
 
   list(
@@ -297,18 +295,17 @@ check_s3_packages <- function(
     archived_pkgs <- basename(s3fs::s3_dir_ls(file.path(remote_bin_path, minor_version, "Archive", package_name)))
   }
   root_pkg_name <- sprintf("%s_%s.tar.gz", package_name, last_version)
-  pkgs_all <- c(root_pkg_name, archived_pkgs)
+  all_pkgs_s3 <- c(root_pkg_name, archived_pkgs)
 
   gert::git_config_global_set("advice.detachedHead", "false")
 
-  if (is.null(tag) || tag == "latest") {
-    tag_result <- get_all_tags(package_name, tag, source_org_url)
-    tag <- tag_result$tag
-  }
+  # get all tags of package to compare with `all_pkgs_s3`
+  tag_result <- filter_tags(package_name, tag = NULL, source_org_url)
+  tag <- tag_result$tag
 
   pkgs_to_build <- sprintf("%s_%s.tar.gz", package_name, tag)
 
-  if (all(pkgs_to_build %in% pkgs_all)) {
+  if (all(pkgs_to_build %in% all_pkgs_s3)) {
     cli::cli_alert_info(
       "{.fun build_binary_package}: All packages to be built already exist in the remote bucket. ",
       "Skipping due to {.code force = FALSE}."
@@ -316,7 +313,11 @@ check_s3_packages <- function(
     return(list(should_skip = TRUE))
   }
 
-  pkg_differences <- setdiff(pkgs_to_build, pkgs_all)
+  pkg_differences <- setdiff(pkgs_to_build, all_pkgs_s3)
+
+  cli::cli_alert_info(
+    "Filtered out {(length(pkgs_to_build) - length(pkg_differences))}/{length(pkgs_to_build)} package(s) as they already exist in the remote. {length(pkg_differences)} package(s) remaining to build." # nolint
+  )
 
   # check for possible errors in the metadata DB
   if (store_build_metadata) {
@@ -347,14 +348,13 @@ check_s3_packages <- function(
   }, character(1L))
 
   cli::cli_alert(
-    "Building {length(pkg_differences)}/{length(pkgs_to_build)} versions as they are not present in the remote bucket: {.field {pkg_differences}}", # nolint
-    wrap = TRUE
+    "Building {length(pkg_differences)}/{length(pkgs_to_build)} versions as they are not present in the remote bucket: {.field {pkg_differences}}" # nolint
   )
 
   list(should_skip = FALSE, filtered_tags = filtered_tags)
 }
 
-get_all_tags <- function(package_name, tag, source_org_url) {
+filter_tags <- function(package_name, tag, source_org_url) {
   gert::git_config_global_set("advice.detachedHead", "false")
 
   gert::git_clone(sprintf("%s/%s", source_org_url, package_name), # nolint
@@ -749,6 +749,7 @@ handle_system_dependencies <- function(
     deps_verbose, is_debug, arch, metadata_db_host,
     metadata_db_name, metadata_db_port, metadata_db_table,
     metadata_db_password, metadata_db_user, metadata_db_sslmode) {
+  cli::cli_h2("Installing system dependencies")
   tryCatch(
     {
       install_pkg_sys_deps(package_name, tag, platform, local_clone_dir_single, deps_verbose, is_debug)
