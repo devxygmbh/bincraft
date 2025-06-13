@@ -444,7 +444,7 @@ check_s3_packages <- function(
   )
 
   # sometimes the var arrives as a vector > 1L here
-  package_name = unique(package_name)
+  package_name <- unique(package_name)
 
   # get last CRAN version to search for it in S3 root
   last_version <- strsplit(
@@ -476,9 +476,11 @@ check_s3_packages <- function(
 
   gert::git_config_global_set("advice.detachedHead", "false")
 
-  # get all tags of package to compare with `all_pkgs_s3`
-  tag_result <- filter_tags(package_name, tag = NULL, source_org_url)
-  tag <- tag_result$tag
+  # get all tags of package to compare with `all_pkgs_s3`, only if no tag is provided or set to special keyword
+  if (is.null(tag) || tag == "latest") {
+    tag_result <- filter_tags(package_name, tag = NULL, source_org_url)
+    tag <- tag_result$tag
+  }
 
   pkgs_to_build <- sprintf("%s_%s.tar.gz", package_name, tag)
 
