@@ -9,6 +9,7 @@ build_binary_package(
   tag = NULL,
   codename = NULL,
   source_org_url = "https://github.com/cran",
+  tag_limit = 10L,
   local_output_dir_root = ".",
   local_clone_dir = "/tmp",
   platform = NULL,
@@ -53,6 +54,9 @@ Git organization URL in which to search for the package sources.
 The final URL will a combination from this argument and the package name.
 This also implies that the package source must exist in a repository with the same name.
 Must be a https:// URL, local paths are not supported.}
+
+\item{tag_limit}{(\link{integer})\cr
+The most recent \code{n} tags to consider.}
 
 \item{local_output_dir_root}{(\link{character})\cr
 Path to local build root}
