@@ -122,8 +122,7 @@ build_binary_package <- function(
   arch <- setup_result$arch
 
   if (is.null(tag) || tag == "latest") {
-    tag_result <- filter_tags(package_name, tag, source_org_url, tag_limit)
-    tag <- tag_result$tag
+    tag <- filter_tags(package_name, tag, source_org_url, tag_limit)
     package_name <- rep(package_name, length(tag))
   }
 
@@ -314,7 +313,7 @@ filter_tags <- function(package_name, tag, source_org_url, tag_limit) {
   )
 
   if (!is.null(tag) && tag == "latest") {
-    tag <- withr::with_dir(
+    tags <- withr::with_dir(
       file.path(tempdir(), "tmp1"),
       system("git tag --sort=-creatordate | head -1", intern = TRUE)
     )
@@ -325,16 +324,23 @@ filter_tags <- function(package_name, tag, source_org_url, tag_limit) {
         system("git tag --sort=-creatordate", intern = TRUE)
       )
       all_tags <- all_tags[!grepl("R-", all_tags, fixed = TRUE)]
-      all_tags <- all_tags[1L:tag_limit]
+      if (length(all_tags) < tag_limit) {
+        tag_limit <- length(all_tags)
+      } else {
+        cli::cli_alert(
+          "{.fun filter_tags}: Filtered for the {tag_limit} most recent tags (out of {.field {length(all_tags)}} total)"
+        )
+      }
+      tags <- all_tags[1L:tag_limit]
     } else {
       # gert does not support sorting so we cannot use it for the above condition
       all_tags <- gert::git_tag_list(repo = file.path(tempdir(), "tmp1"))
       all_tags <- all_tags[!grepl("R-", all_tags$name, fixed = TRUE), ]
+      tags <- all_tags$name
     }
     unlink(file.path(tempdir(), "tmp1"), force = TRUE, recursive = TRUE)
-    tag <- all_tags$name
   }
-  list(tag = tag)
+  tags
 }
 
 filter_packages_with_errors <- function(
@@ -743,7 +749,7 @@ check_s3_packages <- function(
   } else {
     minor_version <- paste(
       R.version$major,
-      strsplit(R.version$minor, "\\.")[[1]][1],
+      strsplit(R.version$minor, "\\.")[[1L]][1L],
       sep = "."
     )
     archived_pkgs <- basename(s3fs::s3_dir_ls(file.path(
@@ -758,18 +764,19 @@ check_s3_packages <- function(
 
   gert::git_config_global_set("advice.detachedHead", "false")
 
-  # get all tags of package to compare with `all_pkgs_s3`, only if no tag is provided or set to special keyword
+  # get all desired tags of package to compare with `all_pkgs_s3`, only if no tag is provided or set to special keyword "latest" # nolint
   if (length(tag) == 1L && (is.null(tag) || tag == "latest")) {
-    tag_result <- filter_tags(
+    tags_filtered <- filter_tags(
       package_name,
       tag = NULL,
       source_org_url,
       tag_limit
     )
-    tag <- tag_result$tag
+  } else {
+    tags_filtered <- tag
   }
 
-  pkgs_to_build <- sprintf("%s_%s.tar.gz", package_name, tag)
+  pkgs_to_build <- sprintf("%s_%s.tar.gz", package_name, tags_filtered)
 
   if (all(pkgs_to_build %in% all_pkgs_s3)) {
     cli::cli_alert_info(
