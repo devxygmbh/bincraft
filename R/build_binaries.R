@@ -45,7 +45,7 @@
 #' @param future_strategy future parallelization strategy
 #' @param future_workers Parallel workers count
 #'
-#' @importFrom future plan
+#' @importFrom future future plan
 #' @importFrom future.apply future_mapply
 #' @importFrom gert git_config_global_set git_clone
 #' @importFrom pak local_install_dev_deps
@@ -898,7 +898,7 @@ handle_post_build_actions <- function(
         s3_secret_access_key = s3_secret_access_key
       )
     ) {
-      upload_source_tarball(
+      future::future(upload_source_tarball(
         package_name[1L],
         codename = codename,
         is_r_minor_sensitive = is_r_minor_sensitive,
@@ -907,12 +907,12 @@ handle_post_build_actions <- function(
         s3_region = s3_region,
         s3_access_key_id = s3_access_key_id,
         s3_secret_access_key = s3_secret_access_key
-      )
+      ))
     }
   }
 
   if (archive && any(result != "skipped")) {
-    archive_package(
+    future(archive_package(
       package_name[1L],
       codename = codename,
       is_r_minor_sensitive = is_r_minor_sensitive,
@@ -922,7 +922,7 @@ handle_post_build_actions <- function(
       s3_region = s3_region,
       s3_access_key_id = s3_access_key_id,
       s3_secret_access_key = s3_secret_access_key
-    )
+    ))
   }
 }
 
