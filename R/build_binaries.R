@@ -1219,8 +1219,8 @@ handle_system_dependencies <- function(
       install_pkg_sys_deps(
         package_name,
         tag,
-        platform,
         local_clone_dir_single,
+        platform,
         deps_verbose,
         is_debug
       )
