@@ -45,7 +45,7 @@
 #' @param future_strategy future parallelization strategy
 #' @param future_workers Parallel workers count
 #'
-#' @importFrom future future cplan
+#' @importFrom future future cplan value
 #' @importFrom future.apply future_mapply
 #' @importFrom gert git_config_global_set git_clone
 #' @importFrom pak local_install_dev_deps
@@ -912,17 +912,20 @@ handle_post_build_actions <- function(
   }
 
   if (archive && any(result != "skipped")) {
-    future(archive_package(
-      package_name[1L],
-      codename = codename,
-      is_r_minor_sensitive = is_r_minor_sensitive,
-      is_debug = is_debug,
-      s3_endpoint = s3_endpoint,
-      s3_bucket = s3_bucket,
-      s3_region = s3_region,
-      s3_access_key_id = s3_access_key_id,
-      s3_secret_access_key = s3_secret_access_key
-    ))
+    archive_future <- future::future(
+      archive_package(
+        package_name[1L],
+        codename = codename,
+        is_r_minor_sensitive = is_r_minor_sensitive,
+        is_debug = is_debug,
+        s3_endpoint = s3_endpoint,
+        s3_bucket = s3_bucket,
+        s3_region = s3_region,
+        s3_access_key_id = s3_access_key_id,
+        s3_secret_access_key = s3_secret_access_key
+      )
+    )
+    future::value(archive_future)
   }
 }
 
@@ -1131,8 +1134,7 @@ check_build_skip_conditions <- function(
     ))
   ) {
     cli::cli_alert_info(
-      "Tarball for package {.pkg {package_name}}
-      with tag {.field {tag}} already exists. Skipping build."
+      "Tarball for package {.pkg {package_name}} with tag {.field {tag}} already exists. Skipping build."
     )
     return(list(should_skip = TRUE, reason = "skipped"))
   }
