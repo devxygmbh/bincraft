@@ -19,6 +19,9 @@ process_cran_updates(
   archive = FALSE,
   upload = FALSE,
   force = FALSE,
+  filter_r_minor_sensitive = FALSE,
+  r_minor_packages_forge_type = "Forgejo",
+  r_minor_packages_issue_url = NULL,
   metadata_db_type = "postgres",
   metadata_db_host = NULL,
   metadata_db_name = NULL,
@@ -76,6 +79,18 @@ Whether to upload the built packages to the specified remote.}
 
 \item{force}{(\link{logical})\cr
 Whether to force-build packages}
+
+\item{filter_r_minor_sensitive}{(\link{logical})\cr
+If TRUE, filters the packages to be processed by a list of packages known to be minor version specific.
+These packages must be stored as plain text and line separated in an issue of a Git repository.
+Forgejo and GitHub repositories are supported.}
+
+\item{r_minor_packages_forge_type}{(\link{character})\cr
+Forge type to query R minor sensitive packages from.
+Available options are "Forgejo" and "GitHub".}
+
+\item{r_minor_packages_issue_url}{(\link{character})\cr
+URL to issue containing R minor sensitive packages.}
 
 \item{metadata_db_type}{(\link{character})\cr
 Type of metadata database}

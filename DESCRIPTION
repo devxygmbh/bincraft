@@ -29,6 +29,7 @@ Imports:
 Suggests:
     bit,
     bit64,
+    httr2,
     lubridate,
     RPostgres,
     RSQLite,

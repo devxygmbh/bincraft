@@ -15,6 +15,9 @@
 #' @template param-interval
 #' @template param-archive
 #' @template param-force
+#' @template param-filter_r_minor_sensitive
+#' @template param-r_minor_packages_forge_type
+#' @template param-r_minor_packages_issue_url
 #' @template param-metadata_db_host
 #' @template param-metadata_db_type
 #' @template param-metadata_db_name
@@ -63,6 +66,9 @@ process_cran_updates <- function(
     archive = FALSE,
     upload = FALSE,
     force = FALSE,
+    filter_r_minor_sensitive = FALSE,
+    r_minor_packages_forge_type = "Forgejo",
+    r_minor_packages_issue_url = NULL,
     metadata_db_type = "postgres",
     metadata_db_host = NULL,
     metadata_db_name = NULL,
@@ -148,17 +154,28 @@ process_cran_updates <- function(
 
   all_pkgs <- dplyr::bind_rows(updated_pkgs, new_pkgs)
 
+  if (filter_r_minor_sensitive) {
+    all_pkgs <- get_r_minor_sensitive_packages(r_minor_packages_forge_type, r_minor_packages_issue_url, interval,
+      updated_packages = updated_pkgs, new_packages = new_pkgs
+    )
+  }
+
   if (any(c(process_updated, process_new))) {
     cli::cli_par()
     cli::cli_end()
 
-    cli::cli_alert_success("{.fun process_cran_updates}: Updated packages:")
-    print(updated_pkgs)
+    if (filter_r_minor_sensitive) {
+      cli::cli_alert_success("{.fun process_cran_updates}: Packages to process:")
+      print(all_pkgs)
+    } else {
+      cli::cli_alert_success("{.fun process_cran_updates}: Updated packages:")
+      print(updated_pkgs)
 
-    cli::cli_par()
-    cli::cli_end()
-    cli::cli_alert_success("{.fun process_cran_updates}: New packages:")
-    print(new_pkgs)
+      cli::cli_par()
+      cli::cli_end()
+      cli::cli_alert_success("{.fun process_cran_updates}: New packages:")
+      print(new_pkgs)
+    }
 
     # make R CMD Check happy
     name <- NULL
@@ -190,6 +207,7 @@ process_cran_updates <- function(
         s3_region = s3_region,
         s3_access_key_id = s3_access_key_id,
         s3_secret_access_key = s3_secret_access_key,
+        is_r_minor_sensitive = filter_r_minor_sensitive,
         metadata_db_type = metadata_db_type,
         metadata_db_host = metadata_db_host,
         metadata_db_name = metadata_db_name,
@@ -200,5 +218,62 @@ process_cran_updates <- function(
         metadata_db_sslmode = metadata_db_sslmode
       )
     })
+  }
+}
+
+#' Returns R minor sensitive R packages
+#' @description
+#' If `interval` is set, it checks for updates of these packages in the CRAN repository and returns a filtered response.
+#'
+#' @template param-r_minor_packages_forge_type
+#' @template param-r_minor_packages_issue_url
+#' @template param-interval
+#' @template param-updated_packages
+#' @template param-new_packages
+#' @export
+get_r_minor_sensitive_packages <- function(
+    r_minor_packages_forge_type = "Forgejo", # nolint
+    r_minor_packages_issue_url = NULL, interval = NULL,
+    updated_packages = NULL, new_packages = NULL) {
+  if (!is.null(interval)) {
+    if (is.null(updated_packages) && is.null(new_packages)) {
+      # Get list of updated and new packages for a specific day
+      updated_packages <- get_updated_cran_packages(interval)
+      new_packages <- get_new_cran_packages(interval)
+    }
+    all_pkgs <- dplyr::bind_rows(updated_packages, new_packages)
+  }
+
+  # Get list of R minor sensitive packages
+  if (r_minor_packages_forge_type == "Forgejo") {
+    resp <- httr2::request(r_minor_packages_issue_url) |> httr2::req_perform()
+    resp_body <- httr2::resp_body_json(resp)
+    body_vector <- strsplit(resp_body$body, "\n", fixed = TRUE)[[1L]]
+  } else if (r_minor_packages_forge_type == "GitHub") {
+    resp <- httr2::request(r_minor_packages_issue_url) |>
+      httr2::req_headers(
+        Accept = "application/vnd.github.v3+json" # nolint
+      ) |>
+      httr2::req_perform()
+    resp_body <- httr2::resp_body_json(resp)
+    body_vector <- strsplit(resp_body$body, "\n", fixed = TRUE)[[1L]]
+  }
+
+  if (!is.null(interval)) {
+    # Filter all_pkgs to only those that are R minor sensitive
+    sensitive_pkgs_to_process <- intersect(all_pkgs$name, body_vector)
+  }
+
+  if (!is.null(interval)) {
+    if (length(sensitive_pkgs_to_process) == 0L) {
+      cli::cli_alert_info(
+        "No R sensitive packages found in packages to be processed. Exiting."
+      )
+      return(invisible(TRUE))
+    } else {
+      sensitive_pkgs_to_process
+    }
+  } else {
+    body_vector
   }
 }
