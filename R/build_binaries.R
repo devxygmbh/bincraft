@@ -1256,6 +1256,10 @@ execute_package_build <- function(
     "Building package {.pkg {package_name}} with tag {.field {tag}}."
   )
 
+  if(dir.exists(binary_output_path)) {
+    unlink(binary_output_path, force = TRUE, recursive = TRUE)
+  }
+
   quiet <- !is_debug
   t1 <- Sys.time()
 
@@ -1268,7 +1272,7 @@ execute_package_build <- function(
         ))
       }
       pkgbuild::build(
-        path = sprintf("%s", local_clone_dir_single),
+        path = local_clone_dir_single,
         binary = TRUE,
         vignettes = FALSE,
         dest_path = binary_output_path,
