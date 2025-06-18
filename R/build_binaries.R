@@ -45,7 +45,7 @@
 #' @param future_strategy future parallelization strategy
 #' @param future_workers Parallel workers count
 #'
-#' @importFrom future future plan
+#' @importFrom future future cplan
 #' @importFrom future.apply future_mapply
 #' @importFrom gert git_config_global_set git_clone
 #' @importFrom pak local_install_dev_deps
@@ -1002,6 +1002,16 @@ build_single_tag <- function(
     sprintf("%s_%s", package_name, tag)
   )
 
+  # Clean up any existing clone directory before starting
+  if (dir.exists(local_clone_dir_single)) {
+    if (is_debug) {
+      cli::cli_alert(
+        "{.fun build_single_tag}: Removing existing clone directory {.path {local_clone_dir_single}}."
+      )
+    }
+    unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
+  }
+
   # Check if build should be skipped
   skip_result <- check_build_skip_conditions(
     package_name,
@@ -1170,6 +1180,11 @@ clone_repository <- function(
   source_org_url,
   local_clone_dir_single
 ) {
+  # Clean up any existing clone directory before cloning
+  if (dir.exists(local_clone_dir_single)) {
+    unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
+  }
+
   system2(
     "git",
     args = c(
@@ -1256,10 +1271,6 @@ execute_package_build <- function(
     "Building package {.pkg {package_name}} with tag {.field {tag}}."
   )
 
-  if(dir.exists(binary_output_path)) {
-    unlink(binary_output_path, force = TRUE, recursive = TRUE)
-  }
-
   quiet <- !is_debug
   t1 <- Sys.time()
 
@@ -1272,7 +1283,7 @@ execute_package_build <- function(
         ))
       }
       pkgbuild::build(
-        path = local_clone_dir_single,
+        path = sprintf("%s", local_clone_dir_single),
         binary = TRUE,
         vignettes = FALSE,
         dest_path = binary_output_path,
