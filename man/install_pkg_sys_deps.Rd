@@ -10,7 +10,8 @@ install_pkg_sys_deps(
   local_clone_dir,
   platform = platform,
   deps_verbose = FALSE,
-  is_debug = FALSE
+  is_debug = FALSE,
+  aggressive_cleanup = FALSE
 )
 }
 \arguments{
@@ -31,7 +32,23 @@ Whether to enable verbose output via env var \code{PKG_SYSREQS_VERBOSE}}
 
 \item{is_debug}{(\link{logical})\cr
 Whether to enable debug logging}
+
+\item{aggressive_cleanup}{Perform additional cache cleanup before installation}
 }
 \description{
-Install system dependencies for an R package
+This function uses a shared cache approach with safe concurrency controls:
+\itemize{
+\item Preserves shared pak cache to avoid redundant downloads/builds
+\item Uses operation-specific mutexes to prevent cache corruption
+\item Implements retry logic with exponential backoff for transient failures
+\item Cleans up stale lock files automatically
+}
+}
+\details{
+The shared cache approach is preferred over isolation because:
+\itemize{
+\item Avoids redundant package downloads across builds
+\item Reduces storage requirements and build times
+\item Maintains cache benefits while ensuring thread safety
+}
 }

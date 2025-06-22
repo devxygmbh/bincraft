@@ -1,4 +1,5 @@
 #' Clean up stale pak cache lock files
+#' @importFrom stats runif
 #' @param cache_dir Cache directory path
 #' @param max_age Maximum age of lock files in seconds (default: 300)
 cleanup_stale_locks <- function(cache_dir = NULL, max_age = 300L) {

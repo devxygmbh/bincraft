@@ -1,1 +1,1 @@
-utils::globalVariables(c("."))
+utils::globalVariables(c(".", "OS_type", "Package"))

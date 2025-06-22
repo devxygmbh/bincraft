@@ -45,7 +45,7 @@
 #' @param future_strategy future parallelization strategy
 #' @param future_workers Parallel workers count
 #'
-#' @importFrom future future cplan value
+#' @importFrom future future plan value
 #' @importFrom future.apply future_mapply
 #' @importFrom gert git_config_global_set git_clone
 #' @importFrom pak local_install_dev_deps
