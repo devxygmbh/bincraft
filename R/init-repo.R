@@ -29,25 +29,26 @@
 #'   Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"), Sys.getenv("HETZNER_S3_SECRET_KEY_K3S"),
 #'   metadata_db_type = "postgres", metadata_db_host = "r-binaries.devxy.io",
 #'   metadata_db_name = "build_metadata", metadata_db_table = "deleteme",
-#'   metadata_db_user = "r_binaries", metadata_db_password = Sys.getenv("PGPASS"),
+#'   metadata_db_user = \"rpkgs\", metadata_db_password = Sys.getenv("PGPASS"),
 #'   metadata_db_sslmode = "require",
 #'   metadata_db_port = 15432
 #' )
 #' }
 init_repo <- function(
-    s3_endpoint,
-    s3_region,
-    s3_bucket,
-    s3_access_key_id = NULL,
-    s3_secret_access_key = NULL,
-    metadata_db_type = "sqlite",
-    metadata_db_host = NULL,
-    metadata_db_name = NULL,
-    metadata_db_table = NULL,
-    metadata_db_port = NULL,
-    metadata_db_user = NULL,
-    metadata_db_password = NULL,
-    metadata_db_sslmode = NULL) {
+  s3_endpoint,
+  s3_region,
+  s3_bucket,
+  s3_access_key_id = NULL,
+  s3_secret_access_key = NULL,
+  metadata_db_type = "sqlite",
+  metadata_db_host = NULL,
+  metadata_db_name = NULL,
+  metadata_db_table = NULL,
+  metadata_db_port = NULL,
+  metadata_db_user = NULL,
+  metadata_db_password = NULL,
+  metadata_db_sslmode = NULL
+) {
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
     aws_secret_access_key = s3_secret_access_key,
@@ -63,9 +64,14 @@ init_repo <- function(
   }
 
   ### Check DB
-  if (metadata_db_type == "sqlite" && requireNamespace("RSQLite", quietly = TRUE)) {
+  if (
+    metadata_db_type == "sqlite" && requireNamespace("RSQLite", quietly = TRUE)
+  ) {
     res <- DBI::dbCanConnect(RSQLite::SQLite(), metadata_db_host)
-  } else if (metadata_db_type == "postgres" && requireNamespace("RPostgres", quietly = TRUE)) {
+  } else if (
+    metadata_db_type == "postgres" &&
+      requireNamespace("RPostgres", quietly = TRUE)
+  ) {
     res <- DBI::dbCanConnect(
       RPostgres::Postgres(),
       dbname = metadata_db_name,
