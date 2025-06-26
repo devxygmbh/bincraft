@@ -44,3 +44,4 @@ reference:
       - cleanup_stale_locks
       - release_pak_mutex
       - retry_with_backoff
+      - process_unarchived_pkgs
