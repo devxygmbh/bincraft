@@ -9,7 +9,7 @@ query_metadata_table <- function(table = "single_builds") {
     con <- insistently(~
       DBI::dbConnect(RPostgres::Postgres(),
         dbname = "build_metadata", host = "r-binaries.devxy.io",
-        port = 15432, user = "r_binaries", password = Sys.getenv("PGPASS"),
+        port = 15432, user = "rpkgs", password = Sys.getenv("PGPASS"),
         sslmode = "require"
       ), rate = retry_config, quiet = FALSE)()
     metadata <- insistently(
@@ -30,7 +30,7 @@ list_metadata_tables <- function() {
     con <- insistently(~
       dbConnect(RPostgres::Postgres(),
         dbname = "build_metadata", host = "r-binaries.devxy.io",
-        port = 15432L, user = "r_binaries", password = Sys.getenv("PGPASS"),
+        port = 15432L, user = "rpkgs", password = Sys.getenv("PGPASS"),
         sslmode = "require"
       ), rate = retry_config, quiet = FALSE)()
     insistently(
