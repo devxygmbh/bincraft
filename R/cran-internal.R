@@ -66,6 +66,11 @@ get_missing_pkgs_db <- function(
 #' @param workers Number of workers to use for parallel processing
 #' @importFrom future plan
 #' @keywords internal
+#' @examples
+#' \dontrun{
+#' process_unarchived_pkgs("alpine322", "arm64", workers = 1L)
+#' }
+#' 
 #' @export
 process_unarchived_pkgs <- function(
   codename,
@@ -86,7 +91,7 @@ process_unarchived_pkgs <- function(
   )
 
   repo_path <- file.path(s3_bucket, arch, codename, "latest", "src", "contrib")
-  files <- s3fs::s3_dir_ls(repo_path)
+  files <- s3fs::s3_dir_ls(repo_path, type = "file")
 
   package_names <- vapply(
     strsplit(basename(files), "_", fixed = TRUE),
