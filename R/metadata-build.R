@@ -69,7 +69,7 @@ store_build_metadata <- function(
 
     query <- paste0(
       "UPDATE ", table_name, " SET timestamp = $1, error_occurred = $2, error_text = $3, ",
-      "duration = $4, size = $5, removed = $6 WHERE name = $7 and tag = $8 and platform = $9 and r_version = $10"
+      "duration = $4, size = $5, removed = $6 WHERE name = $7 and tag = $8 and platform = $9 and arch = $10 and r_version = $11"
     )
     insistently(
       ~ dbExecute(
@@ -84,6 +84,7 @@ store_build_metadata <- function(
           package_name,
           tag,
           platform,
+          arch,
           r_version
         )
       ),
