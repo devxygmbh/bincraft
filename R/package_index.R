@@ -13,26 +13,40 @@
 #' @importFrom s3fs s3_dir_ls s3_file_system
 #' @export
 add_to_package_index <- function(
-    s3_endpoint,
-    s3_region,
-    s3_bucket,
-    package_name = NULL,
-    local_output_dir_root = file.path("mnt", "cache", "binaries"),
-    codename = NULL,
-    is_debug = FALSE,
-    s3_access_key_id = NULL,
-    s3_secret_access_key = NULL) {
+  s3_endpoint,
+  s3_region,
+  s3_bucket,
+  package_name = NULL,
+  local_output_dir_root = file.path("mnt", "cache", "binaries"),
+  codename = NULL,
+  is_debug = FALSE,
+  s3_access_key_id = NULL,
+  s3_secret_access_key = NULL
+) {
   codename <- set_codename(codename)
 
   local_arch <- Sys.info()[["machine"]]
-  if (grepl("arm64", local_arch, fixed = TRUE) || grepl("aarch64", local_arch, fixed = TRUE)) {
+  if (
+    grepl("arm64", local_arch, fixed = TRUE) ||
+      grepl("aarch64", local_arch, fixed = TRUE)
+  ) {
     arch <- "arm64"
-  } else if (grepl("amd64", local_arch, fixed = TRUE) || grepl("x86_64", local_arch, fixed = TRUE)) {
+  } else if (
+    grepl("amd64", local_arch, fixed = TRUE) ||
+      grepl("x86_64", local_arch, fixed = TRUE)
+  ) {
     arch <- "amd64"
   }
 
   local_bin_dir <- set_bin_path(local_output_dir_root, codename)
-  remote_bin_dir <- file.path(s3_bucket, arch, codename, "latest", "src", "contrib")
+  remote_bin_dir <- file.path(
+    s3_bucket,
+    arch,
+    codename,
+    "latest",
+    "src",
+    "contrib"
+  )
 
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
@@ -44,9 +58,15 @@ add_to_package_index <- function(
 
   # get latest PACKAGES file from S3
   if (!s3fs::s3_file_exists(file.path(remote_bin_dir, "PACKAGES"))) {
-    s3fs::s3_file_download(file.path(remote_bin_dir, "PACKAGES"), file.path(local_bin_dir, "PACKAGES"))
+    s3fs::s3_file_download(
+      file.path(remote_bin_dir, "PACKAGES"),
+      file.path(local_bin_dir, "PACKAGES")
+    )
   }
-  file_names <- list.files(local_bin_dir, pattern = sprintf("%s*", package_name))
+  file_names <- list.files(
+    local_bin_dir,
+    pattern = sprintf("%s*", package_name)
+  )
 
   # list all tarballs for the given package
   cranlike::add_PACKAGES(file_names, local_bin_dir)
@@ -70,30 +90,44 @@ add_to_package_index <- function(
 #' @importFrom cranlike update_PACKAGES
 #' @export
 upload_package_index <- function(
-    s3_endpoint,
-    s3_region,
-    s3_bucket,
-    package_name = NULL,
-    local_output_dir_root = ".",
-    codename = NULL,
-    is_debug = FALSE,
-    arch = NULL,
-    s3_access_key_id = NULL,
-    s3_secret_access_key = NULL) {
+  s3_endpoint,
+  s3_region,
+  s3_bucket,
+  package_name = NULL,
+  local_output_dir_root = ".",
+  codename = NULL,
+  is_debug = FALSE,
+  arch = NULL,
+  s3_access_key_id = NULL,
+  s3_secret_access_key = NULL
+) {
   cli::cli_alert("Updating PACKAGES* files in S3.")
 
   codename <- set_codename(codename)
 
   if (is.null(arch)) {
     local_arch <- Sys.info()[["machine"]]
-    if (grepl("arm64", local_arch, fixed = TRUE) || grepl("aarch64", local_arch, fixed = TRUE)) {
+    if (
+      grepl("arm64", local_arch, fixed = TRUE) ||
+        grepl("aarch64", local_arch, fixed = TRUE)
+    ) {
       arch <- "arm64"
-    } else if (grepl("amd64", local_arch, fixed = TRUE) || grepl("x86_64", local_arch, fixed = TRUE)) {
+    } else if (
+      grepl("amd64", local_arch, fixed = TRUE) ||
+        grepl("x86_64", local_arch, fixed = TRUE)
+    ) {
       arch <- "amd64"
     }
   }
 
-  remote_bin_dir <- file.path(s3_bucket, arch, codename, "latest", "src", "contrib")
+  remote_bin_dir <- file.path(
+    s3_bucket,
+    arch,
+    codename,
+    "latest",
+    "src",
+    "contrib"
+  )
 
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
@@ -110,30 +144,54 @@ upload_package_index <- function(
   pkg_count <- length(pkgs) - 5L # nolint
   unique_pkgs <- length(unique(vapply(
     strsplit(basename(pkgs), "_", fixed = TRUE), # nolint
-    function(x) x[1L], character(1L)
-  ))) - 5L
+    function(x) x[1L],
+    character(1L)
+  ))) -
+    5L
 
   t1 <- Sys.time()
   cranlike::update_PACKAGES(sprintf("s3://%s", remote_bin_dir))
 
   # write Meta/archive.rds for remotes::install_version
-  cli::cli_alert_success("Started creating/updating {.path {file.path('Meta', 'archive.rds')}}") # nolint
-  files <- s3fs::s3_dir_ls(file.path(remote_bin_dir, "Archive"), recurse = TRUE, regexp = "*.tar.gz")
+  cli::cli_alert_success(
+    "Started creating/updating {.path {file.path('Meta', 'archive.rds')}}"
+  ) # nolint
+  files <- s3fs::s3_dir_ls(
+    file.path(remote_bin_dir, "Archive"),
+    recurse = TRUE,
+    regexp = "*.tar.gz"
+  )
   archive_rds <- write_archive_rds(files)
   tmp <- tempfile()
   saveRDS(archive_rds, tmp)
-  s3fs::s3_file_upload(tmp, file.path(remote_bin_dir, "Meta", "archive.rds"),
-    overwrite = TRUE, CacheControl = "no-store"
+  s3fs::s3_file_upload(
+    tmp,
+    file.path(remote_bin_dir, "Meta", "archive.rds"),
+    overwrite = TRUE,
+    CacheControl = "no-store"
   )
-  cli::cli_alert_success("Successfully uploaded {.path {file.path('Meta', 'archive.rds')}}")
+  cli::cli_alert_success(
+    "Successfully uploaded {.path {file.path('Meta', 'archive.rds')}}"
+  )
 
   total_build_time <- round(Sys.time() - t1, 2L) # nolint
-  cli::cli_alert("Time updating PACKAGES index for {.field {pkg_count}} ({.field {unique_pkgs}} unique) packages: {.strong {total_build_time} {units(difftime(Sys.time(), t1))}}.") # nolint
+  cli::cli_alert(
+    "Time updating PACKAGES index for {.field {pkg_count}} ({.field {unique_pkgs}} unique) packages: {.strong {total_build_time} {units(difftime(Sys.time(), t1))}}."
+  ) # nolint
 
   purrr::walk2(
     c("PACKAGES", "PACKAGES.db", "PACKAGES.rds", "PACKAGES.gz"),
-    file.path(remote_bin_dir, c("PACKAGES", "PACKAGES.db", "PACKAGES.rds", "PACKAGES.gz")),
-    \(x, y) s3fs::s3_file_upload(x, y, overwrite = TRUE, CacheControl = "no-store")
+    file.path(
+      remote_bin_dir,
+      c("PACKAGES", "PACKAGES.db", "PACKAGES.rds", "PACKAGES.gz")
+    ),
+    \(x, y) {
+      s3fs::s3_file_upload(x, y, overwrite = TRUE, CacheControl = "no-store")
+    }
+  )
+
+  cli::cli_alert_success(
+    "Successfully uploaded {.path {c('PACKAGES', 'PACKAGES.db', 'PACKAGES.rds', 'PACKAGES.gz')}}"
   )
 
   return(invisible(TRUE))
