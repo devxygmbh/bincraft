@@ -179,9 +179,13 @@ query_packages_without_historic_versions = function(
   )
   pkg_names <- pkg_names[!is.na(pkg_names)]
 
+  # filter out packages without any archived version
+  archive_db_pkgs <-names(tools::CRAN_archive_db())
+  pkgs_to_check <- intersect(pkg_names, archive_db_pkgs)
+
   # For each package, check if Archive/<pkg>/ contains any files
   no_archive_files <- character(0)
-  no_archive_files <- future.apply::future_lapply(pkg_names, function(pkg) {
+  no_archive_files <- future.apply::future_lapply(pkgs_to_check, function(pkg) {
     archive_dir <- sprintf(
       "s3://%s/%s/%s/latest/src/contrib/Archive/%s",
       s3_bucket,
@@ -206,6 +210,5 @@ query_packages_without_historic_versions = function(
       NULL
     }
   })
-  no_archive_files <- unlist(no_archive_files, use.names = FALSE)
-  no_archive_files
+  unlist(no_archive_files, use.names = FALSE)
 }
