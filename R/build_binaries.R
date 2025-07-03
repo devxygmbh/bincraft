@@ -898,24 +898,21 @@ handle_post_build_actions <- function(
         s3_secret_access_key = s3_secret_access_key
       )
     ) {
-      future::future(
-        upload_source_tarball(
-          package_name[1L],
-          codename = codename,
-          is_r_minor_sensitive = is_r_minor_sensitive,
-          s3_endpoint = s3_endpoint,
-          s3_bucket = s3_bucket,
-          s3_region = s3_region,
-          s3_access_key_id = s3_access_key_id,
-          s3_secret_access_key = s3_secret_access_key
-        ),
-        seed = TRUE
+      upload_source_tarball(
+        package_name[1L],
+        codename = codename,
+        is_r_minor_sensitive = is_r_minor_sensitive,
+        s3_endpoint = s3_endpoint,
+        s3_bucket = s3_bucket,
+        s3_region = s3_region,
+        s3_access_key_id = s3_access_key_id,
+        s3_secret_access_key = s3_secret_access_key
       )
     }
   }
 
   if (archive && any(result != "skipped")) {
-    archive_future <- future::future(
+    archive_future <-
       archive_package(
         package_name[1L],
         codename = codename,
@@ -927,8 +924,6 @@ handle_post_build_actions <- function(
         s3_access_key_id = s3_access_key_id,
         s3_secret_access_key = s3_secret_access_key
       )
-    )
-    future::value(archive_future, seed = TRUE)
   }
 }
 
