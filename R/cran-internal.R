@@ -63,14 +63,13 @@ get_missing_pkgs_db <- function(
 #' @param s3_bucket S3 bucket name
 #' @param s3_access_key_id S3 access key ID
 #' @param s3_secret_access_key S3 secret access key
-#' @param workers Number of workers to use for parallel processing
 #' @importFrom future plan
 #' @keywords internal
 #' @examples
 #' \dontrun{
-#' process_unarchived_pkgs("alpine322", "arm64", workers = 1L)
+#' process_unarchived_pkgs("alpine322", "arm64")
 #' }
-#' 
+#'
 #' @export
 process_unarchived_pkgs <- function(
   codename,
@@ -108,7 +107,6 @@ process_unarchived_pkgs <- function(
   message("Number of packages needing archiving: ", length(non_archived))
 
   if (length(non_archived) > 0L) {
-    future::plan("multisession", workers = workers)
     out = future.apply::future_lapply(
       non_archived,
       archive_package,
@@ -123,4 +121,91 @@ process_unarchived_pkgs <- function(
   }
 
   invisible(non_archived)
+}
+
+#' Returns packages that do not have any historic versions stored in S3
+#' @param codename Operating system codename (e.g., "alpine322", "ubuntu-2204")
+#' @param arch Architecture (e.g., "arm64", "amd64")
+#' @param s3_endpoint S3 endpoint URL
+#' @param s3_region S3 region
+#' @param s3_bucket S3 bucket name
+#' @param s3_access_key_id S3 access key ID
+#' @param s3_secret_access_key S3 secret access key
+#' @param workers Number of workers to use for parallel processing
+#' @importFrom future plan
+#' @keywords internal
+#' @examples
+#' \dontrun{
+#' query_packages_without_historic_versions("alpine322", "arm64")
+#' }
+#'
+#' @export
+query_packages_without_historic_versions = function(
+  codename,
+  arch,
+  s3_endpoint = "https://hel1.your-objectstorage.com",
+  s3_region = "hel1",
+  s3_bucket = "devxy-r-package-binaries-hel1",
+  s3_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
+  s3_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S")
+) {
+  s3fs::s3_file_system(
+    aws_access_key_id = s3_access_key_id,
+    aws_secret_access_key = s3_secret_access_key,
+    endpoint = s3_endpoint,
+    region_name = s3_region,
+    refresh = TRUE
+  )
+
+  all_files <- s3fs::s3_dir_ls(
+    sprintf(
+      "s3://%s/%s/%s/latest/src/contrib/",
+      s3_bucket,
+      arch,
+      codename
+    ),
+    recurse = TRUE,
+    type = "file"
+  )
+
+  pattern <- ".*/src/contrib/([^/_]+)_.*"
+  matches <- regmatches(all_files, regexec(pattern, all_files))
+  pkg_names <- unique(
+    vapply(
+      matches,
+      function(x) if (length(x) > 1) x[2] else NA_character_,
+      character(1)
+    )
+  )
+  pkg_names <- pkg_names[!is.na(pkg_names)]
+
+  # For each package, check if Archive/<pkg>/ contains any files
+  no_archive_files <- character(0)
+  no_archive_files <- future.apply::future_lapply(pkg_names, function(pkg) {
+    archive_dir <- sprintf(
+      "s3://%s/%s/%s/latest/src/contrib/Archive/%s",
+      s3_bucket,
+      arch,
+      codename,
+      pkg
+    )
+    s3fs::s3_file_system(
+      aws_access_key_id = s3_access_key_id,
+      aws_secret_access_key = s3_secret_access_key,
+      endpoint = s3_endpoint,
+      region_name = s3_region,
+      refresh = TRUE
+    )
+    archive_files <- tryCatch(
+      s3fs::s3_dir_ls(archive_dir, recurse = TRUE),
+      error = function(e) character(0)
+    )
+    if (length(archive_files) == 0) {
+      pkg
+    } else {
+      NULL
+    }
+  })
+  no_archive_files <- unlist(no_archive_files, use.names = FALSE)
+  no_archive_files
 }

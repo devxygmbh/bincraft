@@ -29,10 +29,14 @@ process_unarchived_pkgs(
 \item{s3_access_key_id}{S3 access key ID}
 
 \item{s3_secret_access_key}{S3 secret access key}
-
-\item{workers}{Number of workers to use for parallel processing}
 }
 \description{
 Returns packages that need to be archived (have multiple versions)
+}
+\examples{
+\dontrun{
+process_unarchived_pkgs("alpine322", "arm64")
+}
+
 }
 \keyword{internal}
