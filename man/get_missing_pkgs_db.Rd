@@ -4,7 +4,7 @@
 \alias{get_missing_pkgs_db}
 \title{Returns all packages names of CRAN packages not present in the linked database}
 \usage{
-get_missing_pkgs_db(platform = "ubuntu-2204", arch = "amd64", days_back = 2)
+get_missing_pkgs_db(platform = "ubuntu-2204", arch = "amd64", days_back = 2L)
 }
 \description{
 Returns all packages names of CRAN packages not present in the linked database
