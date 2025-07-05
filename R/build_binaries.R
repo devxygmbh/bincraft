@@ -762,8 +762,6 @@ check_s3_packages <- function(
   root_pkg_name <- sprintf("%s_%s.tar.gz", package_name, last_version)
   all_pkgs_s3 <- c(root_pkg_name, archived_pkgs)
 
-  gert::git_config_global_set("advice.detachedHead", "false")
-
   # get all desired tags of package to compare with `all_pkgs_s3`, only if no tag is provided or set to special keyword "latest" # nolint
   if (length(tag) == 1L && (is.null(tag) || tag == "latest")) {
     tags_filtered <- filter_tags(
@@ -1184,6 +1182,8 @@ clone_repository <- function(
   if (dir.exists(local_clone_dir_single)) {
     unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
   }
+
+  gert::git_config_global_set("advice.detachedHead", "false")
 
   system2(
     "git",
