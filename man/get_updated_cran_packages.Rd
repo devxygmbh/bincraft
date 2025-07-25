@@ -5,8 +5,8 @@
 \title{Get updated CRAN packages}
 \usage{
 get_updated_cran_packages(
-  date_interval = lubridate::interval(lubridate::today() - 7, lubridate::today()),
-  limit = 2000
+  date_interval = lubridate::interval(lubridate::today() - 7L, lubridate::today()),
+  limit = 2000L
 )
 }
 \arguments{

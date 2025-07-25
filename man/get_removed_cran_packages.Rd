@@ -4,9 +4,15 @@
 \alias{get_removed_cran_packages}
 \title{Get removed CRAN packages}
 \usage{
-get_removed_cran_packages(limit = 300)
+get_removed_cran_packages(
+  date_interval = lubridate::interval(lubridate::today() - 7L, lubridate::today()),
+  limit = 300L
+)
 }
 \arguments{
+\item{date_interval}{(Interval)\cr
+Date Interval (\link[lubridate:interval]{lubridate::interval})}
+
 \item{limit}{Maximum number of items to return}
 }
 \description{

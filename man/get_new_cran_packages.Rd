@@ -5,7 +5,7 @@
 \title{Get new CRAN packages}
 \usage{
 get_new_cran_packages(
-  date_interval = lubridate::interval(lubridate::today() - 7, lubridate::today())
+  date_interval = lubridate::interval(lubridate::today() - 7L, lubridate::today())
 )
 }
 \arguments{

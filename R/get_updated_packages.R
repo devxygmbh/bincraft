@@ -10,10 +10,10 @@
 #' @export
 get_updated_cran_packages <- function(
   date_interval = lubridate::interval(
-    lubridate::today() - 7,
+    lubridate::today() - 7L,
     lubridate::today()
   ),
-  limit = 2000
+  limit = 2000L
 ) {
   events = pkgsearch::cran_events(
     releases = TRUE,
@@ -50,20 +50,23 @@ get_updated_cran_packages <- function(
 #' get_new_cran_packages()
 #' }
 #'
-get_new_cran_packages <- function(date_interval = lubridate::interval(
-    lubridate::today() - 7,
+get_new_cran_packages <- function(
+  date_interval = lubridate::interval(
+    lubridate::today() - 7L,
     lubridate::today()
-  )) {
+  )
+) {
   ls = pkgsearch::cran_new(
     from = lubridate::int_start(date_interval),
-    to = lubridate::int_end(date_interval))
+    to = lubridate::int_end(date_interval)
+  )
 
   # Handle empty results
-  if (nrow(ls) == 0 || is.null(ls$Package)) {
+  if (nrow(ls) == 0L || is.null(ls$Package)) {
     return(data.frame(
-      name = character(0),
-      version = character(0),
-      date = as.Date(character(0))
+      name = character(0L),
+      version = character(0L),
+      date = as.Date(character(0L))
     ))
   }
 
@@ -75,6 +78,7 @@ get_new_cran_packages <- function(date_interval = lubridate::interval(
 }
 
 #' Get removed CRAN packages
+#' @template param-date_interval
 #' @param limit Maximum number of items to return
 #' @importFrom purrr map list_rbind
 #' @importFrom pkgsearch cran_events
@@ -84,10 +88,23 @@ get_new_cran_packages <- function(date_interval = lubridate::interval(
 #' get_removed_cran_packages()
 #' }
 #'
-get_removed_cran_packages <- function(limit = 300) {
-  ls = pkgsearch::cran_events(releases = FALSE, limit = limit)
+get_removed_cran_packages <- function(
+  date_interval = lubridate::interval(
+    lubridate::today() - 7L,
+    lubridate::today()
+  ),
+  limit = 300L
+) {
+  events = pkgsearch::cran_events(releases = FALSE, limit = limit)
+
+  events_filtered <- purrr::keep(
+    events,
+    ~ as.Date(.x$date) %within% date_interval
+  )
+
   data.frame(
-    name = purrr::map_chr(ls, "name"),
-    date = as.Date(purrr::map_chr(ls, "date"))
+    name = purrr::map_chr(events_filtered, "name"),
+    version = purrr::map_chr(events_filtered, ~ .x$package$Version),
+    date = as.Date(purrr::map_chr(events_filtered, "date"))
   )
 }
