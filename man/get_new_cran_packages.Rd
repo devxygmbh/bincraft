@@ -5,14 +5,12 @@
 \title{Get new CRAN packages}
 \usage{
 get_new_cran_packages(
-  date = if (requireNamespace("lubridate", quietly = TRUE)) {
-     lubridate::today()
- }
+  date_interval = lubridate::interval(lubridate::today() - 7, lubridate::today())
 )
 }
 \arguments{
-\item{date}{(\link{character})\cr
-Date}
+\item{date_interval}{(Interval)\cr
+Date Interval (\link[lubridate:interval]{lubridate::interval})}
 }
 \description{
 Get new CRAN packages
@@ -20,7 +18,7 @@ Get new CRAN packages
 \examples{
 \dontrun{
 # last week
-get_new_cran_packages(lubridate::interval(lubridate::today() - 7, lubridate::today()))
+get_new_cran_packages()
 }
 
 }

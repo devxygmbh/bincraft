@@ -14,3 +14,5 @@ CHANGELOG.md
 *.tar.gz
 local_*
 *.tgz
+CLAUDE.md
+.claude

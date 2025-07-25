@@ -131,7 +131,6 @@ process_unarchived_pkgs <- function(
 #' @param s3_bucket S3 bucket name
 #' @param s3_access_key_id S3 access key ID
 #' @param s3_secret_access_key S3 secret access key
-#' @param workers Number of workers to use for parallel processing
 #' @importFrom future plan
 #' @keywords internal
 #' @examples

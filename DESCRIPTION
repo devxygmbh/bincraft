@@ -20,8 +20,10 @@ Imports:
     future.apply,
     gert,
     gh,
+    lubridate,
     pak,
     pkgbuild,
+    pkgsearch,
     purrr,
     s3fs (>= 0.1.7),
     utils,
@@ -30,9 +32,10 @@ Suggests:
     bit,
     bit64,
     httr2,
-    lubridate,
+    mockery,
     RPostgres,
     RSQLite,
+    testthat (>= 3.0.0),
     xml2
 Remotes:
     pat-s/cranlike@s3,

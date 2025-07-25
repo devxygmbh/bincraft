@@ -28,8 +28,6 @@ query_packages_without_historic_versions(
 \item{s3_access_key_id}{S3 access key ID}
 
 \item{s3_secret_access_key}{S3 secret access key}
-
-\item{workers}{Number of workers to use for parallel processing}
 }
 \description{
 Returns packages that do not have any historic versions stored in S3

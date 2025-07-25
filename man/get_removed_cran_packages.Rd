@@ -4,15 +4,10 @@
 \alias{get_removed_cran_packages}
 \title{Get removed CRAN packages}
 \usage{
-get_removed_cran_packages(
-  date = if (requireNamespace("lubridate", quietly = TRUE)) {
-     lubridate::today()
- }
-)
+get_removed_cran_packages(limit = 300)
 }
 \arguments{
-\item{date}{(\link{character})\cr
-Date}
+\item{limit}{Maximum number of items to return}
 }
 \description{
 Get removed CRAN packages
@@ -20,7 +15,6 @@ Get removed CRAN packages
 \examples{
 \dontrun{
 get_removed_cran_packages()
-get_removed_cran_packages(lubridate::interval(today() - 7, today()))
 }
 
 }
