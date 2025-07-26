@@ -63,127 +63,22 @@ archive_package <- function(
 
   remote_bin_dir <- file.path(s3_bucket, arch, codename, "latest", "src", "contrib")
 
-  # don't parallelise
-  future::plan("sequential")
-
-  if (!is_r_minor_sensitive) {
-    files <- s3fs::s3_dir_ls(remote_bin_dir)
-  } else {
+  if (is_r_minor_sensitive) {
     files <- s3fs::s3_dir_ls(file.path(remote_bin_dir, is_r_minor_sensitive))
-  }
-
-  if (!is_r_minor_sensitive) {
-    remote_search_path <- file.path(remote_bin_dir, "Archive", package_name)
   } else {
-    minor_version <- paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = ".")
-    remote_search_path <- file.path(remote_bin_dir, minor_version, "Archive", package_name)
+    files <- s3fs::s3_dir_ls(remote_bin_dir)
   }
 
-  purrr::walk(package_name, function(pkgname) {
-    cli::cli_h2("Archiving ({.pkg {pkgname}})")
-    if (!is_r_minor_sensitive) {
-      remote_search_path <- file.path(remote_bin_dir, "Archive", pkgname)
-    } else {
-      remote_search_path <- file.path(remote_bin_dir, minor_version, "Archive", pkgname)
-    }
-    if (
-      !s3fs::s3_dir_exists(remote_search_path)
-    ) {
-      s3fs::s3_dir_create(remote_search_path)
-    }
-    all_versions <- grep(sprintf("/%s_", pkgname), files, value = TRUE)
-    # only archive if more than one package exists in the root
-    if (length(all_versions) > 1L) {
-      # get most recent version from CRAN
+  minor_version <- NULL
+  if (is_r_minor_sensitive) {
+    minor_version <- paste(R.version$major, strsplit(R.version$minor, ".", fixed = TRUE)[[1L]][1L], sep = ".")
+  }
 
-      last_version <- strsplit(
-        gh::gh(sprintf("GET /repos/cran/%s/commits", package_name))[[1L]]$commit$message, # nolint
-        "version ",
-        fixed = TRUE
-      )[[1L]][2L]
-
-      # check if last version is available in repo
-      if (
-        any(grepl(
-          sprintf("%s_%s.tar.gz", package_name, last_version),
-          all_versions
-        ))
-      ) {
-        index <- grep(sprintf("_%s.tar.gz", last_version), all_versions, fixed = TRUE)
-        old_versions <- all_versions[-index]
-      } else {
-        # this often fails with
-        # caused by error in `curl::curl_fetch_memory(url)`:
-        # ! SSL peer certificate or SSH remote key was not OK: [crandb.r-pkg.org]
-        # SSL certificate problem: unable to get local issuer certificate
-        versions <- purrr::insistently(
-          ~ rev(pak::pkg_history(pkgname)$Version),
-          rate = retry_config,
-          quiet = FALSE
-        )()
-        for (i in versions) {
-          if (
-            any(grepl(
-              paste0("^", i, "$"),
-              vapply(strsplit(
-                vapply(strsplit(all_versions, "_", fixed = TRUE), function(x) x[2L], character(1L)),
-                ".tar.gz",
-                fixed = TRUE
-              ), function(x) x[1L], character(1L))
-            ))
-          ) {
-            index <- grep(sprintf("_%s.tar.gz", i), all_versions)
-            old_versions <- all_versions[-index]
-            break
-          }
-        }
-      }
-      # account for duplicated (= faulty) packages
-      if (anyDuplicated(s3fs::s3_file_info(old_versions)$key) > 0L) {
-        for (i in old_versions) {
-          if (anyDuplicated(s3fs::s3_file_info(i)$key)) {
-            cli::cli_alert_danger("{.field {i}} is duplicated, deleting it.")
-            s3fs::s3_file_delete(i)
-            old_versions <- setdiff(old_versions, i)
-          }
-        }
-      }
-      if (length(old_versions) > 0L) {
-        if (!is_r_minor_sensitive) {
-          archive_path <- file.path(
-            remote_bin_dir,
-            "Archive",
-            pkgname,
-            basename(old_versions)
-          )
-        } else {
-          archive_path <- file.path(
-            remote_bin_dir,
-            minor_version,
-            "Archive",
-            pkgname,
-            basename(old_versions)
-          )
-        }
-        cli::cli_alert(
-          "Archiving {.field {basename(old_versions)}} to {.field {archive_path}}, keeping {.field {basename(all_versions[index])}}."
-        )
-        s3fs::s3_file_move(
-          old_versions,
-          archive_path,
-          max_batch = parse_bytes("300MB"),
-          overwrite = TRUE
-        )
-        cli::cli_alert_success(
-          "Successfully archived package {.pkg {pkgname}}."
-        )
-      }
-    } else {
-      cli::cli_alert(
-        "Skipping {.pkg {pkgname}} as only one package versions exists."
-      )
-    }
-  })
+  for (pkg in package_name) {
+    archive_single_package( # nolint: object_usage_linter
+      pkg, remote_bin_dir, is_r_minor_sensitive, minor_version, files
+    )
+  }
 
   invisible(TRUE)
 }

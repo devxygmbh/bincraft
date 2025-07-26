@@ -5,16 +5,16 @@
 #' @template param-platform
 #' @template param-force
 #' @template param-error_occurred
-#' @param build_duration Duration of binary build
-#' @param size Size of binary package
-#' @param metadata_db_type Database type. Denotes the DB driver to be used for connecting.
-#' @param metadata_db_host Database host
-#' @param metadata_db_name Database name
-#' @param metadata_db_table Database table
-#' @param metadata_db_port Database port
-#' @param metadata_db_user Database user
-#' @param metadata_db_password Database password
-#' @param metadata_db_sslmode Database sslmode
+#' @template param-build_duration
+#' @template param-size
+#' @template param-metadata_db_type
+#' @template param-metadata_db_host
+#' @template param-metadata_db_name
+#' @template param-metadata_db_table
+#' @template param-metadata_db_port
+#' @template param-metadata_db_user
+#' @template param-metadata_db_password
+#' @template param-metadata_db_sslmode
 #' @template param-error
 #'
 #' @importFrom DBI dbConnect dbDisconnect dbWriteTable dbGetQuery dbExecute
@@ -37,11 +37,16 @@ store_build_metadata <- function(
     error = NA,
     build_duration = NA,
     size = NA) {
-  if (metadata_db_type == "postgres" && requireNamespace("RPostgres", quietly = TRUE)) {
-    driver <- RPostgres::Postgres()
-  } else {
-    cli::cli_alert_info("{.function store_build_metadata}: {.pkg RPostgres} must be installed when ` metadata_db_type = 'postgres'`")
+  if (metadata_db_type == "postgres" && !requireNamespace("RPostgres", quietly = TRUE)) {
+    cli::cli_alert_info(paste0(
+      "{.function store_build_metadata}: {.pkg RPostgres} must be installed ",
+      "when ` metadata_db_type = 'postgres'`"
+    ))
     return()
+  }
+
+  if (metadata_db_type == "postgres") {
+    driver <- RPostgres::Postgres() # nolint
   }
 
   con <- purrr::insistently(~
@@ -51,7 +56,7 @@ store_build_metadata <- function(
       sslmode = metadata_db_sslmode
     ), rate = retry_config, quiet = FALSE)()
 
-  r_version <- paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = ".")
+  r_version <- paste(R.version$major, strsplit(R.version$minor, ".", fixed = TRUE)[[1L]][1L], sep = ".")
 
   table_name <- DBI::dbQuoteIdentifier(con, metadata_db_table)
   query <- paste0("SELECT * FROM ", table_name, " WHERE name = $1 AND tag = $2 AND platform = $3 AND arch = $4 and r_version = $5") # nolint
@@ -69,7 +74,10 @@ store_build_metadata <- function(
 
     query <- paste0(
       "UPDATE ", table_name, " SET timestamp = $1, error_occurred = $2, error_text = $3, ",
-      "duration = $4, size = $5, removed = $6 WHERE name = $7 and tag = $8 and platform = $9 and arch = $10 and r_version = $11"
+      paste0(
+        "duration = $4, size = $5, removed = $6 WHERE name = $7 and tag = $8 ",
+        "and platform = $9 and arch = $10 and r_version = $11"
+      )
     )
     insistently(
       ~ dbExecute(

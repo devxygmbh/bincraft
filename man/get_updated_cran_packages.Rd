@@ -13,7 +13,8 @@ get_updated_cran_packages(
 \item{date_interval}{(Interval)\cr
 Date Interval (\link[lubridate:interval]{lubridate::interval})}
 
-\item{limit}{Maximum number of items to return}
+\item{limit}{(\link{integer})\cr
+Maximum amount of items to query}
 }
 \description{
 Get updated CRAN packages

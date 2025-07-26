@@ -42,10 +42,6 @@
 #' @template param-s3-access-key-id
 #' @template param-s3-secret-access-key
 #'
-#' @param future_strategy future parallelization strategy
-#' @param future_workers Parallel workers count
-#'
-#' @importFrom future future plan value
 #' @importFrom future.apply future_mapply
 #' @importFrom gert git_config_global_set git_clone
 #' @importFrom pak local_install_dev_deps
@@ -63,39 +59,36 @@
 #'
 #' @export
 build_binary_package <- function(
-  package_name,
-  tag = NULL,
-  codename = NULL,
-  source_org_url = "https://github.com/cran",
-  tag_limit = 10L,
-  local_output_dir_root = ".",
-  local_clone_dir = "/tmp",
-  platform = NULL,
-  arch = NULL,
-  is_r_minor_sensitive = FALSE,
-  install_system_dependencies = TRUE,
-  deps_verbose = FALSE,
-  is_debug = FALSE,
-  force = FALSE,
-  upload = FALSE,
-  archive = FALSE,
-  store_build_metadata = FALSE,
-  metadata_db_type = "postgres",
-  metadata_db_host = NULL,
-  metadata_db_name = NULL,
-  metadata_db_table = NULL,
-  metadata_db_port = NULL,
-  metadata_db_user = NULL,
-  metadata_db_password = NULL,
-  metadata_db_sslmode = NULL,
-  future_strategy = "sequential",
-  future_workers = 1L,
-  s3_endpoint = NULL,
-  s3_region = NULL,
-  s3_bucket = NULL,
-  s3_access_key_id = NULL,
-  s3_secret_access_key = NULL
-) {
+    package_name,
+    tag = NULL,
+    codename = NULL,
+    source_org_url = "https://github.com/cran",
+    tag_limit = 10L,
+    local_output_dir_root = ".",
+    local_clone_dir = "/tmp",
+    platform = NULL,
+    arch = NULL,
+    is_r_minor_sensitive = FALSE,
+    install_system_dependencies = TRUE,
+    deps_verbose = FALSE,
+    is_debug = FALSE,
+    force = FALSE,
+    upload = FALSE,
+    archive = FALSE,
+    store_build_metadata = FALSE,
+    metadata_db_type = "postgres",
+    metadata_db_host = NULL,
+    metadata_db_name = NULL,
+    metadata_db_table = NULL,
+    metadata_db_port = NULL,
+    metadata_db_user = NULL,
+    metadata_db_password = NULL,
+    metadata_db_sslmode = NULL,
+    s3_endpoint = NULL,
+    s3_region = NULL,
+    s3_bucket = NULL,
+    s3_access_key_id = NULL,
+    s3_secret_access_key = NULL) {
   # Initialize and prepare
   setup_result <- initialize_build_environment(
     package_name,
@@ -162,7 +155,6 @@ build_binary_package <- function(
   package_name <- pkg_info$package_name
   tag <- pkg_info$tag
 
-  # Build packages
   result <- execute_package_builds(
     package_name,
     tag,
@@ -190,8 +182,6 @@ build_binary_package <- function(
     s3_region,
     s3_access_key_id,
     s3_secret_access_key,
-    future_strategy,
-    future_workers,
     local_bin_path
   )
 
@@ -216,26 +206,42 @@ build_binary_package <- function(
   return(invisible(TRUE))
 }
 
+#' Initialize build environment and setup paths
+#'
+#' Sets up the build environment including codename, platform detection,
+#' architecture detection, and directory creation.
+#'
+#' @template param-package_name
+#' @template param-codename
+#' @template param-platform
+#' @template param-arch
+#' @template param-is_debug
+#' @template param-local_output_dir_root
+#' @template param-force
+#' @template param-s3_bucket
+#' @template param-s3-access-key-id
+#' @template param-s3-secret-access-key
+#' @template param-s3_endpoint
+#' @template param-s3_region
+#' @return List with setup results
 initialize_build_environment <- function(
-  package_name,
-  codename,
-  platform,
-  arch,
-  is_debug,
-  local_output_dir_root,
-  force,
-  s3_bucket,
-  s3_access_key_id,
-  s3_secret_access_key,
-  s3_endpoint,
-  s3_region
-) {
+    package_name,
+    codename,
+    platform,
+    arch,
+    is_debug,
+    local_output_dir_root,
+    force,
+    s3_bucket,
+    s3_access_key_id,
+    s3_secret_access_key,
+    s3_endpoint,
+    s3_region) {
   cli::cli_h2("Preparations ({.pkg {package_name}})")
   codename <- set_codename(codename)
 
   if (is.null(platform)) {
-    platform <- switch(
-      codename,
+    platform <- switch(codename,
       jammy = "ubuntu-2204",
       noble = "ubuntu-2404",
       rhel9 = "redhat-9",
@@ -256,7 +262,6 @@ initialize_build_environment <- function(
     codename
   )
 
-  # infer local architecture
   local_arch <- Sys.info()[["machine"]]
   if (
     grepl("arm64", local_arch, fixed = TRUE) ||
@@ -303,6 +308,16 @@ initialize_build_environment <- function(
   )
 }
 
+#' Filter git tags for package versions
+#'
+#' Retrieves and filters git tags from a package repository, excluding
+#' R-prefixed tags and applying tag limits.
+#'
+#' @template param-package_name
+#' @template param-tag
+#' @template param-source_org_url
+#' @template param-tag_limit
+#' @return Character vector of filtered tags
 filter_tags <- function(package_name, tag, source_org_url, tag_limit) {
   gert::git_config_global_set("advice.detachedHead", "false")
 
@@ -343,84 +358,70 @@ filter_tags <- function(package_name, tag, source_org_url, tag_limit) {
   tags
 }
 
+#' Filter packages with previous build errors
+#'
+#' Queries the metadata database to identify packages that have
+#' previously failed to build and should be skipped.
+#'
+#' @template param-pkg_differences
+#' @template param-metadata_db_type
+#' @template param-metadata_db_host
+#' @template param-metadata_db_name
+#' @template param-metadata_db_table
+#' @template param-metadata_db_port
+#' @template param-metadata_db_user
+#' @template param-metadata_db_password
+#' @template param-metadata_db_sslmode
+#' @template param-platform
+#' @template param-arch
+#' @template param-pkgs_to_build
+#' @return Filtered package list
 filter_packages_with_errors <- function(
-  pkg_differences,
-  metadata_db_type,
-  metadata_db_host,
-  metadata_db_name,
-  metadata_db_table,
-  metadata_db_port,
-  metadata_db_user,
-  metadata_db_password,
-  metadata_db_sslmode,
-  platform,
-  arch,
-  pkgs_to_build
-) {
-  pkg_tag_pairs <- lapply(pkg_differences, function(x) {
-    parts <- strsplit(x, "_", fixed = TRUE)[[1L]]
-    if (length(parts) < 2L) {
-      list(pkg = NA, tag = NA)
-    }
-    pkg_name <- parts[1L]
-    version_part <- parts[2L]
-    tag_val <- strsplit(version_part, ".tar.gz", fixed = TRUE)[[1L]][1L]
-    list(pkg = pkg_name, tag = tag_val)
-  })
+    pkg_differences,
+    metadata_db_type,
+    metadata_db_host,
+    metadata_db_name,
+    metadata_db_table,
+    metadata_db_port,
+    metadata_db_user,
+    metadata_db_password,
+    metadata_db_sslmode,
+    platform,
+    arch,
+    pkgs_to_build) {
+  pkg_tag_pairs <- parse_package_tag_pairs(pkg_differences) # nolint: object_usage_linter
 
   tryCatch(
     {
-      if (
-        metadata_db_type == "postgres" &&
-          requireNamespace("RPostgres", quietly = TRUE)
-      ) {
-        con <- purrr::insistently(
-          ~ DBI::dbConnect(
-            RPostgres::Postgres(), # nolint
-            dbname = metadata_db_name,
-            host = metadata_db_host,
-            port = metadata_db_port,
-            user = metadata_db_user,
-            password = metadata_db_password,
-            sslmode = metadata_db_sslmode
-          ),
-          rate = retry_config,
-          quiet = FALSE
-        )()
-      } else {
-        cli::cli_alert_warning(
-          "Error checking is currently only supported for postgres databases."
-        )
+      if (metadata_db_type != "postgres" || !requireNamespace("RPostgres", quietly = TRUE)) {
+        cli::cli_alert_warning("Error checking is currently only supported for postgres databases.")
+        return(pkg_differences)
       }
+
+      con <- purrr::insistently(
+        ~ DBI::dbConnect(
+          RPostgres::Postgres(),
+          dbname = metadata_db_name,
+          host = metadata_db_host,
+          port = metadata_db_port,
+          user = metadata_db_user,
+          password = metadata_db_password,
+          sslmode = metadata_db_sslmode
+        ),
+        rate = retry_config,
+        quiet = FALSE
+      )()
 
       table_name <- DBI::dbQuoteIdentifier(con, metadata_db_table)
       packages_with_errors <- NULL
 
       for (i in seq_along(pkg_tag_pairs)) {
         pair <- pkg_tag_pairs[[i]]
-        if (!is.na(pair$pkg) && !is.na(pair$tag)) {
-          sql_query <- paste0(
-            # nolint
-            "SELECT error_occurred FROM ",
-            table_name,
-            " WHERE name = $1 AND tag = $2 AND platform = $3 AND arch = $4"
+        if (check_package_error(con, table_name, pair, platform, arch)) { # nolint: object_usage_linter
+          packages_with_errors <- c(packages_with_errors, pkg_differences[i])
+          cli::cli_alert_warning(
+            "Skipping {.pkg {pair$pkg}} {.field {pair$tag}} due to previous build error recorded in metadata DB."
           )
-          result <- purrr::insistently(
-            ~ DBI::dbGetQuery(
-              con,
-              sql_query,
-              params = list(pair$pkg, pair$tag, platform, arch)
-            ),
-            rate = retry_config,
-            quiet = FALSE
-          )()
-
-          if (nrow(result) > 0L && any(result$error_occurred)) {
-            packages_with_errors <- c(packages_with_errors, pkg_differences[i])
-            cli::cli_alert_warning(
-              "Skipping {.pkg {pair$pkg}} {.field {pair$tag}} due to previous build error recorded in metadata DB."
-            )
-          }
         }
       }
 
@@ -428,52 +429,82 @@ filter_packages_with_errors <- function(
 
       if (length(packages_with_errors) > 0L) {
         pkg_differences <- setdiff(pkg_differences, packages_with_errors)
-        cli::cli_alert_info(
-          "Filtered out {length(packages_with_errors)}/{length(pkgs_to_build)} package(s) due to previous errors. {length(pkg_differences)} package(s) remaining to build." # nolint
-        )
+        cli::cli_alert_info(paste0(
+          "Filtered out ", length(packages_with_errors), "/", length(pkgs_to_build),
+          " package(s) due to previous errors. ",
+          "{length(pkg_differences)} package(s) remaining to build."
+        ))
       }
     },
     error = function(e) {
-      cli::cli_alert_warning(
-        "Could not check metadata DB for previous errors: {e$message}"
-      )
+      cli::cli_alert_warning("Could not check metadata DB for previous errors: {e$message}")
     }
   )
 
   pkg_differences
 }
 
+#' Execute package builds with parallel processing
+#'
+#' Handles the actual building of packages using either sequential
+#' or parallel processing with proper error handling.
+#'
+#' @template param-package_name
+#' @template param-tag
+#' @template param-binary_output_path
+#' @template param-source_org_url
+#' @template param-local_clone_dir
+#' @template param-platform
+#' @template param-arch
+#' @template param-codename
+#' @template param-is_r_minor_sensitive
+#' @template param-is_debug
+#' @template param-force
+#' @template param-install_system_dependencies
+#' @template param-deps_verbose
+#' @template param-store_build_metadata
+#' @template param-metadata_db_host
+#' @template param-metadata_db_name
+#' @template param-metadata_db_port
+#' @template param-metadata_db_table
+#' @template param-metadata_db_password
+#' @template param-metadata_db_user
+#' @template param-metadata_db_sslmode
+#' @template param-s3_endpoint
+#' @template param-s3_bucket
+#' @template param-s3_region
+#' @template param-s3-access-key-id
+#' @template param-s3-secret-access-key
+#' @template param-local_bin_path
+#' @return Build results
 execute_package_builds <- function(
-  package_name,
-  tag,
-  binary_output_path,
-  source_org_url,
-  local_clone_dir,
-  platform,
-  arch,
-  codename,
-  is_r_minor_sensitive,
-  is_debug,
-  force,
-  install_system_dependencies,
-  deps_verbose,
-  store_build_metadata,
-  metadata_db_host,
-  metadata_db_name,
-  metadata_db_port,
-  metadata_db_table,
-  metadata_db_password,
-  metadata_db_user,
-  metadata_db_sslmode,
-  s3_endpoint,
-  s3_bucket,
-  s3_region,
-  s3_access_key_id,
-  s3_secret_access_key,
-  future_strategy,
-  future_workers,
-  local_bin_path
-) {
+    package_name,
+    tag,
+    binary_output_path,
+    source_org_url,
+    local_clone_dir,
+    platform,
+    arch,
+    codename,
+    is_r_minor_sensitive,
+    is_debug,
+    force,
+    install_system_dependencies,
+    deps_verbose,
+    store_build_metadata,
+    metadata_db_host,
+    metadata_db_name,
+    metadata_db_port,
+    metadata_db_table,
+    metadata_db_password,
+    metadata_db_user,
+    metadata_db_sslmode,
+    s3_endpoint,
+    s3_bucket,
+    s3_region,
+    s3_access_key_id,
+    s3_secret_access_key,
+    local_bin_path) {
   t1 <- Sys.time()
   cli::cli_h2("Building ({.pkg {package_name[1]}})")
 
@@ -481,89 +512,55 @@ execute_package_builds <- function(
     "[{format(Sys.time(), format='%H:%M:%S')}] Building binaries for {.pkg {package_name[1]}} with tags {.field {tag}}."
   ) # nolint
 
-  future::plan(
-    future_strategy,
-    workers = future_workers,
-    rscript_startup = quote(withr::with_options(crayon.enabled = TRUE))
-  )
+  worker_function <- function(x, y, debug_flag) {
+    tryCatch(
+      {
+        result <- build_single_tag(
+          package_name = x,
+          tag = y,
+          binary_output_path = binary_output_path,
+          local_clone_dir = local_clone_dir,
+          source_org_url = source_org_url,
+          codename = codename,
+          is_r_minor_sensitive = is_r_minor_sensitive,
+          platform = platform,
+          arch = arch,
+          is_debug = debug_flag,
+          force = force,
+          install_system_dependencies = install_system_dependencies,
+          deps_verbose = deps_verbose,
+          store_build_metadata = store_build_metadata,
+          metadata_db_host = metadata_db_host,
+          metadata_db_name = metadata_db_name,
+          metadata_db_port = metadata_db_port,
+          metadata_db_table = metadata_db_table,
+          metadata_db_password = metadata_db_password,
+          metadata_db_user = metadata_db_user,
+          metadata_db_sslmode = metadata_db_sslmode,
+          s3_endpoint = s3_endpoint,
+          s3_bucket = s3_bucket,
+          s3_region = s3_region,
+          s3_access_key_id = s3_access_key_id,
+          s3_secret_access_key = s3_secret_access_key
+        )
 
-  worker_function <- {
-    function(x, y, debug_flag) {
-      tryCatch(
-        {
-          result <- build_single_tag(
-            package_name = x,
-            tag = y,
-            binary_output_path = binary_output_path,
-            local_clone_dir = local_clone_dir,
-            source_org_url = source_org_url,
-            codename = codename,
-            is_r_minor_sensitive = is_r_minor_sensitive,
-            platform = platform,
-            arch = arch,
-            is_debug = debug_flag,
-            force = force,
-            install_system_dependencies = install_system_dependencies,
-            deps_verbose = deps_verbose,
-            store_build_metadata = store_build_metadata,
-            metadata_db_host = metadata_db_host,
-            metadata_db_name = metadata_db_name,
-            metadata_db_port = metadata_db_port,
-            metadata_db_table = metadata_db_table,
-            metadata_db_password = metadata_db_password,
-            metadata_db_user = metadata_db_user,
-            metadata_db_sslmode = metadata_db_sslmode,
-            s3_endpoint = s3_endpoint,
-            s3_bucket = s3_bucket,
-            s3_region = s3_region,
-            s3_access_key_id = s3_access_key_id,
-            s3_secret_access_key = s3_secret_access_key
+        tarball_name <- sprintf("%s_%s.tar.gz", x, y)
+        if (file.exists(file.path(local_bin_path, tarball_name))) {
+          cli::cli_alert_success(
+            "Finished processing package {.pkg {x}} with tag {.field {y}}."
           )
-
-          tarball_name <- sprintf("%s_%s.tar.gz", x, y)
-          if (file.exists(file.path(local_bin_path, tarball_name))) {
-            cli::cli_alert_success(
-              "Finished processing package {.pkg {x}} with tag {.field {y}}."
-            )
-          } else if (result != "skipped") {
-            cli::cli_alert_warning(
-              "Error in building package {.pkg {x}} with tag {.field {y}}: Uncommon/unspecific error during build."
-            ) # nolint
-            store_build_metadata(
-              x,
-              y,
-              platform,
-              error_occurred = TRUE,
-              force = TRUE,
-              arch = arch,
-              error = "Unspecific error during build",
-              metadata_db_host = metadata_db_host,
-              metadata_db_name = metadata_db_name,
-              metadata_db_port = metadata_db_port,
-              metadata_db_table = metadata_db_table,
-              metadata_db_password = metadata_db_password,
-              metadata_db_user = metadata_db_user,
-              metadata_db_sslmode = metadata_db_sslmode
-            )
-          }
-        },
-        error = function(e) {
+        } else if (result != "skipped") {
           cli::cli_alert_warning(
-            "Error in building package {.pkg {x}} with tag {.field {y}}: {e}"
+            "Error in building package {.pkg {x}} with tag {.field {y}}: Uncommon/unspecific error during build."
           )
-          local_clone_dir_single <- file.path(
-            local_clone_dir,
-            sprintf("%s_%s", x, y)
-          )
-          unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
           store_build_metadata(
             x,
             y,
             platform,
             error_occurred = TRUE,
-            arch = arch,
             force = TRUE,
-            error = e$stderr,
+            arch = arch,
+            error = "Unspecific error during build",
             metadata_db_host = metadata_db_host,
             metadata_db_name = metadata_db_name,
             metadata_db_port = metadata_db_port,
@@ -573,9 +570,35 @@ execute_package_builds <- function(
             metadata_db_sslmode = metadata_db_sslmode
           )
         }
-      )
-      result
-    }
+      },
+      error = function(e) {
+        cli::cli_alert_warning(
+          "Error in building package {.pkg {x}} with tag {.field {y}}: {e}"
+        )
+        local_clone_dir_single <- file.path(
+          local_clone_dir,
+          sprintf("%s_%s", x, y)
+        )
+        unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
+        store_build_metadata(
+          x,
+          y,
+          platform,
+          error_occurred = TRUE,
+          arch = arch,
+          force = TRUE,
+          error = e$stderr,
+          metadata_db_host = metadata_db_host,
+          metadata_db_name = metadata_db_name,
+          metadata_db_port = metadata_db_port,
+          metadata_db_table = metadata_db_table,
+          metadata_db_password = metadata_db_password,
+          metadata_db_user = metadata_db_user,
+          metadata_db_sslmode = metadata_db_sslmode
+        )
+      }
+    )
+    result
   }
 
   if (is_debug) {
@@ -598,35 +621,63 @@ execute_package_builds <- function(
   result
 }
 
+#' Determine which packages need to be built
+#'
+#' Checks S3 for existing packages and determines which ones
+#' need to be built based on force flag and existing binaries.
+#'
+#' @template param-package_name
+#' @template param-tag
+#' @template param-source_org_url
+#' @template param-tag_limit
+#' @template param-codename
+#' @template param-force
+#' @template param-is_r_minor_sensitive
+#' @template param-s3_bucket
+#' @template param-s3-access-key-id
+#' @template param-s3-secret-access-key
+#' @template param-s3_endpoint
+#' @template param-s3_region
+#' @template param-binary_output_path
+#' @template param-store_build_metadata
+#' @template param-metadata_db_type
+#' @template param-metadata_db_host
+#' @template param-metadata_db_name
+#' @template param-metadata_db_table
+#' @template param-metadata_db_port
+#' @template param-metadata_db_user
+#' @template param-metadata_db_password
+#' @template param-metadata_db_sslmode
+#' @template param-platform
+#' @template param-arch
+#' @template param-is_debug
+#' @return List with package information
 determine_packages_to_build <- function(
-  package_name,
-  tag,
-  source_org_url,
-  tag_limit,
-  codename,
-  force,
-  is_r_minor_sensitive,
-  s3_bucket,
-  s3_access_key_id,
-  s3_secret_access_key,
-  s3_endpoint,
-  s3_region,
-  binary_output_path,
-  store_build_metadata,
-  metadata_db_type,
-  metadata_db_host,
-  metadata_db_name,
-  metadata_db_table,
-  metadata_db_port,
-  metadata_db_user,
-  metadata_db_password,
-  metadata_db_sslmode,
-  platform,
-  arch,
-  is_debug
-) {
-  pkgs_to_build_exists <- FALSE
-
+    package_name,
+    tag,
+    source_org_url,
+    tag_limit,
+    codename,
+    force,
+    is_r_minor_sensitive,
+    s3_bucket,
+    s3_access_key_id,
+    s3_secret_access_key,
+    s3_endpoint,
+    s3_region,
+    binary_output_path,
+    store_build_metadata,
+    metadata_db_type,
+    metadata_db_host,
+    metadata_db_name,
+    metadata_db_table,
+    metadata_db_port,
+    metadata_db_user,
+    metadata_db_password,
+    metadata_db_sslmode,
+    platform,
+    arch,
+    is_debug) {
   # check whether any build attempts need to be made
   if (!force && !is.null(s3_bucket)) {
     s3_result <- check_s3_packages(
@@ -634,7 +685,6 @@ determine_packages_to_build <- function(
       tag,
       source_org_url,
       tag_limit,
-      codename,
       is_r_minor_sensitive,
       s3_bucket,
       s3_access_key_id,
@@ -651,7 +701,8 @@ determine_packages_to_build <- function(
       metadata_db_password,
       metadata_db_sslmode,
       platform,
-      arch
+      arch,
+      codename
     )
 
     if (s3_result$should_skip) {
@@ -661,7 +712,6 @@ determine_packages_to_build <- function(
     if (!is.null(s3_result$filtered_tags)) {
       tag <- s3_result$filtered_tags
       package_name <- rep(package_name, length(tag))
-      pkgs_to_build_exists <- TRUE
     }
   }
 
@@ -672,107 +722,82 @@ determine_packages_to_build <- function(
   )
 }
 
+#' Check S3 for existing packages
+#'
+#' Verifies which packages already exist in S3 storage and determines
+#' which ones need to be built, including error filtering.
+#'
+#' @template param-package_name
+#' @template param-tag
+#' @template param-source_org_url
+#' @template param-tag_limit
+#' @template param-is_r_minor_sensitive
+#' @template param-s3_bucket
+#' @template param-s3-access-key-id
+#' @template param-s3-secret-access-key
+#' @template param-s3_endpoint
+#' @template param-s3_region
+#' @template param-store_build_metadata
+#' @template param-metadata_db_type
+#' @template param-metadata_db_host
+#' @template param-metadata_db_name
+#' @template param-metadata_db_table
+#' @template param-metadata_db_port
+#' @template param-metadata_db_user
+#' @template param-metadata_db_password
+#' @template param-metadata_db_sslmode
+#' @template param-platform
+#' @template param-arch
+#' @template param-codename
+#' @return List with should_skip and filtered_tags
 check_s3_packages <- function(
-  package_name,
-  tag,
-  source_org_url,
-  tag_limit,
-  codename = NULL,
-  is_r_minor_sensitive,
-  s3_bucket,
-  s3_access_key_id,
-  s3_secret_access_key,
-  s3_endpoint,
-  s3_region,
-  store_build_metadata,
-  metadata_db_type,
-  metadata_db_host,
-  metadata_db_name,
-  metadata_db_table,
-  metadata_db_port,
-  metadata_db_user,
-  metadata_db_password,
-  metadata_db_sslmode,
-  platform,
-  arch
-) {
+    package_name,
+    tag,
+    source_org_url,
+    tag_limit,
+    is_r_minor_sensitive,
+    s3_bucket,
+    s3_access_key_id,
+    s3_secret_access_key,
+    s3_endpoint,
+    s3_region,
+    store_build_metadata,
+    metadata_db_type,
+    metadata_db_host,
+    metadata_db_name,
+    metadata_db_table,
+    metadata_db_port,
+    metadata_db_user,
+    metadata_db_password,
+    metadata_db_sslmode,
+    platform,
+    arch,
+    codename = NULL) {
   codename <- set_codename(codename)
   remote_bin_path <- set_bin_path(local_output_dir_root = s3_bucket, codename)
-  s3fs::s3_file_system(
-    aws_access_key_id = s3_access_key_id,
-    aws_secret_access_key = s3_secret_access_key,
-    endpoint = s3_endpoint,
-    region_name = s3_region,
-    refresh = TRUE
-  )
 
   # sometimes the var arrives as a vector > 1L here
   package_name <- unique(package_name)
 
   # get last CRAN version to search for it in S3 root
   last_version <- strsplit(
-    gh::gh(sprintf("GET /repos/cran/%s/commits", package_name))[[
+    gh::gh(sprintf("GET %s", paste("/repos", "cran", package_name, "commits", sep = "/")))[[ # nolint paste_linter
       1L
-    ]]$commit$message, # nolint
+    ]]$commit$message,
     "version ",
     fixed = TRUE
   )[[1L]][2L]
 
-  if (!is_r_minor_sensitive) {
-    root_pkg <- s3fs::s3_file_exists(file.path(
-      remote_bin_path,
-      sprintf("%s_%s.tar.gz", package_name, last_version)
-    ))
-  } else {
-    minor_version <- paste(
-      R.version$major,
-      strsplit(R.version$minor, "\\.")[[1]][1],
-      sep = "."
-    )
-    root_pkg <- s3fs::s3_file_exists(file.path(
-      remote_bin_path,
-      sprintf("%s/%s_%s.tar.gz", minor_version, package_name, last_version)
-    ))
-  }
-
+  # Check if root package exists
+  root_pkg <- check_s3_root_package(remote_bin_path, package_name, last_version, is_r_minor_sensitive, s3_access_key_id, s3_secret_access_key, s3_endpoint, s3_region) # nolint: object_usage_linter
   if (!root_pkg) {
     return(list(should_skip = FALSE))
   }
 
-  # list archived packages
-  if (!is_r_minor_sensitive) {
-    archived_pkgs <- basename(s3fs::s3_dir_ls(file.path(
-      remote_bin_path,
-      "Archive",
-      package_name
-    )))
-  } else {
-    minor_version <- paste(
-      R.version$major,
-      strsplit(R.version$minor, "\\.")[[1L]][1L],
-      sep = "."
-    )
-    archived_pkgs <- basename(s3fs::s3_dir_ls(file.path(
-      remote_bin_path,
-      minor_version,
-      "Archive",
-      package_name
-    )))
-  }
-  root_pkg_name <- sprintf("%s_%s.tar.gz", package_name, last_version)
-  all_pkgs_s3 <- c(root_pkg_name, archived_pkgs)
+  # Get all packages (root + archived) for comparison
+  all_pkgs_s3 <- get_all_s3_packages(remote_bin_path, package_name, last_version, is_r_minor_sensitive, s3_access_key_id, s3_secret_access_key, s3_endpoint, s3_region) # nolint: object_usage_linter
 
-  # get all desired tags of package to compare with `all_pkgs_s3`, only if no tag is provided or set to special keyword "latest" # nolint
-  if (length(tag) == 1L && (is.null(tag) || tag == "latest")) {
-    tags_filtered <- filter_tags(
-      package_name,
-      tag = NULL,
-      source_org_url,
-      tag_limit
-    )
-  } else {
-    tags_filtered <- tag
-  }
+  tags_filtered <- process_tag_filtering(tag, package_name, source_org_url, tag_limit) # nolint: object_usage_linter
 
   pkgs_to_build <- sprintf("%s_%s.tar.gz", package_name, tags_filtered)
 
@@ -835,22 +860,40 @@ check_s3_packages <- function(
   list(should_skip = FALSE, filtered_tags = filtered_tags)
 }
 
+#' Handle post-build actions
+#'
+#' Manages upload and archiving operations after package builds complete.
+#'
+#' @template param-package_name
+#' @template param-tag
+#' @template param-result
+#' @template param-codename
+#' @template param-upload
+#' @template param-archive
+#' @template param-force
+#' @template param-is_r_minor_sensitive
+#' @template param-is_debug
+#' @template param-s3_endpoint
+#' @template param-s3_bucket
+#' @template param-s3_region
+#' @template param-s3-access-key-id
+#' @template param-s3-secret-access-key
+#' @return Invisible NULL
 handle_post_build_actions <- function(
-  package_name,
-  tag,
-  result,
-  codename,
-  upload,
-  archive,
-  force,
-  is_r_minor_sensitive,
-  is_debug,
-  s3_endpoint,
-  s3_bucket,
-  s3_region,
-  s3_access_key_id,
-  s3_secret_access_key
-) {
+    package_name,
+    tag,
+    result,
+    codename,
+    upload,
+    archive,
+    force,
+    is_r_minor_sensitive,
+    is_debug,
+    s3_endpoint,
+    s3_bucket,
+    s3_region,
+    s3_access_key_id,
+    s3_secret_access_key) {
   if (upload && any(result != "skipped")) {
     Map(
       function(x, y) {
@@ -910,18 +953,17 @@ handle_post_build_actions <- function(
   }
 
   if (archive && any(result != "skipped")) {
-    archive_future <-
-      archive_package(
-        package_name[1L],
-        codename = codename,
-        is_r_minor_sensitive = is_r_minor_sensitive,
-        is_debug = is_debug,
-        s3_endpoint = s3_endpoint,
-        s3_bucket = s3_bucket,
-        s3_region = s3_region,
-        s3_access_key_id = s3_access_key_id,
-        s3_secret_access_key = s3_secret_access_key
-      )
+    archive_package(
+      package_name[1L],
+      codename = codename,
+      is_r_minor_sensitive = is_r_minor_sensitive,
+      is_debug = is_debug,
+      s3_endpoint = s3_endpoint,
+      s3_bucket = s3_bucket,
+      s3_region = s3_region,
+      s3_access_key_id = s3_access_key_id,
+      s3_secret_access_key = s3_secret_access_key
+    )
   }
 }
 
@@ -958,34 +1000,33 @@ handle_post_build_actions <- function(
 #' @importFrom pkgbuild build
 #' @export
 build_single_tag <- function(
-  package_name,
-  platform,
-  arch,
-  binary_output_path,
-  local_clone_dir,
-  source_org_url,
-  tag = NULL,
-  codename = NULL,
-  is_r_minor_sensitive = FALSE,
-  s3_endpoint = NULL,
-  s3_region = NULL,
-  s3_bucket = NULL,
-  s3_access_key_id = NULL,
-  s3_secret_access_key = NULL,
-  is_debug = FALSE,
-  force = FALSE,
-  install_system_dependencies = TRUE,
-  deps_verbose = FALSE,
-  store_build_metadata = FALSE,
-  metadata_db_type = "postgres",
-  metadata_db_host = NULL,
-  metadata_db_name = NULL,
-  metadata_db_table = NULL,
-  metadata_db_port = NULL,
-  metadata_db_user = NULL,
-  metadata_db_password = NULL,
-  metadata_db_sslmode = NULL
-) {
+    package_name,
+    platform,
+    arch,
+    binary_output_path,
+    local_clone_dir,
+    source_org_url,
+    tag = NULL,
+    codename = NULL,
+    is_r_minor_sensitive = FALSE,
+    s3_endpoint = NULL,
+    s3_region = NULL,
+    s3_bucket = NULL,
+    s3_access_key_id = NULL,
+    s3_secret_access_key = NULL,
+    is_debug = FALSE,
+    force = FALSE,
+    install_system_dependencies = TRUE,
+    deps_verbose = FALSE,
+    store_build_metadata = FALSE,
+    metadata_db_type = "postgres",
+    metadata_db_host = NULL,
+    metadata_db_name = NULL,
+    metadata_db_table = NULL,
+    metadata_db_port = NULL,
+    metadata_db_user = NULL,
+    metadata_db_password = NULL,
+    metadata_db_sslmode = NULL) {
   cli::cli_par()
   cli::cli_end()
   cli::cli_rule("{package_name} {tag}")
@@ -1029,10 +1070,8 @@ build_single_tag <- function(
     skip_result$reason
   }
 
-  # Clone repository
   clone_repository(package_name, tag, source_org_url, local_clone_dir_single)
 
-  # Install system dependencies
   if (install_system_dependencies) {
     install_deps_result <- handle_system_dependencies(
       package_name,
@@ -1055,7 +1094,6 @@ build_single_tag <- function(
     }
   }
 
-  # Build package
   build_result <- execute_package_build(
     package_name,
     tag,
@@ -1086,7 +1124,6 @@ build_single_tag <- function(
     is_debug
   )
 
-  # Store metadata if requested
   if (store_build_metadata && file_result$file_exists) {
     store_build_metadata(
       package_name,
@@ -1111,18 +1148,33 @@ build_single_tag <- function(
   return(invisible(TRUE))
 }
 
+#' Check if build should be skipped
+#'
+#' Evaluates conditions to determine if a package build should be skipped,
+#' including existing files and S3 storage checks.
+#'
+#' @template param-package_name
+#' @template param-tag
+#' @template param-binary_output_path
+#' @template param-codename
+#' @template param-s3_bucket
+#' @template param-s3-access-key-id
+#' @template param-s3-secret-access-key
+#' @template param-s3_endpoint
+#' @template param-s3_region
+#' @template param-force
+#' @return List with should_skip and reason
 check_build_skip_conditions <- function(
-  package_name,
-  tag,
-  binary_output_path,
-  codename,
-  s3_bucket,
-  s3_access_key_id,
-  s3_secret_access_key,
-  s3_endpoint,
-  s3_region,
-  force
-) {
+    package_name,
+    tag,
+    binary_output_path,
+    codename,
+    s3_bucket,
+    s3_access_key_id,
+    s3_secret_access_key,
+    s3_endpoint,
+    s3_region,
+    force) {
   if (
     file.exists(file.path(
       binary_output_path,
@@ -1150,21 +1202,23 @@ check_build_skip_conditions <- function(
     if (
       !force &&
         (s3fs::s3_file_exists(sprintf(
-          "%s/%s",
+          file.path("%s", "%s"),
           remote_bin_path,
           tarball_name
         )) ||
           s3fs::s3_file_exists(sprintf(
-            "%s/Archive/%s/%s",
+            file.path("%s", "Archive", "%s", "%s"),
             remote_bin_path,
             package_name,
             tarball_name
           )))
     ) {
-      # nolint
       cli::cli_alert_info(
-        "Package {.pkg {package_name}} with tag {.field {tag}} already exists in S3 and {.code force = FALSE}. Skipping build."
-      ) # nolint
+        paste0(
+          "Package {.pkg {package_name}} with tag {.field {tag}} already exists in S3 ",
+          "and {.code force = FALSE}. Skipping build."
+        )
+      )
       list(should_skip = TRUE, reason = "skipped")
     }
   }
@@ -1172,12 +1226,20 @@ check_build_skip_conditions <- function(
   list(should_skip = FALSE)
 }
 
+#' Clone package repository
+#'
+#' Clones a git repository for a specific package and tag.
+#'
+#' @template param-package_name
+#' @template param-tag
+#' @template param-source_org_url
+#' @template param-local_clone_dir_single
+#' @return Invisible NULL
 clone_repository <- function(
-  package_name,
-  tag,
-  source_org_url,
-  local_clone_dir_single
-) {
+    package_name,
+    tag,
+    source_org_url,
+    local_clone_dir_single) {
   # Clean up any existing clone directory before cloning
   if (dir.exists(local_clone_dir_single)) {
     unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
@@ -1191,28 +1253,47 @@ clone_repository <- function(
       "clone",
       "-q",
       sprintf("--branch=%s", tag),
-      sprintf("%s/%s", source_org_url, package_name),
-      local_clone_dir_single # nolint
+      file.path(source_org_url, package_name),
+      local_clone_dir_single
     )
   )
 }
 
+#' Handle system dependency installation
+#'
+#' Manages the installation of system dependencies for a package
+#' with proper error handling and metadata storage.
+#'
+#' @template param-package_name
+#' @template param-tag
+#' @template param-platform
+#' @template param-local_clone_dir_single
+#' @template param-deps_verbose
+#' @template param-is_debug
+#' @template param-arch
+#' @template param-metadata_db_host
+#' @template param-metadata_db_name
+#' @template param-metadata_db_port
+#' @template param-metadata_db_table
+#' @template param-metadata_db_password
+#' @template param-metadata_db_user
+#' @template param-metadata_db_sslmode
+#' @return List with success status
 handle_system_dependencies <- function(
-  package_name,
-  tag,
-  platform,
-  local_clone_dir_single,
-  deps_verbose,
-  is_debug,
-  arch,
-  metadata_db_host,
-  metadata_db_name,
-  metadata_db_port,
-  metadata_db_table,
-  metadata_db_password,
-  metadata_db_user,
-  metadata_db_sslmode
-) {
+    package_name,
+    tag,
+    platform,
+    local_clone_dir_single,
+    deps_verbose,
+    is_debug,
+    arch,
+    metadata_db_host,
+    metadata_db_name,
+    metadata_db_port,
+    metadata_db_table,
+    metadata_db_password,
+    metadata_db_user,
+    metadata_db_sslmode) {
   cli::cli_h2("Installing system dependencies")
   tryCatch(
     {
@@ -1251,22 +1332,41 @@ handle_system_dependencies <- function(
   )
 }
 
+#' Execute the actual package build
+#'
+#' Runs the pkgbuild::build() command with proper error handling
+#' and metadata storage for build results.
+#'
+#' @template param-package_name
+#' @template param-tag
+#' @template param-local_clone_dir_single
+#' @template param-binary_output_path
+#' @template param-is_debug
+#' @template param-platform
+#' @template param-arch
+#' @template param-metadata_db_host
+#' @template param-metadata_db_name
+#' @template param-metadata_db_port
+#' @template param-metadata_db_table
+#' @template param-metadata_db_password
+#' @template param-metadata_db_user
+#' @template param-metadata_db_sslmode
+#' @return List with success status and build time
 execute_package_build <- function(
-  package_name,
-  tag,
-  local_clone_dir_single,
-  binary_output_path,
-  is_debug,
-  platform,
-  arch,
-  metadata_db_host,
-  metadata_db_name,
-  metadata_db_port,
-  metadata_db_table,
-  metadata_db_password,
-  metadata_db_user,
-  metadata_db_sslmode
-) {
+    package_name,
+    tag,
+    local_clone_dir_single,
+    binary_output_path,
+    is_debug,
+    platform,
+    arch,
+    metadata_db_host,
+    metadata_db_name,
+    metadata_db_port,
+    metadata_db_table,
+    metadata_db_password,
+    metadata_db_user,
+    metadata_db_sslmode) {
   cli::cli_alert(
     "Building package {.pkg {package_name}} with tag {.field {tag}}."
   )
@@ -1333,14 +1433,23 @@ execute_package_build <- function(
   )
 }
 
+#' Handle build output files and cleanup
+#'
+#' Manages the renaming of build output files, cleanup of temporary files,
+#' and calculation of file sizes for metadata storage.
+#'
+#' @template param-package_name
+#' @template param-tag
+#' @template param-binary_output_path
+#' @template param-local_clone_dir_single
+#' @template param-is_debug
+#' @return List with file existence and size information
 handle_build_output_files <- function(
-  package_name,
-  tag,
-  binary_output_path,
-  local_clone_dir_single,
-  is_debug
-) {
-  # Determine system architecture and suffix
+    package_name,
+    tag,
+    binary_output_path,
+    local_clone_dir_single,
+    is_debug) {
   system_info <- get_system_architecture_info(binary_output_path)
 
   final_tarball_path <- file.path(
@@ -1381,93 +1490,4 @@ handle_build_output_files <- function(
   }
 
   list(file_exists = file_exists, file_size = file_size)
-}
-
-get_system_architecture_info <- function(binary_output_path) {
-  if (
-    any(grepl(
-      "alpine",
-      system2("cat", args = "/etc/os-release", stdout = TRUE),
-      fixed = TRUE
-    ))
-  ) {
-    # nolint
-    linux_suffix <- "musl"
-  } else {
-    linux_suffix <- "gnu"
-  }
-
-  local_arch <- Sys.info()[["machine"]]
-  if (
-    grepl("arm64", local_arch, fixed = TRUE) ||
-      grepl("aarch64", local_arch, fixed = TRUE)
-  ) {
-    tarball_id <- "unknown"
-    tarball_arch <- "aarch64"
-  } else if (
-    grepl("amd64", local_arch, fixed = TRUE) ||
-      grepl("x86_64", local_arch, fixed = TRUE)
-  ) {
-    tarball_id <- "pc"
-    tarball_arch <- "x86_64"
-  }
-
-  if (
-    any(grepl(
-      "-redhat-linux",
-      list.files(binary_output_path, recursive = TRUE),
-      fixed = TRUE
-    ))
-  ) {
-    tarball_id <- "redhat"
-  }
-
-  list(
-    linux_suffix = linux_suffix,
-    tarball_id = tarball_id,
-    tarball_arch = tarball_arch
-  )
-}
-
-move_and_rename_tarball <- function(
-  package_name,
-  tag,
-  binary_output_path,
-  system_info,
-  is_debug
-) {
-  source_filename <- sprintf(
-    "%s_%s_R_%s-%s-linux-%s.tar.gz",
-    package_name,
-    tag,
-    system_info$tarball_arch,
-    system_info$tarball_id,
-    system_info$linux_suffix
-  )
-  source_path <- file.path(binary_output_path, source_filename)
-  dest_path <- file.path(
-    binary_output_path,
-    sprintf("%s_%s.tar.gz", package_name, tag)
-  )
-
-  if (is_debug) {
-    cli::cli_alert_info(
-      "{.fun build_single_tag}: DEBUG: Moving package from {.path {source_path}} to {.path {dest_path}}"
-    )
-  }
-
-  if (file.exists(source_path)) {
-    file.rename(source_path, dest_path)
-  } else {
-    cli::cli_alert_info(
-      "{.fun build_single_tag}: File for package {.pkg {package_name}} {.field {tag}} at {.path {source_path}} does not exist - skipping."
-    ) # nolint
-    if (is_debug) {
-      message(sprintf(
-        "DEBUG: Listing dir 'binary_output_path': %s",
-        binary_output_path
-      ))
-      message(list.files(binary_output_path))
-    }
-  }
 }

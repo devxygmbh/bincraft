@@ -30,8 +30,6 @@ build_binary_package(
   metadata_db_user = NULL,
   metadata_db_password = NULL,
   metadata_db_sslmode = NULL,
-  future_strategy = "sequential",
-  future_workers = 1L,
   s3_endpoint = NULL,
   s3_region = NULL,
   s3_bucket = NULL,
@@ -118,10 +116,6 @@ User password of metadata database}
 
 \item{metadata_db_sslmode}{(\link{character})\cr
 SSL mode for metadata database}
-
-\item{future_strategy}{future parallelization strategy}
-
-\item{future_workers}{Parallel workers count}
 
 \item{s3_endpoint}{(\link{character})\cr
 S3 endpoint}

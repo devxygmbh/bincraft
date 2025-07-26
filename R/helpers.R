@@ -8,7 +8,7 @@ set_codename <- function(codename) {
         os_version <- system2("grep",
           args = "'^VERSION_ID=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'", stdout = TRUE
         )
-        version_stripped <- substr(gsub("\\.", "", os_version), 1L, 3L)
+        version_stripped <- substr(gsub(".", "", os_version, fixed = TRUE), 1L, 3L)
         codename <- paste0("alpine", version_stripped)
       } else {
         dist_fam <- system2("grep",
@@ -49,12 +49,15 @@ set_bin_path <- function(local_output_dir_root, codename) {
   }
 
   if (is.null(codename)) {
-    cli::cli_alert_warning("{.function set_bin_path}: `codename` is `NULL`, setting it to the value of `R.version$platform`: '{R.version$platform}'")
+    cli::cli_alert_warning(paste0(
+      "{.function set_bin_path}: `codename` is `NULL`, setting it to the value of ",
+      "`R.version$platform`: '{R.version$platform}'"
+    ))
     codename <- R.version$platform
   }
 
   file.path(
-    local_output_dir_root, arch, codename, "latest/src/contrib"
+    local_output_dir_root, arch, codename, "latest", "src", "contrib"
   )
 }
 
@@ -68,7 +71,7 @@ set_bin_path <- function(local_output_dir_root, codename) {
 #' @template param-arch
 #' @template param-s3-access-key-id
 #' @template param-s3-secret-access-key
-#' @param version Version to check for. Only "latest" is supported right now.
+#' @template param-version
 #' @export
 check_for_binary <- function(
     package_name,

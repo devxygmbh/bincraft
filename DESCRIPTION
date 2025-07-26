@@ -3,9 +3,10 @@ Title: Toolbox For Building R Package Binaries on Linux
 Version: 3.1.0.9999
 Authors@R:
     person("Patrick", "Schratz", , "mail@devxy.io", role = c("aut", "cre"))
-Description: Build, archive, remove and update R binary packages
-    on Linux. Binaries are stored in S3. Creation and curation of package index files is supported.
-    Build metadata can be optionally stored in a database.
+Description: Build, archive, remove and update R binary packages on Linux.
+    Binaries are stored in S3. Creation and curation of package index
+    files is supported.  Build metadata can be optionally stored in a
+    database.
 License: GPL (>= 3)
 URL: https://codefloe.com/rpkgs/bincraft, https://bincraft.doc.rpkgs.com
 Depends:

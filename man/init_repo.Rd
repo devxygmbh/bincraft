@@ -74,7 +74,7 @@ init_repo("https://hel1.your-objectstorage.com", "hel1", "devxy-r-package-binari
   Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"), Sys.getenv("HETZNER_S3_SECRET_KEY_K3S"),
   metadata_db_type = "postgres", metadata_db_host = "r-binaries.devxy.io",
   metadata_db_name = "build_metadata", metadata_db_table = "deleteme",
-  metadata_db_user = \"rpkgs\", metadata_db_password = Sys.getenv("PGPASS"),
+  metadata_db_user = "rpkgs", metadata_db_password = Sys.getenv("PGPASS"),
   metadata_db_sslmode = "require",
   metadata_db_port = 15432
 )

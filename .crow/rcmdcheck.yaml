@@ -7,9 +7,12 @@ when:
   - event: manual
   - event: tag
 
+depends_on:
+  - lint
+
 steps:
   'Check package':
-    image: docker.io/devxygmbh/r-alpine:4.5-3.21
+    image: docker.io/devxygmbh/r-alpine:4.5-3.22
     pull: true
     environment:
       GITHUB_PAT:

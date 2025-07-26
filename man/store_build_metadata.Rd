@@ -40,21 +40,29 @@ Architecture}
 \item{error_occurred}{(\link{logical})\cr
 Whether or not an error occurred during build}
 
-\item{metadata_db_type}{Database type. Denotes the DB driver to be used for connecting.}
+\item{metadata_db_type}{(\link{character})\cr
+Type of metadata database}
 
-\item{metadata_db_host}{Database host}
+\item{metadata_db_host}{(\link{character})\cr
+Host value of metadata database}
 
-\item{metadata_db_name}{Database name}
+\item{metadata_db_name}{(\link{character})\cr
+Name of metadata database}
 
-\item{metadata_db_table}{Database table}
+\item{metadata_db_table}{(\link{character})\cr
+Table name of metadata database}
 
-\item{metadata_db_port}{Database port}
+\item{metadata_db_port}{(\link{integer})\cr
+Port of metadata database}
 
-\item{metadata_db_user}{Database user}
+\item{metadata_db_user}{(\link{character})\cr
+User value of metadata database}
 
-\item{metadata_db_password}{Database password}
+\item{metadata_db_password}{(\link{character})\cr
+User password of metadata database}
 
-\item{metadata_db_sslmode}{Database sslmode}
+\item{metadata_db_sslmode}{(\link{character})\cr
+SSL mode for metadata database}
 
 \item{force}{(\link{logical})\cr
 Whether to force-build packages}
@@ -62,9 +70,11 @@ Whether to force-build packages}
 \item{error}{(\link{character})\cr
 Error information}
 
-\item{build_duration}{Duration of binary build}
+\item{build_duration}{(\link{numeric})\cr
+Duration of binary build in seconds}
 
-\item{size}{Size of binary package}
+\item{size}{(\link{numeric})\cr
+Size of binary package in MB}
 }
 \description{
 Store build metadata of single binary builds

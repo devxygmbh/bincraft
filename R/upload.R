@@ -58,16 +58,16 @@ upload_single_binary <- function(
     refresh = TRUE
   )
 
-  if (!is_r_minor_sensitive) {
-    remote_tarball_path <- file.path(remote_bin_path, tarball_name)
-    file_exists <- s3fs::s3_file_exists(remote_tarball_path)
-    archive_path <- file.path(remote_bin_path, "Archive", package_name, tarball_name)
-    archive_exists <- s3fs::s3_file_exists(archive_path)
-  } else {
-    minor_version <- paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = ".")
+  if (is_r_minor_sensitive) {
+    minor_version <- paste(R.version$major, strsplit(R.version$minor, ".", fixed = TRUE)[[1L]][1L], sep = ".")
     remote_tarball_path <- file.path(remote_bin_path, minor_version, tarball_name)
     file_exists <- s3fs::s3_file_exists(remote_tarball_path)
     archive_path <- file.path(remote_bin_path, minor_version, "Archive", package_name, tarball_name)
+    archive_exists <- s3fs::s3_file_exists(archive_path)
+  } else {
+    remote_tarball_path <- file.path(remote_bin_path, tarball_name)
+    file_exists <- s3fs::s3_file_exists(remote_tarball_path)
+    archive_path <- file.path(remote_bin_path, "Archive", package_name, tarball_name)
     archive_exists <- s3fs::s3_file_exists(archive_path)
   }
   file_exists <- file_exists | archive_exists
@@ -102,7 +102,7 @@ upload_single_binary <- function(
 
     cli::cli_alert_success("Successfully uploaded package {.pkg {package_name}} with tag {.field {tag}}.")
     cli::cli_alert(
-      "{.fun upload_single_binary}: Deleting binary for {.pkg {package_name}} {.field {tag}} at path {.path {local_tarball_path}}." # nolint
+      "{.fun upload_single_binary}: Deleting binary for {.pkg {package_name}} {.field {tag}} at path {.path {local_tarball_path}}." # nolint line_length_linter
     )
     file.remove(local_tarball_path)
   } else {
@@ -189,16 +189,16 @@ upload_source_tarball <- function(
     return(TRUE)
   }
 
-  if (!is_r_minor_sensitive) {
-    upload_path <- sprintf(
-      "s3://%s/%s_%s.tar.gz",
-      remote_bin_path, package_name, version
-    )
-  } else {
-    minor_version <- paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = ".")
+  if (is_r_minor_sensitive) {
+    minor_version <- paste(R.version$major, strsplit(R.version$minor, ".", fixed = TRUE)[[1L]][1L], sep = ".")
     upload_path <- sprintf(
       "s3://%s/%s/%s_%s.tar.gz",
       remote_bin_path, minor_version, package_name, version
+    )
+  } else {
+    upload_path <- sprintf(
+      "s3://%s/%s_%s.tar.gz",
+      remote_bin_path, package_name, version
     )
   }
 

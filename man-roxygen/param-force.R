@@ -1,2 +1,2 @@
 #' @param force ([logical])\cr
-#'  Whether to force-build packages 
+#'  Whether to force-build packages

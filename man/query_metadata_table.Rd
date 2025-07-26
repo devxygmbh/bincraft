@@ -7,7 +7,8 @@
 query_metadata_table(table = "single_builds")
 }
 \arguments{
-\item{table}{Table name. See \code{\link[=list_metadata_tables]{list_metadata_tables()}} for valid tables.}
+\item{table}{(\link{character})\cr
+Table name. See \code{\link[=list_metadata_tables]{list_metadata_tables()}} for valid tables.}
 }
 \description{
 Query a specific table in the Postgres database containing the metadata

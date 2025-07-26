@@ -33,6 +33,7 @@
 #' @template param-process_removed
 #' @template param-s3-access-key-id
 #' @template param-s3-secret-access-key
+#' @template param-is_debug
 #'
 #' @importFrom dplyr bind_rows pull filter
 #' @importFrom purrr walk2
@@ -40,7 +41,7 @@
 #' @examples
 #' \dontrun{
 #' process_cran_updates(
-#'   interval = lubridate::interval(lubridate::today() - 3, lubridate::today() - 5),
+#'   interval = lubridate::interval(lubridate::today() - 3, lubridate::today() - 5L),
 #'   s3_endpoint = "https://hel1.your-objectstorage.com", s3_region = "hel1",
 #'   s3_bucket = "devxy-r-package-binaries-hel1",
 #'   s3_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
@@ -81,7 +82,8 @@ process_cran_updates <- function(
     process_new = TRUE,
     process_removed = TRUE,
     s3_access_key_id = NULL,
-    s3_secret_access_key = NULL) {
+    s3_secret_access_key = NULL,
+    is_debug = FALSE) {
   if (is.null(s3_endpoint)) {
     stop("s3_endpoint must be defined", call. = FALSE)
   }
@@ -180,8 +182,6 @@ process_cran_updates <- function(
     # make R CMD Check happy
     name <- NULL
 
-    `%nin%` <- Negate(`%in%`)
-
     cran_repos <- c(CRAN = "https://cloud.r-project.org")
     names(cran_repos) <- "CRAN"
 
@@ -208,6 +208,7 @@ process_cran_updates <- function(
         s3_access_key_id = s3_access_key_id,
         s3_secret_access_key = s3_secret_access_key,
         is_r_minor_sensitive = filter_r_minor_sensitive,
+        is_debug = is_debug,
         metadata_db_type = metadata_db_type,
         metadata_db_host = metadata_db_host,
         metadata_db_name = metadata_db_name,
@@ -270,10 +271,8 @@ get_r_minor_sensitive_packages <- function(
         "No R sensitive packages found in packages to be processed. Exiting."
       )
       return(invisible(TRUE))
-    } else {
-      sensitive_pkgs_to_process
     }
-  } else {
-    body_vector
+    return(sensitive_pkgs_to_process)
   }
+  body_vector
 }

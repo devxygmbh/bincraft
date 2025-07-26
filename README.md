@@ -6,7 +6,7 @@ It is the core engine of the [rpkgs.com](https://rpkgs.com) project.
 ## Highlights ✨️
 
 - Auto-resolve package and system dependencies during installation
-- Archive multiple versions of a package into a CRAN-like archive structure 
+- Archive multiple versions of a package into a CRAN-like archive structure
 - Support storing packages in S3 instead of on disk
 - Process CRAN repository updates
 - Support building binaries for Ubuntu, RHEL and Alpine Linux

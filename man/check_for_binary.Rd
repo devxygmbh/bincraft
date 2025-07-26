@@ -40,7 +40,8 @@ injects a version identifier into the file path.}
 \item{arch}{(\link{character})\cr
 Architecture}
 
-\item{version}{Version to check for. Only "latest" is supported right now.}
+\item{version}{(\link{character})\cr
+Version to check for. Only "latest" is supported right now.}
 
 \item{s3_access_key_id}{(\link{character})\cr
 S3 access key ID}

@@ -13,16 +13,15 @@
 #' @importFrom s3fs s3_dir_ls s3_file_system
 #' @export
 add_to_package_index <- function(
-  s3_endpoint,
-  s3_region,
-  s3_bucket,
-  package_name = NULL,
-  local_output_dir_root = file.path("mnt", "cache", "binaries"),
-  codename = NULL,
-  is_debug = FALSE,
-  s3_access_key_id = NULL,
-  s3_secret_access_key = NULL
-) {
+    s3_endpoint,
+    s3_region,
+    s3_bucket,
+    package_name = NULL,
+    local_output_dir_root = file.path("mnt", "cache", "binaries"),
+    codename = NULL,
+    is_debug = FALSE,
+    s3_access_key_id = NULL,
+    s3_secret_access_key = NULL) {
   codename <- set_codename(codename)
 
   local_arch <- Sys.info()[["machine"]]
@@ -90,17 +89,16 @@ add_to_package_index <- function(
 #' @importFrom cranlike update_PACKAGES
 #' @export
 upload_package_index <- function(
-  s3_endpoint,
-  s3_region,
-  s3_bucket,
-  package_name = NULL,
-  local_output_dir_root = ".",
-  codename = NULL,
-  is_debug = FALSE,
-  arch = NULL,
-  s3_access_key_id = NULL,
-  s3_secret_access_key = NULL
-) {
+    s3_endpoint,
+    s3_region,
+    s3_bucket,
+    package_name = NULL,
+    local_output_dir_root = ".",
+    codename = NULL,
+    is_debug = FALSE,
+    arch = NULL,
+    s3_access_key_id = NULL,
+    s3_secret_access_key = NULL) {
   cli::cli_alert("Updating PACKAGES* files in S3.")
 
   codename <- set_codename(codename)
@@ -154,8 +152,8 @@ upload_package_index <- function(
 
   # write Meta/archive.rds for remotes::install_version
   cli::cli_alert_success(
-    "Started creating/updating {.path {file.path('Meta', 'archive.rds')}}"
-  ) # nolint
+    "Started creating/updating {.path {file.path('Meta', 'archive.rds')}}" # nolint
+  )
   files <- s3fs::s3_dir_ls(
     file.path(remote_bin_dir, "Archive"),
     recurse = TRUE,
@@ -175,9 +173,11 @@ upload_package_index <- function(
   )
 
   total_build_time <- round(Sys.time() - t1, 2L) # nolint
-  cli::cli_alert(
-    "Time updating PACKAGES index for {.field {pkg_count}} ({.field {unique_pkgs}} unique) packages: {.strong {total_build_time} {units(difftime(Sys.time(), t1))}}."
-  ) # nolint
+  time_units <- units(difftime(Sys.time(), t1))
+  cli::cli_alert(sprintf(
+    "Time updating PACKAGES index for %d (%d unique) packages: %g %s.",
+    pkg_count, unique_pkgs, total_build_time, time_units
+  ))
 
   purrr::walk2(
     c("PACKAGES", "PACKAGES.db", "PACKAGES.rds", "PACKAGES.gz"),
@@ -185,9 +185,7 @@ upload_package_index <- function(
       remote_bin_dir,
       c("PACKAGES", "PACKAGES.db", "PACKAGES.rds", "PACKAGES.gz")
     ),
-    \(x, y) {
-      s3fs::s3_file_upload(x, y, overwrite = TRUE, CacheControl = "no-store")
-    }
+    \(x, y) s3fs::s3_file_upload(x, y, overwrite = TRUE, CacheControl = "no-store")
   )
 
   cli::cli_alert_success(

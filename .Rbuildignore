@@ -24,7 +24,7 @@ pkgdown/
 poc.R
 .drawio
 .bkp
-statichost.yml
+statichost.yaml
 
 # flir files
 ^flir$
@@ -32,5 +32,8 @@ statichost.yml
 ^local_
 ^amd64
 ^arm64
+
 CLAUDE.md
 .claude
+.pre-commit-config.yaml
+.yamllint.yaml

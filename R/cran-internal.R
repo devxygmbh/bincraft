@@ -3,10 +3,9 @@
 #' @keywords internal
 #' @export
 get_missing_pkgs_db <- function(
-  platform = "ubuntu-2204",
-  arch = "amd64",
-  days_back = 2L
-) {
+    platform = "ubuntu-2204",
+    arch = "amd64",
+    days_back = 2L) {
   con <- DBI::dbConnect(
     RPostgres::Postgres(),
     dbname = "build_metadata",
@@ -17,9 +16,6 @@ get_missing_pkgs_db <- function(
     sslmode = "require"
   )
 
-  # Helper: not in
-  `%nin%` <- Negate(`%in%`)
-
   # Get new and removed packages in the last X days
   interval_days <- lubridate::interval(
     lubridate::today() - days_back,
@@ -29,20 +25,20 @@ get_missing_pkgs_db <- function(
   removed_pkgs <- get_removed_cran_packages(interval_days)$name
 
   # Get CRAN packages, filter out Windows-only and new packages
-  cran_pkgs <- unique(
+  cran_pkgs <-
     tools::CRAN_package_db() |>
-      dplyr::filter(is.na(OS_type) | OS_type != "windows") |>
-      dplyr::filter(Package %nin% new_packages) |>
-      dplyr::pull(Package)
-  )
+    dplyr::filter(is.na(OS_type) | OS_type != "windows") |>
+    dplyr::filter(Package %nin% new_packages) |>
+    dplyr::pull(Package) |>
+    unique()
 
   # Get built packages from DB
-  data <- DBI::dbGetQuery(
+  db_data <- DBI::dbGetQuery(
     con,
     "SELECT name FROM single_builds WHERE platform = $1 AND arch = $2 and removed = FALSE;",
     params = list(platform, arch)
   )
-  pkgs_db <- setdiff(unique(data$name), removed_pkgs)
+  pkgs_db <- setdiff(unique(db_data$name), removed_pkgs)
 
   # Find missing packages
   pkgs <- setdiff(cran_pkgs, pkgs_db)
@@ -72,15 +68,14 @@ get_missing_pkgs_db <- function(
 #'
 #' @export
 process_unarchived_pkgs <- function(
-  codename,
-  arch,
-  s3_endpoint = "https://hel1.your-objectstorage.com",
-  s3_region = "hel1",
-  s3_bucket = "devxy-r-package-binaries-hel1",
-  s3_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
-  s3_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S"),
-  workers = 1L
-) {
+    codename,
+    arch,
+    s3_endpoint = "https://hel1.your-objectstorage.com",
+    s3_region = "hel1",
+    s3_bucket = "devxy-r-package-binaries-hel1",
+    s3_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
+    s3_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S"),
+    workers = 1L) {
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
     aws_secret_access_key = s3_secret_access_key,
@@ -101,13 +96,14 @@ process_unarchived_pkgs <- function(
   # Find packages with multiple versions (duplicated names)
   duplicated_packages <- unique(package_names[duplicated(package_names)])
   # Filter out Windows-only packages
+  # FIXME: find a way to determinate Windows-only packages systematically # nolint todo_comment_linter
   non_archived <- setdiff(duplicated_packages, "RInno")
   formatted_pkgs <- paste(shQuote(non_archived, type = "cmd"), collapse = " ")
   cat(formatted_pkgs, "\n")
   message("Number of packages needing archiving: ", length(non_archived))
 
   if (length(non_archived) > 0L) {
-    out = future.apply::future_lapply(
+    future.apply::future_lapply(
       non_archived,
       archive_package,
       codename = codename,
@@ -131,7 +127,6 @@ process_unarchived_pkgs <- function(
 #' @param s3_bucket S3 bucket name
 #' @param s3_access_key_id S3 access key ID
 #' @param s3_secret_access_key S3 secret access key
-#' @importFrom future plan
 #' @keywords internal
 #' @examples
 #' \dontrun{
@@ -139,15 +134,14 @@ process_unarchived_pkgs <- function(
 #' }
 #'
 #' @export
-query_packages_without_historic_versions = function(
-  codename,
-  arch,
-  s3_endpoint = "https://hel1.your-objectstorage.com",
-  s3_region = "hel1",
-  s3_bucket = "devxy-r-package-binaries-hel1",
-  s3_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
-  s3_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S")
-) {
+query_packages_without_historic_versions <- function(
+    codename,
+    arch,
+    s3_endpoint = "https://hel1.your-objectstorage.com",
+    s3_region = "hel1",
+    s3_bucket = "devxy-r-package-binaries-hel1",
+    s3_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
+    s3_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S")) {
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
     aws_secret_access_key = s3_secret_access_key,
@@ -172,18 +166,18 @@ query_packages_without_historic_versions = function(
   pkg_names <- unique(
     vapply(
       matches,
-      function(x) if (length(x) > 1) x[2] else NA_character_,
-      character(1)
+      function(x) if (length(x) > 1L) x[2L] else NA_character_,
+      character(1L)
     )
   )
   pkg_names <- pkg_names[!is.na(pkg_names)]
 
   # filter out packages without any archived version
-  archive_db_pkgs <-names(tools::CRAN_archive_db())
+  archive_db_pkgs <- names(tools::CRAN_archive_db())
   pkgs_to_check <- intersect(pkg_names, archive_db_pkgs)
 
   # For each package, check if Archive/<pkg>/ contains any files
-  no_archive_files <- character(0)
+  no_archive_files <- character(0L)
   no_archive_files <- future.apply::future_lapply(pkgs_to_check, function(pkg) {
     archive_dir <- sprintf(
       "s3://%s/%s/%s/latest/src/contrib/Archive/%s",
@@ -201,9 +195,9 @@ query_packages_without_historic_versions = function(
     )
     archive_files <- tryCatch(
       s3fs::s3_dir_ls(archive_dir, recurse = TRUE),
-      error = function(e) character(0)
+      error = function(e) character(0L)
     )
-    if (length(archive_files) == 0) {
+    if (length(archive_files) == 0L) {
       pkg
     } else {
       NULL

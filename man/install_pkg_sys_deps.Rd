@@ -33,7 +33,8 @@ Whether to enable verbose output via env var \code{PKG_SYSREQS_VERBOSE}}
 \item{is_debug}{(\link{logical})\cr
 Whether to enable debug logging}
 
-\item{aggressive_cleanup}{Perform additional cache cleanup before installation}
+\item{aggressive_cleanup}{(\link{logical})\cr
+Perform additional cache cleanup before installation}
 }
 \description{
 This function uses a shared cache approach with safe concurrency controls:

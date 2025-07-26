@@ -34,7 +34,8 @@ process_cran_updates(
   process_new = TRUE,
   process_removed = TRUE,
   s3_access_key_id = NULL,
-  s3_secret_access_key = NULL
+  s3_secret_access_key = NULL,
+  is_debug = FALSE
 )
 }
 \arguments{
@@ -130,6 +131,9 @@ S3 access key ID}
 
 \item{s3_secret_access_key}{(\link{character})\cr
 S3 secret access key}
+
+\item{is_debug}{(\link{logical})\cr
+Whether to enable debug logging}
 }
 \description{
 Packages which got removed from CRAN can be deleted by setting \code{prune = TRUE}.
@@ -138,7 +142,7 @@ Argument \code{interval} allows to specify a range which should be processed.
 \examples{
 \dontrun{
 process_cran_updates(
-  interval = lubridate::interval(lubridate::today() - 3, lubridate::today() - 5),
+  interval = lubridate::interval(lubridate::today() - 3, lubridate::today() - 5L),
   s3_endpoint = "https://hel1.your-objectstorage.com", s3_region = "hel1",
   s3_bucket = "devxy-r-package-binaries-hel1",
   s3_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
