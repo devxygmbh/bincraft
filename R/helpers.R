@@ -49,9 +49,9 @@ set_bin_path <- function(local_output_dir_root, codename) {
   }
 
   if (is.null(codename)) {
-    cli::cli_alert_warning(paste0(
-      "{.function set_bin_path}: `codename` is `NULL`, setting it to the value of ",
-      "`R.version$platform`: '{R.version$platform}'"
+    log_warn(sprintf(
+      "{.function set_bin_path}: `codename` is `NULL`, setting it to the value of `R.version$platform`: '%s'",
+      R.version$platform
     ))
     codename <- R.version$platform
   }
@@ -102,7 +102,7 @@ check_for_binary <- function(
   )
   codename <- set_codename(codename)
   remote_bin_path <- set_bin_path(local_output_dir_root = s3_bucket, codename)
-  os_version <- strsplit(gh::gh(sprintf("GET /repos/cran/%s/commits", package_name))[[1]]$commit$message, "version ")[[1L]][2L] # nolint
+  os_version <- strsplit(gh::gh(sprintf("GET /repos/cran/%s/commits", package_name))[[1L]]$commit$message, "version ")[[1L]][2L] # nolint
   binary_exists <- s3fs::s3_file_exists(sprintf("s3://%s/%s_%s.tar.gz", remote_bin_path, package_name, os_version))
   return(binary_exists)
 }

@@ -19,10 +19,8 @@ build_single_tag(
   s3_bucket = NULL,
   s3_access_key_id = NULL,
   s3_secret_access_key = NULL,
-  is_debug = FALSE,
   force = FALSE,
   install_system_dependencies = TRUE,
-  deps_verbose = FALSE,
   store_build_metadata = FALSE,
   metadata_db_type = "postgres",
   metadata_db_host = NULL,
@@ -81,17 +79,11 @@ S3 access key ID}
 \item{s3_secret_access_key}{(\link{character})\cr
 S3 secret access key}
 
-\item{is_debug}{(\link{logical})\cr
-Whether to enable debug logging}
-
 \item{force}{(\link{logical})\cr
 Whether to force-build packages}
 
 \item{install_system_dependencies}{(\link{logical})\cr
 Whether to infer and install system dependencies of packages}
-
-\item{deps_verbose}{(\link{logical})\cr
-Whether to enable verbose output via env var \code{PKG_SYSREQS_VERBOSE}}
 
 \item{store_build_metadata}{(\link{logical})\cr
 Whether to store the build metadata in the referenced database.}

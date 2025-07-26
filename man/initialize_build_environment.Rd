@@ -9,7 +9,6 @@ initialize_build_environment(
   codename,
   platform,
   arch,
-  is_debug,
   local_output_dir_root,
   force,
   s3_bucket,
@@ -31,9 +30,6 @@ Platform identifier}
 
 \item{arch}{(\link{character})\cr
 Architecture}
-
-\item{is_debug}{(\link{logical})\cr
-Whether to enable debug logging}
 
 \item{local_output_dir_root}{(\link{character})\cr
 Path to local build root}

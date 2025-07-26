@@ -4,7 +4,7 @@
 \alias{clone_package_repo}
 \title{Clone package repository}
 \usage{
-clone_package_repo(package_name, tag, local_clone_dir_single, is_debug)
+clone_package_repo(package_name, tag, local_clone_dir_single)
 }
 \arguments{
 \item{package_name}{(\link{character})\cr
@@ -15,9 +15,6 @@ Tag/version. Tags starting with "R-" are filtered out.}
 
 \item{local_clone_dir_single}{(\link{character})\cr
 Directory path for single package clone}
-
-\item{is_debug}{(\link{logical})\cr
-Whether to enable debug logging}
 }
 \value{
 Invisible NULL

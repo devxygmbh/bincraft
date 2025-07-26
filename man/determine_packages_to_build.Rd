@@ -28,8 +28,7 @@ determine_packages_to_build(
   metadata_db_password,
   metadata_db_sslmode,
   platform,
-  arch,
-  is_debug
+  arch
 )
 }
 \arguments{
@@ -108,9 +107,6 @@ Platform identifier}
 
 \item{arch}{(\link{character})\cr
 Architecture}
-
-\item{is_debug}{(\link{logical})\cr
-Whether to enable debug logging}
 }
 \value{
 List with package information

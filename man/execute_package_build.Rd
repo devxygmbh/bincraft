@@ -9,7 +9,6 @@ execute_package_build(
   tag,
   local_clone_dir_single,
   binary_output_path,
-  is_debug,
   platform,
   arch,
   metadata_db_host,
@@ -33,9 +32,6 @@ Directory path for single package clone}
 
 \item{binary_output_path}{(\link{character})\cr
 Local output path for binaries}
-
-\item{is_debug}{(\link{logical})\cr
-Whether to enable debug logging}
 
 \item{platform}{(\link{character})\cr
 Platform identifier}

@@ -9,8 +9,6 @@ handle_system_dependencies(
   tag,
   platform,
   local_clone_dir_single,
-  deps_verbose,
-  is_debug,
   arch,
   metadata_db_host,
   metadata_db_name,
@@ -33,12 +31,6 @@ Platform identifier}
 
 \item{local_clone_dir_single}{(\link{character})\cr
 Directory path for single package clone}
-
-\item{deps_verbose}{(\link{logical})\cr
-Whether to enable verbose output via env var \code{PKG_SYSREQS_VERBOSE}}
-
-\item{is_debug}{(\link{logical})\cr
-Whether to enable debug logging}
 
 \item{arch}{(\link{character})\cr
 Architecture}

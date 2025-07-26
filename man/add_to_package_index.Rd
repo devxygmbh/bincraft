@@ -11,7 +11,6 @@ add_to_package_index(
   package_name = NULL,
   local_output_dir_root = file.path("mnt", "cache", "binaries"),
   codename = NULL,
-  is_debug = FALSE,
   s3_access_key_id = NULL,
   s3_secret_access_key = NULL
 )
@@ -34,9 +33,6 @@ Path to local build root}
 
 \item{codename}{(\link{character})\cr
 Linux distribution identifier}
-
-\item{is_debug}{(\link{logical})\cr
-Whether to enable debug logging}
 
 \item{s3_access_key_id}{(\link{character})\cr
 S3 access key ID}

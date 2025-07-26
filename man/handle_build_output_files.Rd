@@ -8,8 +8,7 @@ handle_build_output_files(
   package_name,
   tag,
   binary_output_path,
-  local_clone_dir_single,
-  is_debug
+  local_clone_dir_single
 )
 }
 \arguments{
@@ -24,9 +23,6 @@ Local output path for binaries}
 
 \item{local_clone_dir_single}{(\link{character})\cr
 Directory path for single package clone}
-
-\item{is_debug}{(\link{logical})\cr
-Whether to enable debug logging}
 }
 \value{
 List with file existence and size information

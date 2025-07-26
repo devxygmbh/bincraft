@@ -9,8 +9,6 @@ install_pkg_sys_deps(
   tag,
   local_clone_dir,
   platform = platform,
-  deps_verbose = FALSE,
-  is_debug = FALSE,
   aggressive_cleanup = FALSE
 )
 }
@@ -26,12 +24,6 @@ Path to clone git repos into}
 
 \item{platform}{(\link{character})\cr
 Platform identifier}
-
-\item{deps_verbose}{(\link{logical})\cr
-Whether to enable verbose output via env var \code{PKG_SYSREQS_VERBOSE}}
-
-\item{is_debug}{(\link{logical})\cr
-Whether to enable debug logging}
 
 \item{aggressive_cleanup}{(\link{logical})\cr
 Perform additional cache cleanup before installation}

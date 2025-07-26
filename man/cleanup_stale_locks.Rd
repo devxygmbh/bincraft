@@ -11,7 +11,7 @@ cleanup_stale_locks(cache_dir = NULL, max_age = 300L)
 Cache directory path. If NULL, searches common pak cache locations}
 
 \item{max_age}{(\link{integer})\cr
-Maximum age of lock files in seconds (default: 300)}
+Maximum age of lock files in seconds (default: 300L)}
 }
 \value{
 Invisible NULL

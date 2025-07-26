@@ -21,6 +21,7 @@ Imports:
     future.apply,
     gert,
     gh,
+    lgr,
     lubridate,
     pak,
     pkgbuild,

@@ -14,10 +14,8 @@ execute_package_builds(
   arch,
   codename,
   is_r_minor_sensitive,
-  is_debug,
   force,
   install_system_dependencies,
-  deps_verbose,
   store_build_metadata,
   metadata_db_host,
   metadata_db_name,
@@ -66,17 +64,11 @@ Linux distribution identifier}
 If TRUE, treats the package to be minor version specific and
 injects a version identifier into the file path.}
 
-\item{is_debug}{(\link{logical})\cr
-Whether to enable debug logging}
-
 \item{force}{(\link{logical})\cr
 Whether to force-build packages}
 
 \item{install_system_dependencies}{(\link{logical})\cr
 Whether to infer and install system dependencies of packages}
-
-\item{deps_verbose}{(\link{logical})\cr
-Whether to enable verbose output via env var \code{PKG_SYSREQS_VERBOSE}}
 
 \item{store_build_metadata}{(\link{logical})\cr
 Whether to store the build metadata in the referenced database.}

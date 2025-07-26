@@ -16,8 +16,6 @@ build_binary_package(
   arch = NULL,
   is_r_minor_sensitive = FALSE,
   install_system_dependencies = TRUE,
-  deps_verbose = FALSE,
-  is_debug = FALSE,
   force = FALSE,
   upload = FALSE,
   archive = FALSE,
@@ -74,12 +72,6 @@ injects a version identifier into the file path.}
 
 \item{install_system_dependencies}{(\link{logical})\cr
 Whether to infer and install system dependencies of packages}
-
-\item{deps_verbose}{(\link{logical})\cr
-Whether to enable verbose output via env var \code{PKG_SYSREQS_VERBOSE}}
-
-\item{is_debug}{(\link{logical})\cr
-Whether to enable debug logging}
 
 \item{force}{(\link{logical})\cr
 Whether to force-build packages}

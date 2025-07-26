@@ -5,7 +5,6 @@
 #' @template param-s3_endpoint
 #' @template param-s3_region
 #' @template param-s3_bucket
-#' @template param-is_debug
 #' @template param-is_r_minor_sensitive
 #' @template param-local_output_dir_root
 #' @template param-s3-access-key-id
@@ -35,7 +34,6 @@ archive_package <- function(
     is_r_minor_sensitive = FALSE,
     local_output_dir_root = ".",
     arch = NULL,
-    is_debug = FALSE,
     s3_access_key_id = NULL,
     s3_secret_access_key = NULL) {
   s3fs::s3_file_system(
@@ -46,9 +44,7 @@ archive_package <- function(
     refresh = TRUE
   )
 
-  if (is_debug) {
-    message(sprintf("DEBUG archive_package: package_name: %s", package_name))
-  }
+  log_debug(sprintf("archive_package: package_name: %s", package_name))
 
   codename <- set_codename(codename)
 

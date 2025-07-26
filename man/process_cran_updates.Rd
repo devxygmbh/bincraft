@@ -34,8 +34,7 @@ process_cran_updates(
   process_new = TRUE,
   process_removed = TRUE,
   s3_access_key_id = NULL,
-  s3_secret_access_key = NULL,
-  is_debug = FALSE
+  s3_secret_access_key = NULL
 )
 }
 \arguments{
@@ -131,9 +130,6 @@ S3 access key ID}
 
 \item{s3_secret_access_key}{(\link{character})\cr
 S3 secret access key}
-
-\item{is_debug}{(\link{logical})\cr
-Whether to enable debug logging}
 }
 \description{
 Packages which got removed from CRAN can be deleted by setting \code{prune = TRUE}.

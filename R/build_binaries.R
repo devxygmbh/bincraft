@@ -18,8 +18,6 @@
 #' @template param-local_output_dir_root
 #' @template param-local_clone_dir
 #' @template param-install_system_dependencies
-#' @template param-deps_verbose
-#' @template param-is_debug
 #' @template param-is_r_minor_sensitive
 #' @template param-archive
 #' @template param-store_build_metadata
@@ -70,8 +68,6 @@ build_binary_package <- function(
     arch = NULL,
     is_r_minor_sensitive = FALSE,
     install_system_dependencies = TRUE,
-    deps_verbose = FALSE,
-    is_debug = FALSE,
     force = FALSE,
     upload = FALSE,
     archive = FALSE,
@@ -95,7 +91,6 @@ build_binary_package <- function(
     codename,
     platform,
     arch,
-    is_debug,
     local_output_dir_root,
     force,
     s3_bucket,
@@ -144,8 +139,7 @@ build_binary_package <- function(
     metadata_db_password,
     metadata_db_sslmode,
     platform,
-    arch,
-    is_debug
+    arch
   )
 
   if (pkg_info$should_skip) {
@@ -165,10 +159,8 @@ build_binary_package <- function(
     arch,
     codename,
     is_r_minor_sensitive,
-    is_debug,
     force,
     install_system_dependencies,
-    deps_verbose,
     store_build_metadata,
     metadata_db_host,
     metadata_db_name,
@@ -195,7 +187,6 @@ build_binary_package <- function(
     archive,
     force,
     is_r_minor_sensitive,
-    is_debug,
     s3_endpoint,
     s3_bucket,
     s3_region,
@@ -215,7 +206,6 @@ build_binary_package <- function(
 #' @template param-codename
 #' @template param-platform
 #' @template param-arch
-#' @template param-is_debug
 #' @template param-local_output_dir_root
 #' @template param-force
 #' @template param-s3_bucket
@@ -229,7 +219,6 @@ initialize_build_environment <- function(
     codename,
     platform,
     arch,
-    is_debug,
     local_output_dir_root,
     force,
     s3_bucket,
@@ -237,7 +226,7 @@ initialize_build_environment <- function(
     s3_secret_access_key,
     s3_endpoint,
     s3_region) {
-  cli::cli_h2("Preparations ({.pkg {package_name}})")
+  cli::cli_h2(sprintf("Preparations ({.pkg %s})", package_name))
   codename <- set_codename(codename)
 
   if (is.null(platform)) {
@@ -252,9 +241,7 @@ initialize_build_environment <- function(
     )
   }
 
-  if (is_debug) {
-    cli::cli_alert_warning("DEBUG: codename {codename}.")
-  }
+  log_debug(sprintf("codename: %s", codename))
 
   binary_output_path <- set_bin_path(local_output_dir_root, codename)
   local_bin_path <- set_bin_path(
@@ -275,19 +262,15 @@ initialize_build_environment <- function(
     arch <- "amd64"
   }
 
-  if (is_debug) {
-    cli::cli_alert_warning("DEBUG: binary_output_path {binary_output_path}.")
-  }
+  log_debug(sprintf("binary_output_path: %s.", binary_output_path))
 
   dir_out_src <- file.path(local_output_dir_root, "src", "contrib", "Archive")
-  if (is_debug) {
-    cli::cli_alert(
-      "{.fun build_binary_package}: Creating bin dir {.path {binary_output_path}}."
-    )
-    cli::cli_alert(
-      "{.fun build_binary_package}: Creating src dir {.path {dir_out_src}}."
-    )
-  }
+  log_debug(
+    sprintf("{.fun build_binary_package}: Creating bin dir {.path %s}.", binary_output_path)
+  )
+  log_debug(
+    sprintf("{.fun build_binary_package}: Creating src dir {.path %s}.", dir_out_src)
+  )
   dir.create(
     file.path(binary_output_path, "Archive"),
     recursive = TRUE,
@@ -342,8 +325,8 @@ filter_tags <- function(package_name, tag, source_org_url, tag_limit) {
       if (length(all_tags) < tag_limit) {
         tag_limit <- length(all_tags)
       } else {
-        cli::cli_alert(
-          "{.fun filter_tags}: Filtered for the {tag_limit} most recent tags (out of {.field {length(all_tags)}} total)"
+        log_info(
+          sprintf("{.fun filter_tags}: Filtered for the %s most recent tags (out of {.field %s} total)", tag_limit, length(all_tags))
         )
       }
       tags <- all_tags[1L:tag_limit]
@@ -394,7 +377,7 @@ filter_packages_with_errors <- function(
   tryCatch(
     {
       if (metadata_db_type != "postgres" || !requireNamespace("RPostgres", quietly = TRUE)) {
-        cli::cli_alert_warning("Error checking is currently only supported for postgres databases.")
+        log_warn("Error checking is currently only supported for postgres databases.")
         return(pkg_differences)
       }
 
@@ -419,8 +402,8 @@ filter_packages_with_errors <- function(
         pair <- pkg_tag_pairs[[i]]
         if (check_package_error(con, table_name, pair, platform, arch)) { # nolint: object_usage_linter
           packages_with_errors <- c(packages_with_errors, pkg_differences[i])
-          cli::cli_alert_warning(
-            "Skipping {.pkg {pair$pkg}} {.field {pair$tag}} due to previous build error recorded in metadata DB."
+          log_warn(
+            sprintf("Skipping {.pkg %s} {.field %s} due to previous build error recorded in metadata DB.", pair$pkg, pair$tag)
           )
         }
       }
@@ -429,15 +412,14 @@ filter_packages_with_errors <- function(
 
       if (length(packages_with_errors) > 0L) {
         pkg_differences <- setdiff(pkg_differences, packages_with_errors)
-        cli::cli_alert_info(paste0(
-          "Filtered out ", length(packages_with_errors), "/", length(pkgs_to_build),
-          " package(s) due to previous errors. ",
-          "{length(pkg_differences)} package(s) remaining to build."
+        log_info(sprintf(
+          "Filtered out %d/%d package(s) due to previous errors. %d package(s) remaining to build.", # nolint nonportable_path_linter
+          length(packages_with_errors), length(pkgs_to_build), length(pkg_differences)
         ))
       }
     },
     error = function(e) {
-      cli::cli_alert_warning("Could not check metadata DB for previous errors: {e$message}")
+      log_warn(sprintf("Could not check metadata DB for previous errors: %s", e$message))
     }
   )
 
@@ -458,10 +440,8 @@ filter_packages_with_errors <- function(
 #' @template param-arch
 #' @template param-codename
 #' @template param-is_r_minor_sensitive
-#' @template param-is_debug
 #' @template param-force
 #' @template param-install_system_dependencies
-#' @template param-deps_verbose
 #' @template param-store_build_metadata
 #' @template param-metadata_db_host
 #' @template param-metadata_db_name
@@ -487,10 +467,8 @@ execute_package_builds <- function(
     arch,
     codename,
     is_r_minor_sensitive,
-    is_debug,
     force,
     install_system_dependencies,
-    deps_verbose,
     store_build_metadata,
     metadata_db_host,
     metadata_db_name,
@@ -506,11 +484,16 @@ execute_package_builds <- function(
     s3_secret_access_key,
     local_bin_path) {
   t1 <- Sys.time()
-  cli::cli_h2("Building ({.pkg {package_name[1]}})")
+  cli::cli_h2(sprintf("Building ({.pkg %s})", package_name[1L]))
 
-  cli::cli_alert(
-    "[{format(Sys.time(), format='%H:%M:%S')}] Building binaries for {.pkg {package_name[1]}} with tags {.field {tag}}."
-  ) # nolint
+  log_info(
+    sprintf(
+      "[%s] Building binaries for %s with tags %s.",
+      format(Sys.time(), format = "%H:%M:%S"),
+      package_name[1L],
+      toString(tag)
+    )
+  )
 
   worker_function <- function(x, y, debug_flag) {
     tryCatch(
@@ -525,10 +508,8 @@ execute_package_builds <- function(
           is_r_minor_sensitive = is_r_minor_sensitive,
           platform = platform,
           arch = arch,
-          is_debug = debug_flag,
           force = force,
           install_system_dependencies = install_system_dependencies,
-          deps_verbose = deps_verbose,
           store_build_metadata = store_build_metadata,
           metadata_db_host = metadata_db_host,
           metadata_db_name = metadata_db_name,
@@ -546,12 +527,12 @@ execute_package_builds <- function(
 
         tarball_name <- sprintf("%s_%s.tar.gz", x, y)
         if (file.exists(file.path(local_bin_path, tarball_name))) {
-          cli::cli_alert_success(
-            "Finished processing package {.pkg {x}} with tag {.field {y}}."
+          log_success(
+            sprintf("Finished processing package %s with tag %s.", x, y)
           )
         } else if (result != "skipped") {
-          cli::cli_alert_warning(
-            "Error in building package {.pkg {x}} with tag {.field {y}}: Uncommon/unspecific error during build."
+          log_warn(
+            sprintf("Error in building package %s with tag %s: Uncommon/unspecific error during build.", x, y)
           )
           store_build_metadata(
             x,
@@ -572,8 +553,8 @@ execute_package_builds <- function(
         }
       },
       error = function(e) {
-        cli::cli_alert_warning(
-          "Error in building package {.pkg {x}} with tag {.field {y}}: {e}"
+        log_warn(
+          sprintf("Error in building package %s with tag %s: %s", x, y, e)
         )
         local_clone_dir_single <- file.path(
           local_clone_dir,
@@ -601,21 +582,17 @@ execute_package_builds <- function(
     result
   }
 
-  if (is_debug) {
-    result <- Map(worker_function, package_name, tag, MoreArgs = list(is_debug))
-  } else {
-    result <- future.apply::future_mapply(
-      worker_function,
-      package_name,
-      tag,
-      future.seed = TRUE,
-      MoreArgs = list(is_debug)
-    )
-  }
+  # Use parallel processing by default
+  result <- future.apply::future_mapply(
+    worker_function,
+    package_name,
+    tag,
+    future.seed = TRUE
+  )
 
   total_build_time <- round(Sys.time() - t1, 2L) # nolint
-  cli::cli_alert_info(
-    "Execution time ({.pkg {package_name[1]}}): {.strong {total_build_time}}."
+  log_info(
+    sprintf("Execution time (%s): %s.", package_name[1L], total_build_time)
   )
 
   result
@@ -650,7 +627,6 @@ execute_package_builds <- function(
 #' @template param-metadata_db_sslmode
 #' @template param-platform
 #' @template param-arch
-#' @template param-is_debug
 #' @return List with package information
 determine_packages_to_build <- function(
     package_name,
@@ -676,8 +652,7 @@ determine_packages_to_build <- function(
     metadata_db_password,
     metadata_db_sslmode,
     platform,
-    arch,
-    is_debug) {
+    arch) {
   # check whether any build attempts need to be made
   if (!force && !is.null(s3_bucket)) {
     s3_result <- check_s3_packages(
@@ -802,7 +777,7 @@ check_s3_packages <- function(
   pkgs_to_build <- sprintf("%s_%s.tar.gz", package_name, tags_filtered)
 
   if (all(pkgs_to_build %in% all_pkgs_s3)) {
-    cli::cli_alert_info(
+    log_info(
       "{.fun build_binary_package}: All packages to be built already exist in the remote bucket. ",
       "Skipping due to {.code force = FALSE}."
     )
@@ -811,8 +786,16 @@ check_s3_packages <- function(
 
   pkg_differences <- setdiff(pkgs_to_build, all_pkgs_s3)
 
-  cli::cli_alert_info(
-    "Filtered out {(length(pkgs_to_build) - length(pkg_differences))}/{length(pkgs_to_build)} package(s) as they already exist in the remote bucket. {length(pkg_differences)} package(s) potentially remaining to build." # nolint
+  # Calculate values for message
+  filtered_count <- length(pkgs_to_build) - length(pkg_differences)
+  total_count <- length(pkgs_to_build)
+  remaining_count <- length(pkg_differences)
+
+  log_info(
+    sprintf(
+      "Filtered out %d/%d package(s) as they already exist in the remote bucket. %d package(s) potentially remaining to build.", # nolint nonportable_path_linter
+      filtered_count, total_count, remaining_count
+    )
   )
 
   # check for possible errors in the metadata DB
@@ -834,7 +817,7 @@ check_s3_packages <- function(
   }
 
   if (length(pkg_differences) == 0L) {
-    cli::cli_alert_info(
+    log_info(
       "{.fun build_binary_package}: All packages were filtered out due to previous build errors being present in the metadata database. Skipping." # nolint
     )
     return(list(should_skip = TRUE))
@@ -853,8 +836,15 @@ check_s3_packages <- function(
     character(1L)
   )
 
-  cli::cli_alert(
-    "Building {length(pkg_differences)}/{length(pkgs_to_build)} versions as they are not present in the remote bucket: {.field {pkg_differences}}" # nolint
+  # Calculate values for message
+  building_count <- length(pkg_differences)
+  total_pkg_count <- length(pkgs_to_build)
+
+  log_info(
+    sprintf(
+      "Building %d/%d versions as they are not present in the remote bucket: %s",
+      building_count, total_pkg_count, toString(pkg_differences)
+    )
   )
 
   list(should_skip = FALSE, filtered_tags = filtered_tags)
@@ -872,7 +862,6 @@ check_s3_packages <- function(
 #' @template param-archive
 #' @template param-force
 #' @template param-is_r_minor_sensitive
-#' @template param-is_debug
 #' @template param-s3_endpoint
 #' @template param-s3_bucket
 #' @template param-s3_region
@@ -888,7 +877,6 @@ handle_post_build_actions <- function(
     archive,
     force,
     is_r_minor_sensitive,
-    is_debug,
     s3_endpoint,
     s3_bucket,
     s3_region,
@@ -905,7 +893,6 @@ handle_post_build_actions <- function(
               force = force,
               codename = codename,
               is_r_minor_sensitive = is_r_minor_sensitive,
-              is_debug = is_debug,
               s3_endpoint = s3_endpoint,
               s3_bucket = s3_bucket,
               s3_region = s3_region,
@@ -957,7 +944,6 @@ handle_post_build_actions <- function(
       package_name[1L],
       codename = codename,
       is_r_minor_sensitive = is_r_minor_sensitive,
-      is_debug = is_debug,
       s3_endpoint = s3_endpoint,
       s3_bucket = s3_bucket,
       s3_region = s3_region,
@@ -973,10 +959,8 @@ handle_post_build_actions <- function(
 #' @template param-arch
 #' @template param-platform
 #' @template param-source_org_url
-#' @template param-is_debug
 #' @template param-local_clone_dir
 #' @template param-install_system_dependencies
-#' @template param-deps_verbose
 #' @template param-is_r_minor_sensitive
 #' @template param-force
 #' @template param-codename
@@ -1014,10 +998,8 @@ build_single_tag <- function(
     s3_bucket = NULL,
     s3_access_key_id = NULL,
     s3_secret_access_key = NULL,
-    is_debug = FALSE,
     force = FALSE,
     install_system_dependencies = TRUE,
-    deps_verbose = FALSE,
     store_build_metadata = FALSE,
     metadata_db_type = "postgres",
     metadata_db_host = NULL,
@@ -1029,13 +1011,11 @@ build_single_tag <- function(
     metadata_db_sslmode = NULL) {
   cli::cli_par()
   cli::cli_end()
-  cli::cli_rule("{package_name} {tag}")
+  cli::cli_rule(sprintf("%s %s", package_name, tag))
 
-  if (is_debug) {
-    cli::cli_alert(
-      "{.fun build_single_tag}: Cloning package {.pkg {package_name}} with tag {.field {tag}}."
-    )
-  }
+  log_debug(
+    sprintf("{.fun build_single_tag}: Cloning package {.pkg %s} with tag {.field %s}.", package_name, tag)
+  )
 
   local_clone_dir_single <- file.path(
     local_clone_dir,
@@ -1044,11 +1024,9 @@ build_single_tag <- function(
 
   # Clean up any existing clone directory before starting
   if (dir.exists(local_clone_dir_single)) {
-    if (is_debug) {
-      cli::cli_alert(
-        "{.fun build_single_tag}: Removing existing clone directory {.path {local_clone_dir_single}}."
-      )
-    }
+    log_debug(
+      sprintf("{.fun build_single_tag}: Removing existing clone directory {.path %s}.", local_clone_dir_single)
+    )
     unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
   }
 
@@ -1067,7 +1045,7 @@ build_single_tag <- function(
   )
 
   if (skip_result$should_skip) {
-    skip_result$reason
+    return("skipped")
   }
 
   clone_repository(package_name, tag, source_org_url, local_clone_dir_single)
@@ -1078,8 +1056,6 @@ build_single_tag <- function(
       tag,
       platform,
       local_clone_dir_single,
-      deps_verbose,
-      is_debug,
       arch,
       metadata_db_host,
       metadata_db_name,
@@ -1099,7 +1075,6 @@ build_single_tag <- function(
     tag,
     local_clone_dir_single,
     binary_output_path,
-    is_debug,
     platform,
     arch,
     metadata_db_host,
@@ -1120,8 +1095,7 @@ build_single_tag <- function(
     package_name,
     tag,
     binary_output_path,
-    local_clone_dir_single,
-    is_debug
+    local_clone_dir_single
   )
 
   if (store_build_metadata && file_result$file_exists) {
@@ -1181,8 +1155,8 @@ check_build_skip_conditions <- function(
       sprintf("%s_%s.tar.gz", package_name, tag)
     ))
   ) {
-    cli::cli_alert_info(
-      "Tarball for package {.pkg {package_name}} with tag {.field {tag}} already exists. Skipping build."
+    log_info(
+      sprintf("Tarball for package {.pkg %s} with tag {.field %s} already exists. Skipping build.", package_name, tag)
     )
     return(list(should_skip = TRUE, reason = "skipped"))
   }
@@ -1213,10 +1187,10 @@ check_build_skip_conditions <- function(
             tarball_name
           )))
     ) {
-      cli::cli_alert_info(
-        paste0(
-          "Package {.pkg {package_name}} with tag {.field {tag}} already exists in S3 ",
-          "and {.code force = FALSE}. Skipping build."
+      log_info(
+        sprintf(
+          "Package {.pkg %s} with tag {.field %s} already exists in S3 and {.code force = FALSE}. Skipping build.",
+          package_name, tag
         )
       )
       list(should_skip = TRUE, reason = "skipped")
@@ -1268,8 +1242,6 @@ clone_repository <- function(
 #' @template param-tag
 #' @template param-platform
 #' @template param-local_clone_dir_single
-#' @template param-deps_verbose
-#' @template param-is_debug
 #' @template param-arch
 #' @template param-metadata_db_host
 #' @template param-metadata_db_name
@@ -1284,8 +1256,6 @@ handle_system_dependencies <- function(
     tag,
     platform,
     local_clone_dir_single,
-    deps_verbose,
-    is_debug,
     arch,
     metadata_db_host,
     metadata_db_name,
@@ -1294,22 +1264,20 @@ handle_system_dependencies <- function(
     metadata_db_password,
     metadata_db_user,
     metadata_db_sslmode) {
-  cli::cli_h2("Installing system dependencies")
+  log_header("Installing system dependencies")
   tryCatch(
     {
       install_pkg_sys_deps(
         package_name,
         tag,
         local_clone_dir_single,
-        platform,
-        deps_verbose,
-        is_debug
+        platform
       )
       return(list(success = TRUE))
     },
     error = function(e) {
-      cli::cli_alert_warning(
-        "Error in installing dependencies for package {.pkg {package_name[1]}} with tag {.field {tag[1]}}: {e}"
+      log_warn(
+        sprintf("Error in installing dependencies for package %s with tag %s: %s", package_name[1L], tag[1L], e)
       )
       store_build_metadata(
         package_name[1L],
@@ -1341,7 +1309,6 @@ handle_system_dependencies <- function(
 #' @template param-tag
 #' @template param-local_clone_dir_single
 #' @template param-binary_output_path
-#' @template param-is_debug
 #' @template param-platform
 #' @template param-arch
 #' @template param-metadata_db_host
@@ -1357,7 +1324,6 @@ execute_package_build <- function(
     tag,
     local_clone_dir_single,
     binary_output_path,
-    is_debug,
     platform,
     arch,
     metadata_db_host,
@@ -1367,21 +1333,19 @@ execute_package_build <- function(
     metadata_db_password,
     metadata_db_user,
     metadata_db_sslmode) {
-  cli::cli_alert(
-    "Building package {.pkg {package_name}} with tag {.field {tag}}."
+  log_info(
+    sprintf("Building package {.pkg %s} with tag {.field %s}.", package_name, tag)
   )
 
-  quiet <- !is_debug
+  quiet <- TRUE # Always quiet since debug is handled by lgr
   t1 <- Sys.time()
 
   tryCatch(
     {
-      if (is_debug) {
-        message(sprintf(
-          "DEBUG1: Printing 'binary_output_path': %s",
-          binary_output_path
-        ))
-      }
+      log_debug(
+        "'binary_output_path': %s",
+        binary_output_path
+      )
       pkgbuild::build(
         path = sprintf("%s", local_clone_dir_single),
         binary = TRUE,
@@ -1389,13 +1353,8 @@ execute_package_build <- function(
         dest_path = binary_output_path,
         quiet = quiet
       )
-      if (is_debug) {
-        message(sprintf(
-          "DEBUG: Listing dir 'binary_output_path': %s",
-          binary_output_path
-        ))
-        print(list.files(binary_output_path))
-      }
+
+      log_debug(sprintf("Files in binary_output_path: %s", toString(list.files(binary_output_path))))
 
       build_time <- round(
         as.numeric(difftime(Sys.time(), t1, units = "secs")),
@@ -1404,8 +1363,8 @@ execute_package_build <- function(
       return(list(success = TRUE, build_time = build_time))
     },
     error = function(e) {
-      cli::cli_alert_warning(
-        "Error in starting build command for package {.pkg {package_name}} with tag {.field {tag}}: {e}"
+      log_warn(
+        sprintf("Error in starting build command for package {.pkg %s} with tag {.field %s}: %s", package_name, tag, e)
       )
       unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
       store_build_metadata(
@@ -1442,14 +1401,12 @@ execute_package_build <- function(
 #' @template param-tag
 #' @template param-binary_output_path
 #' @template param-local_clone_dir_single
-#' @template param-is_debug
 #' @return List with file existence and size information
 handle_build_output_files <- function(
     package_name,
     tag,
     binary_output_path,
-    local_clone_dir_single,
-    is_debug) {
+    local_clone_dir_single) {
   system_info <- get_system_architecture_info(binary_output_path)
 
   final_tarball_path <- file.path(
@@ -1458,27 +1415,24 @@ handle_build_output_files <- function(
   )
 
   if (file.exists(final_tarball_path)) {
-    cli::cli_alert_warning(
-      '{.fun build_single_tag}: Binary {sprintf("%s_%s.tar.gz", package_name, tag)} already exists. Skipping copy.'
+    log_warn(
+      sprintf("{.fun build_single_tag}: Binary %s_%s.tar.gz already exists. Skipping copy.", package_name, tag)
     ) # nolint
   } else {
     move_and_rename_tarball(
       package_name,
       tag,
       binary_output_path,
-      system_info,
-      is_debug
+      system_info
     )
   }
 
   # Clean up temporary files
   unlink(sprintf("%s/%s_%s_R*.tar.gz", binary_output_path, package_name, tag))
 
-  if (is_debug) {
-    cli::cli_alert(
-      "{.fun build_single_tag}: Removing {.path {local_clone_dir_single}}."
-    )
-  }
+  log_info(
+    sprintf("{.fun build_single_tag}: Removing {.path %s}.", local_clone_dir_single)
+  )
   unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
 
   # Check if final file exists and get its size

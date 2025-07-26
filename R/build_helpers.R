@@ -222,13 +222,6 @@ check_s3_root_package <- function(
     refresh = TRUE
   )
 
-  cli::cli_alert(
-    "{.fun check_s3_root_package}: DEBUG {file.path(
-      remote_bin_path,
-      sprintf('%s_%s.tar.gz', package_name, last_version)
-    )}."
-  )
-
   # Handle case where is_r_minor_sensitive might be empty/NULL
   if (length(is_r_minor_sensitive) == 0L || is.null(is_r_minor_sensitive)) {
     is_r_minor_sensitive <- FALSE
@@ -305,14 +298,12 @@ process_tag_filtering <- function(tag, package_name, source_org_url, tag_limit) 
 #' @template param-tag
 #' @template param-binary_output_path
 #' @template param-system_info
-#' @template param-is_debug
 #' @return Invisible NULL
 move_and_rename_tarball <- function(
     package_name,
     tag,
     binary_output_path,
-    system_info,
-    is_debug) {
+    system_info) {
   source_filename <- sprintf(
     "%s_%s_R_%s-%s-linux-%s.tar.gz",
     package_name,
@@ -327,24 +318,18 @@ move_and_rename_tarball <- function(
     sprintf("%s_%s.tar.gz", package_name, tag)
   )
 
-  if (is_debug) {
-    cli::cli_alert_info(
-      "{.fun build_single_tag}: DEBUG: Moving package from {.path {source_path}} to {.path {dest_path}}"
-    )
-  }
+  log_debug(
+    sprintf("{.fun build_single_tag}: Moving package from {.path %s} to {.path %s}", source_path, dest_path)
+  )
 
   if (file.exists(source_path)) {
     file.rename(source_path, dest_path)
   } else {
-    cli::cli_alert_info(paste0(
-      "{.fun build_single_tag}: File for package {.pkg {package_name}} {.field {tag}} ",
-      "at {.path {source_path}} does not exist - skipping."
-    ))
-    if (is_debug) {
-      message(sprintf(
-        "DEBUG: Listing dir 'binary_output_path': %s",
-        binary_output_path
-      ))
+    cli::cli_alert_info(
+      sprintf("{.fun build_single_tag}: File for package {.pkg %s} {.field %s} at {.path %s} does not exist - skipping.", package_name, tag, source_path) # nolint line_length_linter
+    )
+    log_debug(sprintf("Listing dir 'binary_output_path': %s", binary_output_path))
+    if (get_logger()$threshold <= 500L) { # DEBUG level
       message(list.files(binary_output_path))
     }
   }

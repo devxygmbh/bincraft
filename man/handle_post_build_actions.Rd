@@ -13,7 +13,6 @@ handle_post_build_actions(
   archive,
   force,
   is_r_minor_sensitive,
-  is_debug,
   s3_endpoint,
   s3_bucket,
   s3_region,
@@ -46,9 +45,6 @@ Whether to force-build packages}
 \item{is_r_minor_sensitive}{(\link{logical})\cr
 If TRUE, treats the package to be minor version specific and
 injects a version identifier into the file path.}
-
-\item{is_debug}{(\link{logical})\cr
-Whether to enable debug logging}
 
 \item{s3_endpoint}{(\link{character})\cr
 S3 endpoint}

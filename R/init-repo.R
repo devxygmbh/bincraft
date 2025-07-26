@@ -59,7 +59,7 @@ init_repo <- function(
   ### Check S3
   bucket_exists <- s3fs::s3_is_bucket(s3_bucket)
   if (bucket_exists) {
-    cli::cli_alert_success("Bucket {.field {s3_bucket}} already exists.")
+    log_success(sprintf("Bucket {.field %s} already exists.", s3_bucket))
   }
 
   ### Check DB
@@ -81,8 +81,8 @@ init_repo <- function(
       sslmode = metadata_db_sslmode
     )
     if (res) {
-      cli::cli_alert_success(
-        "Connectivity to DB {.field {metadata_db_host}}, database {.field {metadata_db_name}} established."
+      log_success(
+        sprintf("Connectivity to DB {.field %s}, database {.field %s} established.", metadata_db_host, metadata_db_name)
       )
     }
     con <- DBI::dbConnect(
@@ -96,22 +96,21 @@ init_repo <- function(
     )
     exists_table <- DBI::dbExistsTable(con, name = metadata_db_table)
     if (exists_table) {
-      cli::cli_alert_success(
-        "Table {.field {metadata_db_table}} exists. You're ready to build!"
+      log_success(
+        sprintf("Table {.field %s} exists. You're ready to build!", metadata_db_table)
       )
-      cli::cli_alert_info(
-        "You can now use {.fun {build_binary_package}} with the provided S3 and DB settings to build and",
-        " publish packages."
+      log_info(
+        sprintf("You can now use {.fun %s} with the provided S3 and DB settings to build and publish packages.", "build_binary_package")
       )
     } else {
-      cli::cli_alert_warning(
-        "Table {.field {metadata_db_table}} does not exist."
+      log_warn(
+        sprintf("Table {.field %s} does not exist.", metadata_db_table)
       )
       answer <- menu(c("Yes", "No"), title = "Should it be created?")
       if (answer == 1L) {
         DBI::dbCreateTable(con, metadata_db_table)
-        cli::cli_alert_success(
-          "Table {.field {metadata_db_table}} created. You're ready to build!"
+        log_success(
+          sprintf("Table {.field %s} created. You're ready to build!", metadata_db_table)
         )
       }
     }

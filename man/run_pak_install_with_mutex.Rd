@@ -4,12 +4,7 @@
 \alias{run_pak_install_with_mutex}
 \title{Run pak installation with mutex protection}
 \usage{
-run_pak_install_with_mutex(
-  local_clone_dir_single,
-  env_vars,
-  deps_verbose,
-  is_debug
-)
+run_pak_install_with_mutex(local_clone_dir_single, env_vars)
 }
 \arguments{
 \item{local_clone_dir_single}{(\link{character})\cr
@@ -17,12 +12,6 @@ Directory path for single package clone}
 
 \item{env_vars}{(\link{list})\cr
 Environment variables list for package installation}
-
-\item{deps_verbose}{(\link{logical})\cr
-Whether to enable verbose output via env var \code{PKG_SYSREQS_VERBOSE}}
-
-\item{is_debug}{(\link{logical})\cr
-Whether to enable debug logging}
 }
 \value{
 Invisible NULL

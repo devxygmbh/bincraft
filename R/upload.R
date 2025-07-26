@@ -5,7 +5,6 @@
 #' @template param-s3_endpoint
 #' @template param-s3_region
 #' @template param-s3_bucket
-#' @template param-is_debug
 #' @template param-is_r_minor_sensitive
 #' @template param-local_output_dir_root
 #' @template param-force
@@ -24,12 +23,11 @@ upload_single_binary <- function(
     codename = NULL,
     force = FALSE,
     is_r_minor_sensitive = FALSE,
-    is_debug = FALSE,
     s3_access_key_id = NULL,
     s3_secret_access_key = NULL) {
   codename <- set_codename(codename)
 
-  cli::cli_h2("Uploading ({.pkg {package_name[1]}})")
+  log_header(sprintf("Uploading ({.pkg %s})", package_name[1L]))
 
   local_bin_path <- set_bin_path(local_output_dir_root = local_output_dir_root, codename)
   remote_bin_path <- set_bin_path(local_output_dir_root = s3_bucket, codename)
@@ -39,16 +37,14 @@ upload_single_binary <- function(
 
 
   if (!file.exists(local_tarball_path)) {
-    cli::cli_alert(
-      "{.fun upload_single_binary}: File {.pkg {package_name}} {.field {tag}} does not exist locally - skipping upload." # nolint
+    log_info(
+      sprintf("{.fun upload_single_binary}: File {.pkg %s} {.field %s} does not exist locally - skipping upload.", package_name, tag) # nolint
     )
     return(TRUE)
   }
 
-  if (is_debug) {
-    cli::cli_alert_warning("DEBUG: local_bin_path: {local_bin_path}")
-    cli::cli_alert_warning("DEBUG: remote_bin_path: {remote_bin_path}")
-  }
+  log_debug(sprintf("DEBUG: local_bin_path: %s", local_bin_path))
+  log_debug(sprintf("DEBUG: remote_bin_path: %s", remote_bin_path))
 
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
@@ -79,12 +75,12 @@ upload_single_binary <- function(
 
   if (should_upload) {
     if (file_exists && force) {
-      cli::cli_alert_info(
-        "{.fun upload_single_binary}: Force uploading package {.pkg {package_name}} {.field {tag}} to {.path {remote_tarball_path}} because {.code force = TRUE} was set." # nolint
+      log_info(
+        sprintf("{.fun upload_single_binary}: Force uploading package {.pkg %s} {.field %s} to {.path %s} because {.code force = TRUE} was set.", package_name, tag, remote_tarball_path) # nolint
       )
     } else {
-      cli::cli_alert(
-        "{.fun upload_single_binary}: Uploading {.pkg {package_name}} {.field {tag}} to {.path {remote_tarball_path}}."
+      log_info(
+        sprintf("{.fun upload_single_binary}: Uploading {.pkg %s} {.field %s} to {.path %s}.", package_name, tag, remote_tarball_path)
       )
     }
 
@@ -100,14 +96,14 @@ upload_single_binary <- function(
 
     do.call(s3fs::s3_file_upload, upload_args)
 
-    cli::cli_alert_success("Successfully uploaded package {.pkg {package_name}} with tag {.field {tag}}.")
-    cli::cli_alert(
-      "{.fun upload_single_binary}: Deleting binary for {.pkg {package_name}} {.field {tag}} at path {.path {local_tarball_path}}." # nolint line_length_linter
+    log_success(sprintf("Successfully uploaded package {.pkg %s} with tag {.field %s}.", package_name, tag))
+    log_info(
+      sprintf("{.fun upload_single_binary}: Deleting binary for {.pkg %s} {.field %s} at path {.path %s}.", package_name, tag, local_tarball_path) # nolint line_length_linter
     )
     file.remove(local_tarball_path)
   } else {
-    cli::cli_alert(
-      "{.fun upload_single_binary}: Package {.pkg {package_name}} {.field {tag}} already exists in S3. Skipping upload."
+    log_info(
+      sprintf("{.fun upload_single_binary}: Package {.pkg %s} {.field %s} already exists in S3. Skipping upload.", package_name, tag)
     )
   }
 }
@@ -148,7 +144,7 @@ upload_source_tarball <- function(
 
   codename <- set_codename(codename)
   remote_bin_path <- set_bin_path(local_output_dir_root = s3_bucket, codename)
-  version <- strsplit(gh::gh(sprintf("GET /repos/cran/%s/commits", package_name))[[1]]$commit$message, "version ")[[1]][2] # nolint
+  version <- strsplit(gh::gh(sprintf("GET /repos/cran/%s/commits", package_name))[[1L]]$commit$message, "version ")[[1L]][2] # nolint
 
   tmpfile <- tempfile()
   # this can fail, e.g. if there was a new package published and shortly
@@ -184,7 +180,7 @@ upload_source_tarball <- function(
   )
   if (!download_successful) {
     cli::cli_alert_warning(
-      "Failure downloading source tarball for package {.pkg {package_name}} ({.field {version}})"
+      sprintf("Failure downloading source tarball for package %s (%s)", package_name, version)
     )
     return(TRUE)
   }
@@ -204,6 +200,5 @@ upload_source_tarball <- function(
 
   s3fs::s3_file_upload(tmpfile, upload_path, overwrite = TRUE)
 
-  cli::cli_alert("Successfully uploaded source tarball for package
-    {.pkg {package_name}} {.field {version}} to {.path {upload_path}}.")
+  cli::cli_alert(sprintf("Successfully uploaded source tarball for package %s %s to %s.", package_name, version, upload_path))
 }

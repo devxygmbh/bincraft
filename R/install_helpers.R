@@ -35,7 +35,7 @@ cleanup_stale_locks <- function(cache_dir = NULL, max_age = 300L) {
           units = "secs"
         ))
         if (file_age > max_age) {
-          cli::cli_alert_info("Removing stale lock file: {basename(lock_file)}")
+          cli::cli_alert_info(sprintf("Removing stale lock file: %s", basename(lock_file)))
           unlink(lock_file, force = TRUE)
         }
       }
@@ -87,7 +87,7 @@ acquire_pak_mutex <- function(
               if (lock_age > 300L) {
                 unlink(mutex_file, force = TRUE)
                 cli::cli_alert_info(
-                  "Removed stale {operation_type} lock (age: {round(lock_age/60, 1)} min)"
+                  sprintf("Removed stale %s lock (age: %s min)", operation_type, round(lock_age / 60L, 1L))
                 )
               }
             }
@@ -268,14 +268,11 @@ perform_aggressive_cleanup <- function() {
 #' @template param-package_name
 #' @template param-tag
 #' @template param-local_clone_dir_single
-#' @template param-is_debug
 #' @return Invisible NULL
-clone_package_repo <- function(package_name, tag, local_clone_dir_single, is_debug) {
-  if (is_debug) {
-    cli::cli_alert(
-      "Cloning package {.pkg {package_name[1L]}} with tag {.field {tail(tag, 1L)}}."
-    )
-  }
+clone_package_repo <- function(package_name, tag, local_clone_dir_single) {
+  log_debug(
+    sprintf("Cloning package {.pkg %s} with tag {.field %s}.", package_name[1L], tail(tag, 1L))
+  )
 
   if (!dir.exists(local_clone_dir_single)) {
     system2(
@@ -297,33 +294,24 @@ clone_package_repo <- function(package_name, tag, local_clone_dir_single, is_deb
 #'
 #' @template param-local_clone_dir_single
 #' @template param-env_vars
-#' @template param-deps_verbose
-#' @template param-is_debug
 #' @return Invisible NULL
-run_pak_install_with_mutex <- function(local_clone_dir_single, env_vars, deps_verbose, is_debug) {
+run_pak_install_with_mutex <- function(local_clone_dir_single, env_vars) {
   mutex_file <- NULL
   tryCatch(
     {
-      if (is_debug) {
-        cli::cli_alert_info("Acquiring pak install mutex...")
-      }
+      log_debug("Acquiring pak install mutex...")
       mutex_file <- acquire_pak_mutex("install", timeout_seconds = 180L)
-      if (is_debug) {
-        cli::cli_alert_success("Pak install mutex acquired")
-      }
+      log_debug("Pak install mutex acquired")
 
       tryCatch(
         {
           retry_with_backoff(function() {
             withr::with_envvar(env_vars, {
-              if (deps_verbose) {
-                pak::local_install_deps(sprintf("%s", local_clone_dir_single))
-              } else {
-                suppressMessages(pak::local_install_deps(sprintf(
-                  "%s",
-                  local_clone_dir_single
-                )))
-              }
+              # Default to non-verbose (suppressed messages)
+              suppressMessages(pak::local_install_deps(sprintf(
+                "%s",
+                local_clone_dir_single
+              )))
             })
           })
         },
@@ -350,9 +338,7 @@ run_pak_install_with_mutex <- function(local_clone_dir_single, env_vars, deps_ve
       # Always release the mutex
       if (!is.null(mutex_file)) {
         release_pak_mutex(mutex_file)
-        if (is_debug) {
-          cli::cli_alert_info("Pak install mutex released")
-        }
+        log_debug("Pak install mutex released")
       }
     }
   )
@@ -388,7 +374,7 @@ retry_with_backoff <- function(
           # For dependency resolution errors and other non-retryable errors, fail immediately
           if (error_classification$is_dependency_error) {
             cli::cli_alert_danger(
-              "Dependency resolution error (not retryable): {error_msg}"
+              sprintf("Dependency resolution error (not retryable): %s", error_msg)
             )
           }
           stop(e, call. = FALSE)
@@ -396,7 +382,7 @@ retry_with_backoff <- function(
 
         if (attempt >= max_attempts) {
           cli::cli_alert_danger(
-            "All {max_attempts} attempts failed. Giving up."
+            sprintf("All %s attempts failed. Giving up.", max_attempts)
           )
           stop(e, call. = FALSE)
         }

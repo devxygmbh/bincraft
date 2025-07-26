@@ -89,7 +89,7 @@ clean_duplicated_packages <- function(old_versions) {
   if (anyDuplicated(s3fs::s3_file_info(old_versions)$key) > 0L) {
     for (i in old_versions) {
       if (anyDuplicated(s3fs::s3_file_info(i)$key)) {
-        cli::cli_alert_danger("{.field {i}} is duplicated, deleting it.")
+        cli::cli_alert_danger(sprintf("{.field %s} is duplicated, deleting it.", i))
         s3fs::s3_file_delete(i)
         old_versions <- setdiff(old_versions, i)
       }
@@ -110,7 +110,7 @@ clean_duplicated_packages <- function(old_versions) {
 #' @template param-files
 #' @return Invisible NULL
 archive_single_package <- function(package_name, remote_bin_dir, is_r_minor_sensitive, minor_version, files) {
-  cli::cli_h2("Archiving ({.pkg {package_name}})")
+  log_header(sprintf("Archiving ({.pkg %s})", package_name))
 
   remote_search_path <- get_remote_search_path(remote_bin_dir, is_r_minor_sensitive, minor_version, package_name)
 
@@ -122,7 +122,7 @@ archive_single_package <- function(package_name, remote_bin_dir, is_r_minor_sens
 
   # only archive if more than one package exists in the root
   if (length(all_versions) <= 1L) {
-    cli::cli_alert("Skipping {.pkg {package_name}} as only one package versions exists.")
+    log_info(sprintf("Skipping {.pkg %s} as only one package versions exists.", package_name))
     return(invisible(NULL))
   }
 
@@ -136,20 +136,15 @@ archive_single_package <- function(package_name, remote_bin_dir, is_r_minor_sens
   # Find old versions
   result <- find_old_versions(all_versions, package_name, package_name, last_version)
   old_versions <- result$old_versions
-  latest_index <- result$index # Used in cli::cli_alert message below
+  latest_index <- result$index # Used in log message below
 
   old_versions <- clean_duplicated_packages(old_versions)
 
   if (length(old_versions) > 0L) {
     archive_path <- get_archive_path(remote_bin_dir, is_r_minor_sensitive, minor_version, package_name, old_versions)
 
-    latest_files <- basename(all_versions[latest_index])
-    cli::cli_alert(sprintf(
-      "Archiving %s to %s, keeping %s.",
-      toString(basename(old_versions)),
-      toString(archive_path),
-      toString(latest_files)
-    ))
+    latest_files <- basename(all_versions[latest_index]) # nolint object_usage_linter
+    log_info(sprintf("Archiving %s to %s, keeping %s.", toString(basename(old_versions)), toString(archive_path), toString(latest_files))) # nolint line_length_linter
 
     s3fs::s3_file_move(
       old_versions,
@@ -158,6 +153,6 @@ archive_single_package <- function(package_name, remote_bin_dir, is_r_minor_sens
       overwrite = TRUE
     )
 
-    cli::cli_alert_success("Successfully archived package {.pkg {package_name}}.")
+    cli::cli_alert_success(sprintf("Successfully archived package {.pkg %s}.", package_name))
   }
 }

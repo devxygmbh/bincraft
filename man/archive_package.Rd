@@ -13,7 +13,6 @@ archive_package(
   is_r_minor_sensitive = FALSE,
   local_output_dir_root = ".",
   arch = NULL,
-  is_debug = FALSE,
   s3_access_key_id = NULL,
   s3_secret_access_key = NULL
 )
@@ -43,9 +42,6 @@ Path to local build root}
 
 \item{arch}{(\link{character})\cr
 Architecture}
-
-\item{is_debug}{(\link{logical})\cr
-Whether to enable debug logging}
 
 \item{s3_access_key_id}{(\link{character})\cr
 S3 access key ID}

@@ -33,7 +33,6 @@
 #' @template param-process_removed
 #' @template param-s3-access-key-id
 #' @template param-s3-secret-access-key
-#' @template param-is_debug
 #'
 #' @importFrom dplyr bind_rows pull filter
 #' @importFrom purrr walk2
@@ -82,8 +81,7 @@ process_cran_updates <- function(
     process_new = TRUE,
     process_removed = TRUE,
     s3_access_key_id = NULL,
-    s3_secret_access_key = NULL,
-    is_debug = FALSE) {
+    s3_secret_access_key = NULL) {
   if (is.null(s3_endpoint)) {
     stop("s3_endpoint must be defined", call. = FALSE)
   }
@@ -98,7 +96,7 @@ process_cran_updates <- function(
     removed_pkgs <- get_removed_cran_packages(interval)
     cli::cli_par()
     cli::cli_end()
-    cli::cli_alert_success("{.fun process_cran_updates}: Removed packages:")
+    log_success("{.fun process_cran_updates}: Removed packages:")
     print(removed_pkgs)
 
     s3fs::s3_file_system(
@@ -123,12 +121,12 @@ process_cran_updates <- function(
     files <- s3fs::s3_dir_ls(remote_bin_dir)
 
     lapply(removed_pkgs$name, function(.x) {
-      cli::cli_alert("{.fun process_cran_updates}: Removing package {.pkg {.x}} from S3.")
+      cli::cli_alert(sprintf("{.fun process_cran_updates}: Removing package {.pkg %s} from S3.", .x))
       files_filtered <- grep(sprintf("/%s_", .x), files, value = TRUE)
       if (length(files_filtered) > 0L) {
         s3fs::s3_file_delete(files_filtered)
-        cli::cli_alert_success(
-          "{.fun process_cran_updates}: Successfully removed {.pkg {basename(files_filtered)}} from S3."
+        log_success(
+          sprintf("{.fun process_cran_updates}: Successfully removed {.pkg %s} from S3.", toString(basename(files_filtered)))
         )
         remove_from_metadata(
           .x,
@@ -208,7 +206,6 @@ process_cran_updates <- function(
         s3_access_key_id = s3_access_key_id,
         s3_secret_access_key = s3_secret_access_key,
         is_r_minor_sensitive = filter_r_minor_sensitive,
-        is_debug = is_debug,
         metadata_db_type = metadata_db_type,
         metadata_db_host = metadata_db_host,
         metadata_db_name = metadata_db_name,

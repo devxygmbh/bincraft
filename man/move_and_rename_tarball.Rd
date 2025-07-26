@@ -4,13 +4,7 @@
 \alias{move_and_rename_tarball}
 \title{Move and rename built tarball files}
 \usage{
-move_and_rename_tarball(
-  package_name,
-  tag,
-  binary_output_path,
-  system_info,
-  is_debug
-)
+move_and_rename_tarball(package_name, tag, binary_output_path, system_info)
 }
 \arguments{
 \item{package_name}{(\link{character})\cr
@@ -24,9 +18,6 @@ Local output path for binaries}
 
 \item{system_info}{(\link{list})\cr
 List with system architecture information}
-
-\item{is_debug}{(\link{logical})\cr
-Whether to enable debug logging}
 }
 \value{
 Invisible NULL

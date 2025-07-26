@@ -38,7 +38,7 @@ store_build_metadata <- function(
     build_duration = NA,
     size = NA) {
   if (metadata_db_type == "postgres" && !requireNamespace("RPostgres", quietly = TRUE)) {
-    cli::cli_alert_info(paste0(
+    log_info(paste0(
       "{.function store_build_metadata}: {.pkg RPostgres} must be installed ",
       "when ` metadata_db_type = 'postgres'`"
     ))
@@ -68,9 +68,9 @@ store_build_metadata <- function(
   )()
 
   if (nrow(existing_entries) >= 1L && !force) {
-    cli::cli_alert("{.fun store_build_metadata}: Build metadata for {.field {.pkg {package_name}}} {.field {tag}} already exists.") # nolint
+    log_info(sprintf("{.fun store_build_metadata}: Build metadata for {.pkg %s} {.field %s} already exists.", package_name, tag)) # nolint
   } else if (nrow(existing_entries) >= 1L && force) {
-    cli::cli_alert_info("{.fun store_build_metadata}: Force overwriting build metadata for {.pkg {package_name}} {.field {tag}} ({platform}) because {.code force = TRUE} was set.") # nolint
+    log_info(sprintf("{.fun store_build_metadata}: Force overwriting build metadata for {.pkg %s} {.field %s} (%s) because {.code force = TRUE} was set.", package_name, tag, platform)) # nolint
 
     query <- paste0(
       "UPDATE ", table_name, " SET timestamp = $1, error_occurred = $2, error_text = $3, ",
@@ -99,7 +99,7 @@ store_build_metadata <- function(
       rate = retry_config, quiet = FALSE
     )()
   } else if (nrow(existing_entries) == 0L) {
-    cli::cli_alert("Storing build metadata for {.pkg {package_name}} {.field {tag}}.")
+    log_info(sprintf("Storing build metadata for {.pkg %s} {.field %s}.", package_name, tag))
     # if no entry exists already, we can insert the info via dbWriteTable by passing a DF
     metadata <- data.frame( # nolint
       name = package_name,
