@@ -30,9 +30,9 @@ steps:
       # docs/ is in gitignore
       - mv docs/ /tmp/public
       - mv .git /tmp/.git
-      - mv statichost.yml /tmp/statichost.yml
+      - mv statichost.yaml /tmp/statichost.yaml
       - rm -rf ./* .[^.]* ..?*
-      - mv /tmp/public/* ./ && mv /tmp/.git ./ && mv /tmp/statichost.yml .
+      - mv /tmp/public/* ./ && mv /tmp/.git ./ && mv /tmp/statichost.yaml .
 
   - name: 'Push changes to branch'
     image: docker.io/appleboy/drone-git-push:1.1.1
