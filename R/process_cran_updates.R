@@ -121,7 +121,7 @@ process_cran_updates <- function(
     files <- s3fs::s3_dir_ls(remote_bin_dir)
 
     lapply(removed_pkgs$name, function(.x) {
-      cli::cli_alert(sprintf("{.fun process_cran_updates}: Removing package {.pkg %s} from S3.", .x))
+      log_info(sprintf("{.fun process_cran_updates}: Removing package {.pkg %s} from S3.", .x))
       files_filtered <- grep(sprintf("/%s_", .x), files, value = TRUE)
       if (length(files_filtered) > 0L) {
         s3fs::s3_file_delete(files_filtered)
@@ -139,11 +139,11 @@ process_cran_updates <- function(
           metadata_db_password = metadata_db_password,
           metadata_db_sslmode = metadata_db_sslmode
         )
-        cli::cli_alert_success(
-          "{.fun process_cran_updates}: Successfully set {.pkg {.x}} as 'removed' in metadata table."
+        log_success(
+          sprintf("{.fun process_cran_updates}: Successfully set {.pkg %s} as 'removed' in metadata table.", .x)
         )
       } else {
-        cli::cli_alert("{.fun process_cran_updates}: No tarballs found for package {.pkg {.x}} - already removed?")
+        log_info(sprintf("{.fun process_cran_updates}: No tarballs found for package {.pkg %s} - already removed?", .x))
       }
     })
   }
@@ -165,15 +165,15 @@ process_cran_updates <- function(
     cli::cli_end()
 
     if (filter_r_minor_sensitive) {
-      cli::cli_alert_success("{.fun process_cran_updates}: Packages to process:")
+      log_success("{.fun process_cran_updates}: Packages to process:")
       print(all_pkgs)
     } else {
-      cli::cli_alert_success("{.fun process_cran_updates}: Updated packages:")
+      log_success("{.fun process_cran_updates}: Updated packages:")
       print(updated_pkgs)
 
       cli::cli_par()
       cli::cli_end()
-      cli::cli_alert_success("{.fun process_cran_updates}: New packages:")
+      log_success("{.fun process_cran_updates}: New packages:")
       print(new_pkgs)
     }
 
@@ -191,8 +191,9 @@ process_cran_updates <- function(
     )()
 
     all_pkgs <- filter(all_pkgs, `name` %nin% win_only)
-
-    purrr::walk2(all_pkgs$name, all_pkgs$version, ~ {
+    
+    if (nrow(all_pkgs) > 0) {
+      purrr::walk2(all_pkgs$name, all_pkgs$version, ~ {
       build_binary_package(
         .x, .y,
         platform = platform,
@@ -216,6 +217,9 @@ process_cran_updates <- function(
         metadata_db_sslmode = metadata_db_sslmode
       )
     })
+    } else {
+      log_info("No packages to process after filtering Windows-only packages")
+    }
   }
 }
 
@@ -264,7 +268,7 @@ get_r_minor_sensitive_packages <- function(
 
   if (!is.null(interval)) {
     if (length(sensitive_pkgs_to_process) == 0L) {
-      cli::cli_alert_info(
+      log_info(
         "No R sensitive packages found in packages to be processed. Exiting."
       )
       return(invisible(TRUE))

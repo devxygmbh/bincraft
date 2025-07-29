@@ -35,7 +35,7 @@ cleanup_stale_locks <- function(cache_dir = NULL, max_age = 300L) {
           units = "secs"
         ))
         if (file_age > max_age) {
-          cli::cli_alert_info(sprintf("Removing stale lock file: %s", basename(lock_file)))
+          log_info(sprintf("Removing stale lock file: %s", basename(lock_file)))
           unlink(lock_file, force = TRUE)
         }
       }
@@ -86,7 +86,7 @@ acquire_pak_mutex <- function(
               # Remove locks older than 5 minutes
               if (lock_age > 300L) {
                 unlink(mutex_file, force = TRUE)
-                cli::cli_alert_info(
+                log_info(
                   sprintf("Removed stale %s lock (age: %s min)", operation_type, round(lock_age / 60L, 1L))
                 )
               }
@@ -227,7 +227,7 @@ setup_installation_env_vars <- function(platform) {
 #'
 #' @return Invisible NULL
 perform_aggressive_cleanup <- function() {
-  cli::cli_alert_info("Performing aggressive pak cache cleanup...")
+  log_info("Performing aggressive pak cache cleanup...")
 
   additional_cache_paths <- c(
     file.path("/mnt", "cache", "pkgcache"),
@@ -325,7 +325,7 @@ run_pak_install_with_mutex <- function(local_clone_dir_single, env_vars) {
               ignore.case = TRUE
             )
           ) {
-            cli::cli_alert_info(paste0(
+            log_info(paste0(
               "This appears to be a dependency version conflict. ",
               "Check if the package version is compatible with current R package versions."
             ))
@@ -373,7 +373,7 @@ retry_with_backoff <- function(
         if (!error_classification$should_retry) {
           # For dependency resolution errors and other non-retryable errors, fail immediately
           if (error_classification$is_dependency_error) {
-            cli::cli_alert_danger(
+            log_error(
               sprintf("Dependency resolution error (not retryable): %s", error_msg)
             )
           }
@@ -381,14 +381,14 @@ retry_with_backoff <- function(
         }
 
         if (attempt >= max_attempts) {
-          cli::cli_alert_danger(
+          log_error(
             sprintf("All %s attempts failed. Giving up.", max_attempts)
           )
           stop(e, call. = FALSE)
         }
 
         delay <- min(base_delay * (2L^(attempt - 1L)), max_delay)
-        cli::cli_alert_warning(sprintf(
+        log_warn(sprintf(
           "Attempt %d/%d failed with %s. Retrying in %g seconds...", # nolint
           attempt, max_attempts, error_classification$error_type, delay
         ))

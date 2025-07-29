@@ -325,7 +325,7 @@ move_and_rename_tarball <- function(
   if (file.exists(source_path)) {
     file.rename(source_path, dest_path)
   } else {
-    cli::cli_alert_info(
+    log_info(
       sprintf("{.fun build_single_tag}: File for package {.pkg %s} {.field %s} at {.path %s} does not exist - skipping.", package_name, tag, source_path) # nolint line_length_linter
     )
     log_debug(sprintf("Listing dir 'binary_output_path': %s", binary_output_path))

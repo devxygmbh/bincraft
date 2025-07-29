@@ -554,7 +554,7 @@ execute_package_builds <- function(
       },
       error = function(e) {
         log_warn(
-          sprintf("Error in building package %s with tag %s: %s", x, y, e)
+          sprintf("Error in building package %s with tag %s: %s", x, y, conditionMessage(e))
         )
         local_clone_dir_single <- file.path(
           local_clone_dir,
@@ -568,7 +568,7 @@ execute_package_builds <- function(
           error_occurred = TRUE,
           arch = arch,
           force = TRUE,
-          error = e$stderr,
+          error = conditionMessage(e),
           metadata_db_host = metadata_db_host,
           metadata_db_name = metadata_db_name,
           metadata_db_port = metadata_db_port,
@@ -686,7 +686,12 @@ determine_packages_to_build <- function(
 
     if (!is.null(s3_result$filtered_tags)) {
       tag <- s3_result$filtered_tags
-      package_name <- rep(package_name, length(tag))
+      if (length(tag) > 0) {
+        package_name <- rep(package_name, length(tag))
+      } else {
+        # If no tags remain after filtering, skip this package
+        return(list(should_skip = TRUE))
+      }
     }
   }
 
@@ -1009,10 +1014,6 @@ build_single_tag <- function(
     metadata_db_user = NULL,
     metadata_db_password = NULL,
     metadata_db_sslmode = NULL) {
-  cli::cli_par()
-  cli::cli_end()
-  cli::cli_rule(sprintf("%s %s", package_name, tag))
-
   log_debug(
     sprintf("{.fun build_single_tag}: Cloning package {.pkg %s} with tag {.field %s}.", package_name, tag)
   )
@@ -1333,7 +1334,8 @@ execute_package_build <- function(
     metadata_db_password,
     metadata_db_user,
     metadata_db_sslmode) {
-  log_info(
+      
+  log_header(
     sprintf("Building package {.pkg %s} with tag {.field %s}.", package_name, tag)
   )
 

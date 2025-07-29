@@ -179,7 +179,7 @@ upload_source_tarball <- function(
     }
   )
   if (!download_successful) {
-    cli::cli_alert_warning(
+    log_warn(
       sprintf("Failure downloading source tarball for package %s (%s)", package_name, version)
     )
     return(TRUE)
@@ -200,5 +200,5 @@ upload_source_tarball <- function(
 
   s3fs::s3_file_upload(tmpfile, upload_path, overwrite = TRUE)
 
-  cli::cli_alert(sprintf("Successfully uploaded source tarball for package %s %s to %s.", package_name, version, upload_path))
+  log_success(sprintf("Successfully uploaded source tarball for package %s %s to %s.", package_name, version, upload_path))
 }

@@ -89,7 +89,7 @@ clean_duplicated_packages <- function(old_versions) {
   if (anyDuplicated(s3fs::s3_file_info(old_versions)$key) > 0L) {
     for (i in old_versions) {
       if (anyDuplicated(s3fs::s3_file_info(i)$key)) {
-        cli::cli_alert_danger(sprintf("{.field %s} is duplicated, deleting it.", i))
+        log_error(sprintf("{.field %s} is duplicated, deleting it.", i))
         s3fs::s3_file_delete(i)
         old_versions <- setdiff(old_versions, i)
       }
@@ -153,6 +153,6 @@ archive_single_package <- function(package_name, remote_bin_dir, is_r_minor_sens
       overwrite = TRUE
     )
 
-    cli::cli_alert_success(sprintf("Successfully archived package {.pkg %s}.", package_name))
+    log_success(sprintf("Successfully archived package {.pkg %s}.", package_name))
   }
 }
