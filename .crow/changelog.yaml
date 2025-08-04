@@ -1,6 +1,6 @@
 clone:
   git:
-    image: docker.io/thegeeklab/wp-git-clone:1.0.20
+    image: docker.io/thegeeklab/wp-git-clone:1.0.21
     settings:
       tags: true
 
