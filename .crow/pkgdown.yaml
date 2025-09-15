@@ -7,14 +7,14 @@ when:
 
 steps:
   - name: Replace version for release runs
-    image: alpine:3.22
+    image: reg.devxy.io/docker.io/library/alpine:3.22
     commands:
       - "sed -i 's/Version: .*/Version: ${CI_COMMIT_TAG#v}/' DESCRIPTION"
     when:
       - event: tag
 
   - name: Build pkgdown
-    image: docker.io/devxygmbh/r-alpine:4.5-3.22
+    image: reg.devxy.io/r/r-alpine:4.5-3.22
     environment:
       GITHUB_PAT:
         from_secret: GITHUB_PAT
@@ -35,7 +35,7 @@ steps:
       - mv /tmp/public/* ./ && mv /tmp/.git ./ && mv /tmp/statichost.yaml .
 
   - name: 'Push changes to branch'
-    image: docker.io/appleboy/drone-git-push:1.1.1
+    image: reg.devxy.io/docker.io/appleboy/drone-git-push:1.1.1
     settings:
       remote: ${CI_REPO_CLONE_SSH_URL}
       branch: pkgdown

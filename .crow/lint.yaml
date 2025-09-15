@@ -5,15 +5,15 @@ when:
 
 steps:
   - name: editorconfig
-    image: docker.io/mstruebing/editorconfig-checker:v3.4.0
+    image: reg.devxy.io/docker.io/mstruebing/editorconfig-checker:v3.4.0
     depends_on: []
 
   - name: prettier
-    image: docker.io/woodpeckerci/plugin-prettier:1.3.1
+    image: reg.devxy.io/docker.io/woodpeckerci/plugin-prettier:1.3.1
     depends_on: []
 
   - name: lint-r
-    image: docker.io/devxygmbh/r-alpine:4-3.22
+    image: reg.devxy.io/r/r-alpine:4-3.22
     environment:
       LINTR_ERROR_ON_LINT: true
     commands:
@@ -23,14 +23,14 @@ steps:
       - R -q -e 'pkgload::load_all(); lintr::lint_package()'
 
   - name: styler
-    image: docker.io/devxygmbh/r-alpine:4-3.22
+    image: reg.devxy.io/r/r-alpine:4-3.22
     commands:
       - R -q -e 'install.packages("pak", repos = sprintf("https://r-lib.github.io/p/pak/stable/%s/%s/%s", .Platform$pkgType, R.Version()$os, R.Version()$arch))'
       - R -q -e 'pak::pak(c("styler", "roxygen2"))'
       - R -q -e 'styler::style_pkg(dry = "fail")'
 
   - name: lint-markdown
-    image: davidanson/markdownlint-cli2:v0.18.1
+    image: reg.devxy.io/docker.io/davidanson/markdownlint-cli2:v0.18.1
     depends_on: []
     commands:
       - 'markdownlint-cli2 *.{md,markdown}'

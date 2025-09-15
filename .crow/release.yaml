@@ -3,7 +3,7 @@ when:
 
 clone:
   git:
-    image: docker.io/woodpeckerci/plugin-git:2.6.5
+    image: codeberg.org/crow-plugins/clone:1.0.1
     settings:
       tags: true
 
@@ -12,7 +12,7 @@ depends_on:
 
 steps:
   changelog:
-    image: docker.io/thegeeklab/git-sv:2.0.5
+    image: reg.devxy.io/docker.io/thegeeklab/git-sv:2.0.5
     commands:
       - apk add --no-cache -q sed
       # replace version in DESCRIPTION
@@ -25,7 +25,7 @@ steps:
       event: tag
 
   'Create release':
-    image: docker.io/woodpeckerci/plugin-release:0.2.5
+    image: reg.devxy.io/docker.io/woodpeckerci/plugin-release:0.2.5
     settings:
       note: CHANGELOG.md
       api_key:
@@ -37,7 +37,7 @@ steps:
       event: tag
 
   'Push changes to repo':
-    image: docker.io/appleboy/drone-git-push:1.1.1
+    image: reg.devxy.io/docker.io/appleboy/drone-git-push:1.1.1
     settings:
       remote: ${CI_REPO_CLONE_SSH_URL}
       branch: main
