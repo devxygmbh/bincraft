@@ -266,10 +266,16 @@ initialize_build_environment <- function(
 
   dir_out_src <- file.path(local_output_dir_root, "src", "contrib", "Archive")
   log_debug(
-    sprintf("{.fun build_binary_package}: Creating bin dir {.path %s}.", binary_output_path)
+    sprintf(
+      "{.fun build_binary_package}: Creating bin dir {.path %s}.",
+      binary_output_path
+    )
   )
   log_debug(
-    sprintf("{.fun build_binary_package}: Creating src dir {.path %s}.", dir_out_src)
+    sprintf(
+      "{.fun build_binary_package}: Creating src dir {.path %s}.",
+      dir_out_src
+    )
   )
   dir.create(
     file.path(binary_output_path, "Archive"),
@@ -326,7 +332,11 @@ filter_tags <- function(package_name, tag, source_org_url, tag_limit) {
         tag_limit <- length(all_tags)
       } else {
         log_info(
-          sprintf("{.fun filter_tags}: Filtered for the %s most recent tags (out of {.field %s} total)", tag_limit, length(all_tags))
+          sprintf(
+            "{.fun filter_tags}: Filtered for the %s most recent tags (out of {.field %s} total)",
+            tag_limit,
+            length(all_tags)
+          )
         )
       }
       tags <- all_tags[1L:tag_limit]
@@ -376,8 +386,13 @@ filter_packages_with_errors <- function(
 
   tryCatch(
     {
-      if (metadata_db_type != "postgres" || !requireNamespace("RPostgres", quietly = TRUE)) {
-        log_warn("Error checking is currently only supported for postgres databases.")
+      if (
+        metadata_db_type != "postgres" ||
+          !requireNamespace("RPostgres", quietly = TRUE)
+      ) {
+        log_warn(
+          "Error checking is currently only supported for postgres databases."
+        )
         return(pkg_differences)
       }
 
@@ -400,10 +415,15 @@ filter_packages_with_errors <- function(
 
       for (i in seq_along(pkg_tag_pairs)) {
         pair <- pkg_tag_pairs[[i]]
-        if (check_package_error(con, table_name, pair, platform, arch)) { # nolint: object_usage_linter
+        if (check_package_error(con, table_name, pair, platform, arch)) {
+          # nolint: object_usage_linter
           packages_with_errors <- c(packages_with_errors, pkg_differences[i])
           log_warn(
-            sprintf("Skipping {.pkg %s} {.field %s} due to previous build error recorded in metadata DB.", pair$pkg, pair$tag)
+            sprintf(
+              "Skipping {.pkg %s} {.field %s} due to previous build error recorded in metadata DB.",
+              pair$pkg,
+              pair$tag
+            )
           )
         }
       }
@@ -414,12 +434,17 @@ filter_packages_with_errors <- function(
         pkg_differences <- setdiff(pkg_differences, packages_with_errors)
         log_info(sprintf(
           "Filtered out %d/%d package(s) due to previous errors. %d package(s) remaining to build.", # nolint nonportable_path_linter
-          length(packages_with_errors), length(pkgs_to_build), length(pkg_differences)
+          length(packages_with_errors),
+          length(pkgs_to_build),
+          length(pkg_differences)
         ))
       }
     },
     error = function(e) {
-      log_warn(sprintf("Could not check metadata DB for previous errors: %s", e$message))
+      log_warn(sprintf(
+        "Could not check metadata DB for previous errors: %s",
+        e$message
+      ))
     }
   )
 
@@ -532,7 +557,11 @@ execute_package_builds <- function(
           )
         } else if (result != "skipped") {
           log_warn(
-            sprintf("Error in building package %s with tag %s: Uncommon/unspecific error during build.", x, y)
+            sprintf(
+              "Error in building package %s with tag %s: Uncommon/unspecific error during build.",
+              x,
+              y
+            )
           )
           store_build_metadata(
             x,
@@ -554,7 +583,12 @@ execute_package_builds <- function(
       },
       error = function(e) {
         log_warn(
-          sprintf("Error in building package %s with tag %s: %s", x, y, conditionMessage(e))
+          sprintf(
+            "Error in building package %s with tag %s: %s",
+            x,
+            y,
+            conditionMessage(e)
+          )
         )
         local_clone_dir_single <- file.path(
           local_clone_dir,
@@ -686,12 +720,11 @@ determine_packages_to_build <- function(
 
     if (!is.null(s3_result$filtered_tags)) {
       tag <- s3_result$filtered_tags
-      if (length(tag) > 0) {
-        package_name <- rep(package_name, length(tag))
-      } else {
+      if (length(tag) == 0L) {
         # If no tags remain after filtering, skip this package
         return(list(should_skip = TRUE))
       }
+      package_name <- rep(package_name, length(tag))
     }
   }
 
@@ -761,7 +794,10 @@ check_s3_packages <- function(
 
   # get last CRAN version to search for it in S3 root
   last_version <- strsplit(
-    gh::gh(sprintf("GET %s", paste("/repos", "cran", package_name, "commits", sep = "/")))[[ # nolint paste_linter
+    gh::gh(sprintf(
+      "GET %s",
+      paste("/repos", "cran", package_name, "commits", sep = "/") # nolint paste_linter
+    ))[[
       1L
     ]]$commit$message,
     "version ",
@@ -769,15 +805,38 @@ check_s3_packages <- function(
   )[[1L]][2L]
 
   # Check if root package exists
-  root_pkg <- check_s3_root_package(remote_bin_path, package_name, last_version, is_r_minor_sensitive, s3_access_key_id, s3_secret_access_key, s3_endpoint, s3_region) # nolint: object_usage_linter
+  root_pkg <- check_s3_root_package(
+    remote_bin_path,
+    package_name,
+    last_version,
+    is_r_minor_sensitive,
+    s3_access_key_id,
+    s3_secret_access_key,
+    s3_endpoint,
+    s3_region
+  ) # nolint: object_usage_linter
   if (!root_pkg) {
     return(list(should_skip = FALSE))
   }
 
   # Get all packages (root + archived) for comparison
-  all_pkgs_s3 <- get_all_s3_packages(remote_bin_path, package_name, last_version, is_r_minor_sensitive, s3_access_key_id, s3_secret_access_key, s3_endpoint, s3_region) # nolint: object_usage_linter
+  all_pkgs_s3 <- get_all_s3_packages(
+    remote_bin_path,
+    package_name,
+    last_version,
+    is_r_minor_sensitive,
+    s3_access_key_id,
+    s3_secret_access_key,
+    s3_endpoint,
+    s3_region
+  ) # nolint: object_usage_linter
 
-  tags_filtered <- process_tag_filtering(tag, package_name, source_org_url, tag_limit) # nolint: object_usage_linter
+  tags_filtered <- process_tag_filtering(
+    tag,
+    package_name,
+    source_org_url,
+    tag_limit
+  ) # nolint: object_usage_linter
 
   pkgs_to_build <- sprintf("%s_%s.tar.gz", package_name, tags_filtered)
 
@@ -799,7 +858,9 @@ check_s3_packages <- function(
   log_info(
     sprintf(
       "Filtered out %d/%d package(s) as they already exist in the remote bucket. %d package(s) potentially remaining to build.", # nolint nonportable_path_linter
-      filtered_count, total_count, remaining_count
+      filtered_count,
+      total_count,
+      remaining_count
     )
   )
 
@@ -848,7 +909,9 @@ check_s3_packages <- function(
   log_info(
     sprintf(
       "Building %d/%d versions as they are not present in the remote bucket: %s",
-      building_count, total_pkg_count, toString(pkg_differences)
+      building_count,
+      total_pkg_count,
+      toString(pkg_differences)
     )
   )
 
@@ -1015,7 +1078,11 @@ build_single_tag <- function(
     metadata_db_password = NULL,
     metadata_db_sslmode = NULL) {
   log_debug(
-    sprintf("{.fun build_single_tag}: Cloning package {.pkg %s} with tag {.field %s}.", package_name, tag)
+    sprintf(
+      "{.fun build_single_tag}: Cloning package {.pkg %s} with tag {.field %s}.",
+      package_name,
+      tag
+    )
   )
 
   local_clone_dir_single <- file.path(
@@ -1026,7 +1093,10 @@ build_single_tag <- function(
   # Clean up any existing clone directory before starting
   if (dir.exists(local_clone_dir_single)) {
     log_debug(
-      sprintf("{.fun build_single_tag}: Removing existing clone directory {.path %s}.", local_clone_dir_single)
+      sprintf(
+        "{.fun build_single_tag}: Removing existing clone directory {.path %s}.",
+        local_clone_dir_single
+      )
     )
     unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
   }
@@ -1157,7 +1227,11 @@ check_build_skip_conditions <- function(
     ))
   ) {
     log_info(
-      sprintf("Tarball for package {.pkg %s} with tag {.field %s} already exists. Skipping build.", package_name, tag)
+      sprintf(
+        "Tarball for package {.pkg %s} with tag {.field %s} already exists. Skipping build.",
+        package_name,
+        tag
+      )
     )
     return(list(should_skip = TRUE, reason = "skipped"))
   }
@@ -1191,7 +1265,8 @@ check_build_skip_conditions <- function(
       log_info(
         sprintf(
           "Package {.pkg %s} with tag {.field %s} already exists in S3 and {.code force = FALSE}. Skipping build.",
-          package_name, tag
+          package_name,
+          tag
         )
       )
       list(should_skip = TRUE, reason = "skipped")
@@ -1278,7 +1353,12 @@ handle_system_dependencies <- function(
     },
     error = function(e) {
       log_warn(
-        sprintf("Error in installing dependencies for package %s with tag %s: %s", package_name[1L], tag[1L], e)
+        sprintf(
+          "Error in installing dependencies for package %s with tag %s: %s",
+          package_name[1L],
+          tag[1L],
+          e
+        )
       )
       store_build_metadata(
         package_name[1L],
@@ -1334,9 +1414,12 @@ execute_package_build <- function(
     metadata_db_password,
     metadata_db_user,
     metadata_db_sslmode) {
-      
   log_header(
-    sprintf("Building package {.pkg %s} with tag {.field %s}.", package_name, tag)
+    sprintf(
+      "Building package {.pkg %s} with tag {.field %s}.",
+      package_name,
+      tag
+    )
   )
 
   quiet <- TRUE # Always quiet since debug is handled by lgr
@@ -1356,7 +1439,10 @@ execute_package_build <- function(
         quiet = quiet
       )
 
-      log_debug(sprintf("Files in binary_output_path: %s", toString(list.files(binary_output_path))))
+      log_debug(sprintf(
+        "Files in binary_output_path: %s",
+        toString(list.files(binary_output_path))
+      ))
 
       build_time <- round(
         as.numeric(difftime(Sys.time(), t1, units = "secs")),
@@ -1366,7 +1452,12 @@ execute_package_build <- function(
     },
     error = function(e) {
       log_warn(
-        sprintf("Error in starting build command for package {.pkg %s} with tag {.field %s}: %s", package_name, tag, e)
+        sprintf(
+          "Error in starting build command for package {.pkg %s} with tag {.field %s}: %s",
+          package_name,
+          tag,
+          e
+        )
       )
       unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
       store_build_metadata(
@@ -1418,7 +1509,11 @@ handle_build_output_files <- function(
 
   if (file.exists(final_tarball_path)) {
     log_warn(
-      sprintf("{.fun build_single_tag}: Binary %s_%s.tar.gz already exists. Skipping copy.", package_name, tag)
+      sprintf(
+        "{.fun build_single_tag}: Binary %s_%s.tar.gz already exists. Skipping copy.",
+        package_name,
+        tag
+      )
     ) # nolint
   } else {
     move_and_rename_tarball(
@@ -1433,7 +1528,10 @@ handle_build_output_files <- function(
   unlink(sprintf("%s/%s_%s_R*.tar.gz", binary_output_path, package_name, tag))
 
   log_info(
-    sprintf("{.fun build_single_tag}: Removing {.path %s}.", local_clone_dir_single)
+    sprintf(
+      "{.fun build_single_tag}: Removing {.path %s}.",
+      local_clone_dir_single
+    )
   )
   unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
 

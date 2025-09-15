@@ -25,32 +25,32 @@ safe_cli_msg <- function(msg) {
     "\\{\\.file [^}]+\\}",
     "\\{\\.var [^}]+\\}"
   )
-  
+
   # Find all valid cli patterns and mark them
   protected_patterns <- list()
   for (i in seq_along(cli_patterns)) {
-    matches <- gregexpr(cli_patterns[i], msg, perl = TRUE)[[1]]
-    if (matches[1] != -1) {
+    matches <- gregexpr(cli_patterns[i], msg, perl = TRUE)[[1L]]
+    if (matches[1L] != -1L) {
       for (j in seq_along(matches)) {
         start_pos <- matches[j]
         length_match <- attr(matches, "match.length")[j]
-        pattern_text <- substr(msg, start_pos, start_pos + length_match - 1)
+        pattern_text <- substr(msg, start_pos, start_pos + length_match - 1L)
         placeholder <- paste0("__CLI_PATTERN_", i, "_", j, "__")
         protected_patterns[[placeholder]] <- pattern_text
         msg <- sub(pattern_text, placeholder, msg, fixed = TRUE)
       }
     }
   }
-  
+
   # Now escape any remaining unmatched braces
-  msg <- gsub("\\{", "{{", msg)
-  msg <- gsub("\\}", "}}", msg)
-  
+  msg <- gsub("\\{", "{{", msg, fixed = TRUE)
+  msg <- gsub("\\}", "}}", msg, fixed = TRUE)
+
   # Restore protected patterns
   for (placeholder in names(protected_patterns)) {
     msg <- sub(placeholder, protected_patterns[[placeholder]], msg, fixed = TRUE)
   }
-  
+
   msg
 }
 
