@@ -25,7 +25,7 @@ steps:
       event: tag
 
   'Create release':
-    image: reg.devxy.io/docker.io/woodpeckerci/plugin-release:0.2.5
+    image: reg.devxy.io/docker.io/woodpeckerci/plugin-release:0.2.6
     settings:
       note: CHANGELOG.md
       api_key:
