@@ -12,14 +12,15 @@
 #' @importFrom s3fs s3_dir_ls s3_file_system
 #' @export
 add_to_package_index <- function(
-    s3_endpoint,
-    s3_region,
-    s3_bucket,
-    package_name = NULL,
-    local_output_dir_root = file.path("mnt", "cache", "binaries"),
-    codename = NULL,
-    s3_access_key_id = NULL,
-    s3_secret_access_key = NULL) {
+  s3_endpoint,
+  s3_region,
+  s3_bucket,
+  package_name = NULL,
+  local_output_dir_root = file.path("mnt", "cache", "binaries"),
+  codename = NULL,
+  s3_access_key_id = NULL,
+  s3_secret_access_key = NULL
+) {
   codename <- set_codename(codename)
 
   local_arch <- Sys.info()[["machine"]]
@@ -86,15 +87,16 @@ add_to_package_index <- function(
 #' @importFrom cranlike update_PACKAGES
 #' @export
 upload_package_index <- function(
-    s3_endpoint,
-    s3_region,
-    s3_bucket,
-    package_name = NULL,
-    local_output_dir_root = ".",
-    codename = NULL,
-    arch = NULL,
-    s3_access_key_id = NULL,
-    s3_secret_access_key = NULL) {
+  s3_endpoint,
+  s3_region,
+  s3_bucket,
+  package_name = NULL,
+  local_output_dir_root = ".",
+  codename = NULL,
+  arch = NULL,
+  s3_access_key_id = NULL,
+  s3_secret_access_key = NULL
+) {
   log_info("Updating PACKAGES* files in S3.")
 
   codename <- set_codename(codename)

@@ -74,16 +74,17 @@ set_bin_path <- function(local_output_dir_root, codename) {
 #' @template param-version
 #' @export
 check_for_binary <- function(
-    package_name,
-    s3_endpoint = NULL,
-    s3_region = NULL,
-    s3_bucket = NULL,
-    codename = NULL,
-    is_r_minor_sensitive = FALSE,
-    arch = NULL,
-    version = "latest",
-    s3_access_key_id = NULL,
-    s3_secret_access_key = NULL) {
+  package_name,
+  s3_endpoint = NULL,
+  s3_region = NULL,
+  s3_bucket = NULL,
+  codename = NULL,
+  is_r_minor_sensitive = FALSE,
+  arch = NULL,
+  version = "latest",
+  s3_access_key_id = NULL,
+  s3_secret_access_key = NULL
+) {
   if (is.null(s3_endpoint)) {
     stop("s3_endpoint must be defined", call. = FALSE)
   }

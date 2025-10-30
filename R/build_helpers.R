@@ -112,8 +112,9 @@ check_root_package_exists <- function(remote_bin_path, package_name, last_versio
 #' @template param-s3_region
 #' @return Character vector of archived package filenames
 list_archived_packages <- function(
-    remote_bin_path, package_name, is_r_minor_sensitive,
-    s3_access_key_id, s3_secret_access_key, s3_endpoint, s3_region) {
+  remote_bin_path, package_name, is_r_minor_sensitive,
+  s3_access_key_id, s3_secret_access_key, s3_endpoint, s3_region
+) {
   # Establish S3 connection
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
@@ -212,8 +213,9 @@ get_system_architecture_info <- function(binary_output_path) {
 #' @template param-s3_region
 #' @return Logical indicating if package exists
 check_s3_root_package <- function(
-    remote_bin_path, package_name, last_version, is_r_minor_sensitive,
-    s3_access_key_id, s3_secret_access_key, s3_endpoint, s3_region) {
+  remote_bin_path, package_name, last_version, is_r_minor_sensitive,
+  s3_access_key_id, s3_secret_access_key, s3_endpoint, s3_region
+) {
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
     aws_secret_access_key = s3_secret_access_key,
@@ -257,8 +259,9 @@ check_s3_root_package <- function(
 #' @template param-s3_region
 #' @return Character vector of all package filenames
 get_all_s3_packages <- function(
-    remote_bin_path, package_name, last_version, is_r_minor_sensitive,
-    s3_access_key_id, s3_secret_access_key, s3_endpoint, s3_region) {
+  remote_bin_path, package_name, last_version, is_r_minor_sensitive,
+  s3_access_key_id, s3_secret_access_key, s3_endpoint, s3_region
+) {
   # Handle case where is_r_minor_sensitive might be empty/NULL
   if (length(is_r_minor_sensitive) == 0L || is.null(is_r_minor_sensitive)) {
     is_r_minor_sensitive <- FALSE
@@ -300,10 +303,11 @@ process_tag_filtering <- function(tag, package_name, source_org_url, tag_limit) 
 #' @template param-system_info
 #' @return Invisible NULL
 move_and_rename_tarball <- function(
-    package_name,
-    tag,
-    binary_output_path,
-    system_info) {
+  package_name,
+  tag,
+  binary_output_path,
+  system_info
+) {
   source_filename <- sprintf(
     "%s_%s_R_%s-%s-linux-%s.tar.gz",
     package_name,

@@ -9,11 +9,12 @@
 #' get_updated_cran_packages()
 #' @export
 get_updated_cran_packages <- function(
-    date_interval = lubridate::interval(
-      lubridate::today() - 7L,
-      lubridate::today()
-    ),
-    limit = 2000L) {
+  date_interval = lubridate::interval(
+    lubridate::today() - 7L,
+    lubridate::today()
+  ),
+  limit = 2000L
+) {
   events <- pkgsearch::cran_events(
     releases = TRUE,
     archivals = FALSE,
@@ -50,10 +51,11 @@ get_updated_cran_packages <- function(
 #' }
 #'
 get_new_cran_packages <- function(
-    date_interval = lubridate::interval(
-      lubridate::today() - 7L,
-      lubridate::today()
-    )) {
+  date_interval = lubridate::interval(
+    lubridate::today() - 7L,
+    lubridate::today()
+  )
+) {
   new_packages <- pkgsearch::cran_new(
     from = lubridate::int_start(date_interval),
     to = lubridate::int_end(date_interval)
@@ -89,11 +91,12 @@ get_new_cran_packages <- function(
 #' }
 #'
 get_removed_cran_packages <- function(
-    date_interval = lubridate::interval(
-      lubridate::today() - 7L,
-      lubridate::today()
-    ),
-    limit = 300L) {
+  date_interval = lubridate::interval(
+    lubridate::today() - 7L,
+    lubridate::today()
+  ),
+  limit = 300L
+) {
   events <- pkgsearch::cran_events(releases = FALSE, limit = limit)
 
   events_filtered <- purrr::keep(

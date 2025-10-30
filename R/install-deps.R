@@ -21,11 +21,12 @@
 #'
 #' @export
 install_pkg_sys_deps <- function(
-    package_name,
-    tag,
-    local_clone_dir,
-    platform = platform,
-    aggressive_cleanup = FALSE) {
+  package_name,
+  tag,
+  local_clone_dir,
+  platform = platform,
+  aggressive_cleanup = FALSE
+) {
   t1 <- Sys.time()
 
   # Clone package repository

@@ -53,8 +53,9 @@ cleanup_stale_locks <- function(cache_dir = NULL, max_age = 300L) {
 #' @return Path to mutex file if acquired successfully
 #' @details Automatically cleans up stale locks older than 5 minutes
 acquire_pak_mutex <- function(
-    operation_type = "install",
-    timeout_seconds = 120L) {
+  operation_type = "install",
+  timeout_seconds = 120L
+) {
   mutex_dir <- file.path(tempdir(), "pak_mutex")
   if (!dir.exists(mutex_dir)) {
     dir.create(mutex_dir, recursive = TRUE, showWarnings = FALSE)
@@ -357,10 +358,11 @@ run_pak_install_with_mutex <- function(local_clone_dir_single, env_vars) {
 #' @return Result of successful function execution
 #' @details Exponential backoff: delay = min(base_delay * 2^(attempt-1), max_delay)
 retry_with_backoff <- function(
-    func,
-    max_attempts = 5L,
-    base_delay = 1L,
-    max_delay = 60L) {
+  func,
+  max_attempts = 5L,
+  base_delay = 1L,
+  max_delay = 60L
+) {
   for (attempt in seq_len(max_attempts)) {
     tryCatch(
       {

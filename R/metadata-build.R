@@ -20,23 +20,24 @@
 #' @importFrom DBI dbConnect dbDisconnect dbWriteTable dbGetQuery dbExecute
 #' @importFrom purrr insistently
 store_build_metadata <- function(
-    package_name,
-    tag,
-    platform,
-    arch,
-    error_occurred,
-    metadata_db_type = "postgres",
-    metadata_db_host = NULL,
-    metadata_db_name = NULL,
-    metadata_db_table = NULL,
-    metadata_db_port = NULL,
-    metadata_db_user = NULL,
-    metadata_db_password = NULL,
-    metadata_db_sslmode = NULL,
-    force = FALSE,
-    error = NA,
-    build_duration = NA,
-    size = NA) {
+  package_name,
+  tag,
+  platform,
+  arch,
+  error_occurred,
+  metadata_db_type = "postgres",
+  metadata_db_host = NULL,
+  metadata_db_name = NULL,
+  metadata_db_table = NULL,
+  metadata_db_port = NULL,
+  metadata_db_user = NULL,
+  metadata_db_password = NULL,
+  metadata_db_sslmode = NULL,
+  force = FALSE,
+  error = NA,
+  build_duration = NA,
+  size = NA
+) {
   if (metadata_db_type == "postgres" && !requireNamespace("RPostgres", quietly = TRUE)) {
     log_info(paste0(
       "{.function store_build_metadata}: {.pkg RPostgres} must be installed ",
@@ -139,15 +140,16 @@ store_build_metadata <- function(
 #' @param metadata_db_sslmode Database sslmode
 #' @importFrom purrr insistently
 remove_from_metadata <- function(
-    package_name,
-    metadata_db_type = "postgres",
-    metadata_db_host = NULL,
-    metadata_db_name = NULL,
-    metadata_db_table = NULL,
-    metadata_db_port = NULL,
-    metadata_db_user = NULL,
-    metadata_db_password = NULL,
-    metadata_db_sslmode = NULL) {
+  package_name,
+  metadata_db_type = "postgres",
+  metadata_db_host = NULL,
+  metadata_db_name = NULL,
+  metadata_db_table = NULL,
+  metadata_db_port = NULL,
+  metadata_db_user = NULL,
+  metadata_db_password = NULL,
+  metadata_db_sslmode = NULL
+) {
   if (metadata_db_type == "postgres") {
     driver <- RPostgres::Postgres() # nolint
   }

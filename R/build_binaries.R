@@ -57,34 +57,35 @@
 #'
 #' @export
 build_binary_package <- function(
-    package_name,
-    tag = NULL,
-    codename = NULL,
-    source_org_url = "https://github.com/cran",
-    tag_limit = 10L,
-    local_output_dir_root = ".",
-    local_clone_dir = "/tmp",
-    platform = NULL,
-    arch = NULL,
-    is_r_minor_sensitive = FALSE,
-    install_system_dependencies = TRUE,
-    force = FALSE,
-    upload = FALSE,
-    archive = FALSE,
-    store_build_metadata = FALSE,
-    metadata_db_type = "postgres",
-    metadata_db_host = NULL,
-    metadata_db_name = NULL,
-    metadata_db_table = NULL,
-    metadata_db_port = NULL,
-    metadata_db_user = NULL,
-    metadata_db_password = NULL,
-    metadata_db_sslmode = NULL,
-    s3_endpoint = NULL,
-    s3_region = NULL,
-    s3_bucket = NULL,
-    s3_access_key_id = NULL,
-    s3_secret_access_key = NULL) {
+  package_name,
+  tag = NULL,
+  codename = NULL,
+  source_org_url = "https://github.com/cran",
+  tag_limit = 10L,
+  local_output_dir_root = ".",
+  local_clone_dir = "/tmp",
+  platform = NULL,
+  arch = NULL,
+  is_r_minor_sensitive = FALSE,
+  install_system_dependencies = TRUE,
+  force = FALSE,
+  upload = FALSE,
+  archive = FALSE,
+  store_build_metadata = FALSE,
+  metadata_db_type = "postgres",
+  metadata_db_host = NULL,
+  metadata_db_name = NULL,
+  metadata_db_table = NULL,
+  metadata_db_port = NULL,
+  metadata_db_user = NULL,
+  metadata_db_password = NULL,
+  metadata_db_sslmode = NULL,
+  s3_endpoint = NULL,
+  s3_region = NULL,
+  s3_bucket = NULL,
+  s3_access_key_id = NULL,
+  s3_secret_access_key = NULL
+) {
   # Initialize and prepare
   setup_result <- initialize_build_environment(
     package_name,
@@ -215,17 +216,18 @@ build_binary_package <- function(
 #' @template param-s3_region
 #' @return List with setup results
 initialize_build_environment <- function(
-    package_name,
-    codename,
-    platform,
-    arch,
-    local_output_dir_root,
-    force,
-    s3_bucket,
-    s3_access_key_id,
-    s3_secret_access_key,
-    s3_endpoint,
-    s3_region) {
+  package_name,
+  codename,
+  platform,
+  arch,
+  local_output_dir_root,
+  force,
+  s3_bucket,
+  s3_access_key_id,
+  s3_secret_access_key,
+  s3_endpoint,
+  s3_region
+) {
   cli::cli_h2(sprintf("Preparations ({.pkg %s})", package_name))
   codename <- set_codename(codename)
 
@@ -370,18 +372,19 @@ filter_tags <- function(package_name, tag, source_org_url, tag_limit) {
 #' @template param-pkgs_to_build
 #' @return Filtered package list
 filter_packages_with_errors <- function(
-    pkg_differences,
-    metadata_db_type,
-    metadata_db_host,
-    metadata_db_name,
-    metadata_db_table,
-    metadata_db_port,
-    metadata_db_user,
-    metadata_db_password,
-    metadata_db_sslmode,
-    platform,
-    arch,
-    pkgs_to_build) {
+  pkg_differences,
+  metadata_db_type,
+  metadata_db_host,
+  metadata_db_name,
+  metadata_db_table,
+  metadata_db_port,
+  metadata_db_user,
+  metadata_db_password,
+  metadata_db_sslmode,
+  platform,
+  arch,
+  pkgs_to_build
+) {
   pkg_tag_pairs <- parse_package_tag_pairs(pkg_differences) # nolint: object_usage_linter
 
   tryCatch(
@@ -483,31 +486,32 @@ filter_packages_with_errors <- function(
 #' @template param-local_bin_path
 #' @return Build results
 execute_package_builds <- function(
-    package_name,
-    tag,
-    binary_output_path,
-    source_org_url,
-    local_clone_dir,
-    platform,
-    arch,
-    codename,
-    is_r_minor_sensitive,
-    force,
-    install_system_dependencies,
-    store_build_metadata,
-    metadata_db_host,
-    metadata_db_name,
-    metadata_db_port,
-    metadata_db_table,
-    metadata_db_password,
-    metadata_db_user,
-    metadata_db_sslmode,
-    s3_endpoint,
-    s3_bucket,
-    s3_region,
-    s3_access_key_id,
-    s3_secret_access_key,
-    local_bin_path) {
+  package_name,
+  tag,
+  binary_output_path,
+  source_org_url,
+  local_clone_dir,
+  platform,
+  arch,
+  codename,
+  is_r_minor_sensitive,
+  force,
+  install_system_dependencies,
+  store_build_metadata,
+  metadata_db_host,
+  metadata_db_name,
+  metadata_db_port,
+  metadata_db_table,
+  metadata_db_password,
+  metadata_db_user,
+  metadata_db_sslmode,
+  s3_endpoint,
+  s3_bucket,
+  s3_region,
+  s3_access_key_id,
+  s3_secret_access_key,
+  local_bin_path
+) {
   t1 <- Sys.time()
   cli::cli_h2(sprintf("Building ({.pkg %s})", package_name[1L]))
 
@@ -663,30 +667,31 @@ execute_package_builds <- function(
 #' @template param-arch
 #' @return List with package information
 determine_packages_to_build <- function(
-    package_name,
-    tag,
-    source_org_url,
-    tag_limit,
-    codename,
-    force,
-    is_r_minor_sensitive,
-    s3_bucket,
-    s3_access_key_id,
-    s3_secret_access_key,
-    s3_endpoint,
-    s3_region,
-    binary_output_path,
-    store_build_metadata,
-    metadata_db_type,
-    metadata_db_host,
-    metadata_db_name,
-    metadata_db_table,
-    metadata_db_port,
-    metadata_db_user,
-    metadata_db_password,
-    metadata_db_sslmode,
-    platform,
-    arch) {
+  package_name,
+  tag,
+  source_org_url,
+  tag_limit,
+  codename,
+  force,
+  is_r_minor_sensitive,
+  s3_bucket,
+  s3_access_key_id,
+  s3_secret_access_key,
+  s3_endpoint,
+  s3_region,
+  binary_output_path,
+  store_build_metadata,
+  metadata_db_type,
+  metadata_db_host,
+  metadata_db_name,
+  metadata_db_table,
+  metadata_db_port,
+  metadata_db_user,
+  metadata_db_password,
+  metadata_db_sslmode,
+  platform,
+  arch
+) {
   # check whether any build attempts need to be made
   if (!force && !is.null(s3_bucket)) {
     s3_result <- check_s3_packages(
@@ -764,28 +769,29 @@ determine_packages_to_build <- function(
 #' @template param-codename
 #' @return List with should_skip and filtered_tags
 check_s3_packages <- function(
-    package_name,
-    tag,
-    source_org_url,
-    tag_limit,
-    is_r_minor_sensitive,
-    s3_bucket,
-    s3_access_key_id,
-    s3_secret_access_key,
-    s3_endpoint,
-    s3_region,
-    store_build_metadata,
-    metadata_db_type,
-    metadata_db_host,
-    metadata_db_name,
-    metadata_db_table,
-    metadata_db_port,
-    metadata_db_user,
-    metadata_db_password,
-    metadata_db_sslmode,
-    platform,
-    arch,
-    codename = NULL) {
+  package_name,
+  tag,
+  source_org_url,
+  tag_limit,
+  is_r_minor_sensitive,
+  s3_bucket,
+  s3_access_key_id,
+  s3_secret_access_key,
+  s3_endpoint,
+  s3_region,
+  store_build_metadata,
+  metadata_db_type,
+  metadata_db_host,
+  metadata_db_name,
+  metadata_db_table,
+  metadata_db_port,
+  metadata_db_user,
+  metadata_db_password,
+  metadata_db_sslmode,
+  platform,
+  arch,
+  codename = NULL
+) {
   codename <- set_codename(codename)
   remote_bin_path <- set_bin_path(local_output_dir_root = s3_bucket, codename)
 
@@ -937,19 +943,20 @@ check_s3_packages <- function(
 #' @template param-s3-secret-access-key
 #' @return Invisible NULL
 handle_post_build_actions <- function(
-    package_name,
-    tag,
-    result,
-    codename,
-    upload,
-    archive,
-    force,
-    is_r_minor_sensitive,
-    s3_endpoint,
-    s3_bucket,
-    s3_region,
-    s3_access_key_id,
-    s3_secret_access_key) {
+  package_name,
+  tag,
+  result,
+  codename,
+  upload,
+  archive,
+  force,
+  is_r_minor_sensitive,
+  s3_endpoint,
+  s3_bucket,
+  s3_region,
+  s3_access_key_id,
+  s3_secret_access_key
+) {
   if (upload && any(result != "skipped")) {
     Map(
       function(x, y) {
@@ -1052,31 +1059,32 @@ handle_post_build_actions <- function(
 #' @importFrom pkgbuild build
 #' @export
 build_single_tag <- function(
-    package_name,
-    platform,
-    arch,
-    binary_output_path,
-    local_clone_dir,
-    source_org_url,
-    tag = NULL,
-    codename = NULL,
-    is_r_minor_sensitive = FALSE,
-    s3_endpoint = NULL,
-    s3_region = NULL,
-    s3_bucket = NULL,
-    s3_access_key_id = NULL,
-    s3_secret_access_key = NULL,
-    force = FALSE,
-    install_system_dependencies = TRUE,
-    store_build_metadata = FALSE,
-    metadata_db_type = "postgres",
-    metadata_db_host = NULL,
-    metadata_db_name = NULL,
-    metadata_db_table = NULL,
-    metadata_db_port = NULL,
-    metadata_db_user = NULL,
-    metadata_db_password = NULL,
-    metadata_db_sslmode = NULL) {
+  package_name,
+  platform,
+  arch,
+  binary_output_path,
+  local_clone_dir,
+  source_org_url,
+  tag = NULL,
+  codename = NULL,
+  is_r_minor_sensitive = FALSE,
+  s3_endpoint = NULL,
+  s3_region = NULL,
+  s3_bucket = NULL,
+  s3_access_key_id = NULL,
+  s3_secret_access_key = NULL,
+  force = FALSE,
+  install_system_dependencies = TRUE,
+  store_build_metadata = FALSE,
+  metadata_db_type = "postgres",
+  metadata_db_host = NULL,
+  metadata_db_name = NULL,
+  metadata_db_table = NULL,
+  metadata_db_port = NULL,
+  metadata_db_user = NULL,
+  metadata_db_password = NULL,
+  metadata_db_sslmode = NULL
+) {
   log_debug(
     sprintf(
       "{.fun build_single_tag}: Cloning package {.pkg %s} with tag {.field %s}.",
@@ -1210,16 +1218,17 @@ build_single_tag <- function(
 #' @template param-force
 #' @return List with should_skip and reason
 check_build_skip_conditions <- function(
-    package_name,
-    tag,
-    binary_output_path,
-    codename,
-    s3_bucket,
-    s3_access_key_id,
-    s3_secret_access_key,
-    s3_endpoint,
-    s3_region,
-    force) {
+  package_name,
+  tag,
+  binary_output_path,
+  codename,
+  s3_bucket,
+  s3_access_key_id,
+  s3_secret_access_key,
+  s3_endpoint,
+  s3_region,
+  force
+) {
   if (
     file.exists(file.path(
       binary_output_path,
@@ -1286,10 +1295,11 @@ check_build_skip_conditions <- function(
 #' @template param-local_clone_dir_single
 #' @return Invisible NULL
 clone_repository <- function(
-    package_name,
-    tag,
-    source_org_url,
-    local_clone_dir_single) {
+  package_name,
+  tag,
+  source_org_url,
+  local_clone_dir_single
+) {
   # Clean up any existing clone directory before cloning
   if (dir.exists(local_clone_dir_single)) {
     unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
@@ -1328,18 +1338,19 @@ clone_repository <- function(
 #' @template param-metadata_db_sslmode
 #' @return List with success status
 handle_system_dependencies <- function(
-    package_name,
-    tag,
-    platform,
-    local_clone_dir_single,
-    arch,
-    metadata_db_host,
-    metadata_db_name,
-    metadata_db_port,
-    metadata_db_table,
-    metadata_db_password,
-    metadata_db_user,
-    metadata_db_sslmode) {
+  package_name,
+  tag,
+  platform,
+  local_clone_dir_single,
+  arch,
+  metadata_db_host,
+  metadata_db_name,
+  metadata_db_port,
+  metadata_db_table,
+  metadata_db_password,
+  metadata_db_user,
+  metadata_db_sslmode
+) {
   log_header("Installing system dependencies")
   tryCatch(
     {
@@ -1401,19 +1412,20 @@ handle_system_dependencies <- function(
 #' @template param-metadata_db_sslmode
 #' @return List with success status and build time
 execute_package_build <- function(
-    package_name,
-    tag,
-    local_clone_dir_single,
-    binary_output_path,
-    platform,
-    arch,
-    metadata_db_host,
-    metadata_db_name,
-    metadata_db_port,
-    metadata_db_table,
-    metadata_db_password,
-    metadata_db_user,
-    metadata_db_sslmode) {
+  package_name,
+  tag,
+  local_clone_dir_single,
+  binary_output_path,
+  platform,
+  arch,
+  metadata_db_host,
+  metadata_db_name,
+  metadata_db_port,
+  metadata_db_table,
+  metadata_db_password,
+  metadata_db_user,
+  metadata_db_sslmode
+) {
   log_header(
     sprintf(
       "Building package {.pkg %s} with tag {.field %s}.",
@@ -1496,10 +1508,11 @@ execute_package_build <- function(
 #' @template param-local_clone_dir_single
 #' @return List with file existence and size information
 handle_build_output_files <- function(
-    package_name,
-    tag,
-    binary_output_path,
-    local_clone_dir_single) {
+  package_name,
+  tag,
+  binary_output_path,
+  local_clone_dir_single
+) {
   system_info <- get_system_architecture_info(binary_output_path)
 
   final_tarball_path <- file.path(

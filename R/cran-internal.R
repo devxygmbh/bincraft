@@ -3,9 +3,10 @@
 #' @keywords internal
 #' @export
 get_missing_pkgs_db <- function(
-    platform = "ubuntu-2204",
-    arch = "amd64",
-    days_back = 2L) {
+  platform = "ubuntu-2204",
+  arch = "amd64",
+  days_back = 2L
+) {
   con <- DBI::dbConnect(
     RPostgres::Postgres(),
     dbname = "build_metadata",
@@ -68,14 +69,15 @@ get_missing_pkgs_db <- function(
 #'
 #' @export
 process_unarchived_pkgs <- function(
-    codename,
-    arch,
-    s3_endpoint = "https://hel1.your-objectstorage.com",
-    s3_region = "hel1",
-    s3_bucket = "devxy-r-package-binaries-hel1",
-    s3_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
-    s3_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S"),
-    workers = 1L) {
+  codename,
+  arch,
+  s3_endpoint = "https://hel1.your-objectstorage.com",
+  s3_region = "hel1",
+  s3_bucket = "devxy-r-package-binaries-hel1",
+  s3_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
+  s3_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S"),
+  workers = 1L
+) {
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
     aws_secret_access_key = s3_secret_access_key,
@@ -135,13 +137,14 @@ process_unarchived_pkgs <- function(
 #'
 #' @export
 query_packages_without_historic_versions <- function(
-    codename,
-    arch,
-    s3_endpoint = "https://hel1.your-objectstorage.com",
-    s3_region = "hel1",
-    s3_bucket = "devxy-r-package-binaries-hel1",
-    s3_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
-    s3_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S")) {
+  codename,
+  arch,
+  s3_endpoint = "https://hel1.your-objectstorage.com",
+  s3_region = "hel1",
+  s3_bucket = "devxy-r-package-binaries-hel1",
+  s3_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
+  s3_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S")
+) {
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
     aws_secret_access_key = s3_secret_access_key,

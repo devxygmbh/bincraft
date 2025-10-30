@@ -35,19 +35,20 @@
 #' )
 #' }
 init_repo <- function(
-    s3_endpoint,
-    s3_region,
-    s3_bucket,
-    s3_access_key_id = NULL,
-    s3_secret_access_key = NULL,
-    metadata_db_type = "sqlite",
-    metadata_db_host = NULL,
-    metadata_db_name = NULL,
-    metadata_db_table = NULL,
-    metadata_db_port = NULL,
-    metadata_db_user = NULL,
-    metadata_db_password = NULL,
-    metadata_db_sslmode = NULL) {
+  s3_endpoint,
+  s3_region,
+  s3_bucket,
+  s3_access_key_id = NULL,
+  s3_secret_access_key = NULL,
+  metadata_db_type = "sqlite",
+  metadata_db_host = NULL,
+  metadata_db_name = NULL,
+  metadata_db_table = NULL,
+  metadata_db_port = NULL,
+  metadata_db_user = NULL,
+  metadata_db_password = NULL,
+  metadata_db_sslmode = NULL
+) {
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
     aws_secret_access_key = s3_secret_access_key,

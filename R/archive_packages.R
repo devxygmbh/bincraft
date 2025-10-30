@@ -26,16 +26,17 @@
 #' }
 #'
 archive_package <- function(
-    package_name,
-    s3_endpoint,
-    s3_region,
-    s3_bucket,
-    codename = NULL,
-    is_r_minor_sensitive = FALSE,
-    local_output_dir_root = ".",
-    arch = NULL,
-    s3_access_key_id = NULL,
-    s3_secret_access_key = NULL) {
+  package_name,
+  s3_endpoint,
+  s3_region,
+  s3_bucket,
+  codename = NULL,
+  is_r_minor_sensitive = FALSE,
+  local_output_dir_root = ".",
+  arch = NULL,
+  s3_access_key_id = NULL,
+  s3_secret_access_key = NULL
+) {
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
     aws_secret_access_key = s3_secret_access_key,

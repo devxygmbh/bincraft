@@ -56,21 +56,22 @@
 #'
 #' @noRd
 process_removed_packages <- function(
-    interval,
-    s3_access_key_id,
-    s3_secret_access_key,
-    s3_endpoint,
-    s3_region,
-    s3_bucket,
-    codename,
-    metadata_db_type,
-    metadata_db_host,
-    metadata_db_name,
-    metadata_db_table,
-    metadata_db_port,
-    metadata_db_user,
-    metadata_db_password,
-    metadata_db_sslmode) {
+  interval,
+  s3_access_key_id,
+  s3_secret_access_key,
+  s3_endpoint,
+  s3_region,
+  s3_bucket,
+  codename,
+  metadata_db_type,
+  metadata_db_host,
+  metadata_db_name,
+  metadata_db_table,
+  metadata_db_port,
+  metadata_db_user,
+  metadata_db_password,
+  metadata_db_sslmode
+) {
   removed_pkgs <- get_removed_cran_packages(interval)
 
   cli::cli_par()
@@ -155,36 +156,37 @@ process_removed_packages <- function(
 }
 
 process_cran_updates <- function(
-    package_name,
-    tag,
-    platform,
-    local_clone_dir,
-    interval = lubridate::today(),
-    codename = NULL,
-    local_output_dir_root = ".",
-    s3_endpoint = NULL,
-    s3_region = NULL,
-    s3_bucket = NULL,
-    store_build_metadata = FALSE,
-    archive = FALSE,
-    upload = FALSE,
-    force = FALSE,
-    filter_r_minor_sensitive = FALSE,
-    r_minor_packages_forge_type = "Forgejo",
-    r_minor_packages_issue_url = NULL,
-    metadata_db_type = "postgres",
-    metadata_db_host = NULL,
-    metadata_db_name = NULL,
-    metadata_db_table = NULL,
-    metadata_db_port = NULL,
-    metadata_db_user = NULL,
-    metadata_db_password = NULL,
-    metadata_db_sslmode = NULL,
-    process_updated = TRUE,
-    process_new = TRUE,
-    process_removed = TRUE,
-    s3_access_key_id = NULL,
-    s3_secret_access_key = NULL) {
+  package_name,
+  tag,
+  platform,
+  local_clone_dir,
+  interval = lubridate::today(),
+  codename = NULL,
+  local_output_dir_root = ".",
+  s3_endpoint = NULL,
+  s3_region = NULL,
+  s3_bucket = NULL,
+  store_build_metadata = FALSE,
+  archive = FALSE,
+  upload = FALSE,
+  force = FALSE,
+  filter_r_minor_sensitive = FALSE,
+  r_minor_packages_forge_type = "Forgejo",
+  r_minor_packages_issue_url = NULL,
+  metadata_db_type = "postgres",
+  metadata_db_host = NULL,
+  metadata_db_name = NULL,
+  metadata_db_table = NULL,
+  metadata_db_port = NULL,
+  metadata_db_user = NULL,
+  metadata_db_password = NULL,
+  metadata_db_sslmode = NULL,
+  process_updated = TRUE,
+  process_new = TRUE,
+  process_removed = TRUE,
+  s3_access_key_id = NULL,
+  s3_secret_access_key = NULL
+) {
   if (is.null(s3_endpoint)) {
     stop("s3_endpoint must be defined", call. = FALSE)
   }
@@ -317,11 +319,12 @@ process_cran_updates <- function(
 #' @template param-new_packages
 #' @export
 get_r_minor_sensitive_packages <- function(
-    r_minor_packages_forge_type = "Forgejo", # nolint
-    r_minor_packages_issue_url = NULL,
-    interval = NULL,
-    updated_packages = NULL,
-    new_packages = NULL) {
+  r_minor_packages_forge_type = "Forgejo", # nolint
+  r_minor_packages_issue_url = NULL,
+  interval = NULL,
+  updated_packages = NULL,
+  new_packages = NULL
+) {
   if (!is.null(interval)) {
     if (is.null(updated_packages) && is.null(new_packages)) {
       # Get list of updated and new packages for a specific day
