@@ -5,7 +5,7 @@ when:
 
 steps:
   - name: editorconfig
-    image: reg.devxy.io/docker.io/mstruebing/editorconfig-checker:v3.4.1
+    image: reg.devxy.io/docker.io/mstruebing/editorconfig-checker:v3.5.0
     depends_on: []
 
   - name: prettier
