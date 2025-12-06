@@ -232,14 +232,19 @@ initialize_build_environment <- function(
   codename <- set_codename(codename)
 
   if (is.null(platform)) {
-    platform <- switch(codename,
+    platform <- switch(
+      codename,
       jammy = "ubuntu-2204",
       noble = "ubuntu-2404",
       rhel9 = "redhat-9",
       rhel8 = "redhat-8",
       alpine320 = "alpine-320",
       alpine321 = "alpine-321",
-      alpine322 = "alpine-322"
+      alpine322 = "alpine-322",
+      alpine323 = "alpine-323",
+      alpine324 = "alpine-324",
+      alpine325 = "alpine-325",
+      alpine326 = "alpine-326"
     )
   }
 
