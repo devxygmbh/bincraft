@@ -30,7 +30,7 @@ steps:
       - R -q -e 'styler::style_pkg(dry = "fail")'
 
   - name: lint-markdown
-    image: reg.devxy.io/docker.io/davidanson/markdownlint-cli2:v0.19.1
+    image: reg.devxy.io/docker.io/davidanson/markdownlint-cli2:v0.20.0
     depends_on: []
     commands:
       - 'markdownlint-cli2 *.{md,markdown}'
