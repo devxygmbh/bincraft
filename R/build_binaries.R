@@ -195,7 +195,7 @@ build_binary_package <- function(
     s3_secret_access_key
   )
 
-  return(invisible(TRUE))
+  invisible(TRUE)
 }
 
 #' Initialize build environment and setup paths
@@ -232,8 +232,7 @@ initialize_build_environment <- function(
   codename <- set_codename(codename)
 
   if (is.null(platform)) {
-    platform <- switch(
-      codename,
+    platform <- switch(codename,
       jammy = "ubuntu-2204",
       noble = "ubuntu-2404",
       rhel9 = "redhat-9",
@@ -1203,7 +1202,7 @@ build_single_tag <- function(
     )
   }
 
-  return(invisible(TRUE))
+  invisible(TRUE)
 }
 
 #' Check if build should be skipped

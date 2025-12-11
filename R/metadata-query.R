@@ -14,8 +14,7 @@ query_metadata_table <- function(table = "single_builds") {
       ), rate = retry_config, quiet = FALSE)()
 
     # Use connection in tbl call
-    metadata <- insistently(function() tbl(connection, table), rate = retry_config, quiet = FALSE)()
-    return(metadata)
+    insistently(function() tbl(connection, table), rate = retry_config, quiet = FALSE)()
   }
 }
 

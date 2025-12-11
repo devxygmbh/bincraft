@@ -34,8 +34,7 @@ get_updated_cran_packages <- function(
   new_pkgs_df <- get_new_cran_packages(date_interval)
 
   # remove new pkgs, keeping only updated ones
-  df_diff <- events_formatted[!events_formatted$name %in% new_pkgs_df$name, ]
-  return(df_diff)
+  events_formatted[!events_formatted$name %in% new_pkgs_df$name, ]
 }
 
 #' Get new CRAN packages

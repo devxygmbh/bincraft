@@ -2,38 +2,50 @@
 #' @template param-codename
 #' @export
 set_codename <- function(codename) {
-  if (is.null(codename)) {
-    if (Sys.info()["sysname"] == "Linux") {
-      if (any(grepl("alpine", system2("cat", args = "/etc/os-release", stdout = TRUE), fixed = TRUE))) { # nolint
-        os_version <- system2("grep",
-          args = "'^VERSION_ID=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'", stdout = TRUE
-        )
-        version_stripped <- substr(gsub(".", "", os_version, fixed = TRUE), 1L, 3L)
-        codename <- paste0("alpine", version_stripped)
-      } else {
-        dist_fam <- system2("grep",
-          args = "'^ID_LIKE=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'", stdout = TRUE
-        )
-        if (dist_fam == "debian") {
-          codename <- system2("grep",
-            args = "'^VERSION_CODENAME=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'", stdout = TRUE
-          )
-        } else if (grepl("rhel|fedora", dist_fam)) {
-          platform_id <- system2("grep",
-            args = "'^PLATFORM_ID=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'", stdout = TRUE
-          )
-          if (platform_id == "platform:el9") {
-            codename <- "rhel9"
-          } else if (platform_id == "platform:el8") {
-            codename <- "rhel8"
-          }
-        }
-      }
-    }
-    codename
-  } else {
-    codename
+  codename %||% detect_linux_codename()
+}
+
+#' Detect Linux distribution codename from /etc/os-release
+#' @return Character string with codename or NULL
+#' @noRd
+detect_linux_codename <- function() {
+  if (Sys.info()["sysname"] != "Linux") {
+    return(NULL)
   }
+
+  os_release <- system2("cat", args = "/etc/os-release", stdout = TRUE) # nolint: nonportable_path, absolute_path
+
+  if (any(grepl("alpine", os_release, fixed = TRUE))) {
+    os_version <- system2("grep",
+      args = "'^VERSION_ID=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'", stdout = TRUE
+    )
+    version_stripped <- substr(gsub(".", "", os_version, fixed = TRUE), 1L, 3L)
+    return(paste0("alpine", version_stripped))
+  }
+
+
+  dist_fam <- system2("grep",
+    args = "'^ID_LIKE=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'", stdout = TRUE
+  )
+
+  if (identical(dist_fam, "debian")) {
+    return(system2("grep",
+      args = "'^VERSION_CODENAME=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'", stdout = TRUE
+    ))
+  }
+
+  if (grepl("rhel|fedora", dist_fam)) {
+    platform_id <- system2("grep",
+      args = "'^PLATFORM_ID=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'", stdout = TRUE
+    )
+    if (platform_id == "platform:el9") {
+      return("rhel9")
+    } else if (platform_id == "platform:el8") {
+      return("rhel8")
+    }
+  }
+
+  NULL
 }
 
 #' Set path for binary package outputs
@@ -104,8 +116,7 @@ check_for_binary <- function(
   codename <- set_codename(codename)
   remote_bin_path <- set_bin_path(local_output_dir_root = s3_bucket, codename)
   os_version <- strsplit(gh::gh(sprintf("GET /repos/cran/%s/commits", package_name))[[1L]]$commit$message, "version ")[[1L]][2L] # nolint
-  binary_exists <- s3fs::s3_file_exists(sprintf("s3://%s/%s_%s.tar.gz", remote_bin_path, package_name, os_version))
-  return(binary_exists)
+  s3fs::s3_file_exists(sprintf("s3://%s/%s_%s.tar.gz", remote_bin_path, package_name, os_version))
 }
 
 #' @importFrom purrr rate_backoff
@@ -120,7 +131,7 @@ retry_config <- purrr::rate_backoff(
 download_source_tarball <- function(url, destfile) {
   tryCatch(
     {
-      status_code <- download.file(url, destfile, quiet = TRUE)
+      status_code <- download.file(url, destfile, quiet = TRUE, mode = "wb")
       if (status_code != 0L) {
         # If download.file returns non-zero, treat it as an error condition
         stop(sprintf(

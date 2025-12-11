@@ -125,7 +125,7 @@ store_build_metadata <- function(
   }
   dbDisconnect(con)
 
-  return(invisible(TRUE))
+  invisible(TRUE)
 }
 
 #' Remove package from metadata table

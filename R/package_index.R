@@ -69,7 +69,7 @@ add_to_package_index <- function(
   # list all tarballs for the given package
   cranlike::add_PACKAGES(file_names, local_bin_dir)
 
-  return(invisible(TRUE))
+  invisible(TRUE)
 }
 
 #' Upload package index files to S3
@@ -187,5 +187,5 @@ upload_package_index <- function(
     "Successfully uploaded {.path PACKAGES}, {.path PACKAGES.db}, {.path PACKAGES.rds}, {.path PACKAGES.gz}"
   )
 
-  return(invisible(TRUE))
+  invisible(TRUE)
 }
