@@ -1,57 +1,3 @@
-#' @title Process updated and new CRAN packages
-#' @description
-#' Packages which got removed from CRAN can be deleted by setting `prune = TRUE`.
-#' Argument `interval` allows to specify a range which should be processed.
-#'
-#' @template param-package_name
-#' @template param-tag
-#' @template param-codename
-#' @template param-s3_endpoint
-#' @template param-s3_region
-#' @template param-s3_bucket
-#' @template param-platform
-#' @template param-local_output_dir_root
-#' @template param-local_clone_dir
-#' @template param-interval
-#' @template param-archive
-#' @template param-force
-#' @template param-filter_r_minor_sensitive
-#' @template param-r_minor_packages_forge_type
-#' @template param-r_minor_packages_issue_url
-#' @template param-metadata_db_host
-#' @template param-metadata_db_type
-#' @template param-metadata_db_name
-#' @template param-metadata_db_port
-#' @template param-metadata_db_table
-#' @template param-metadata_db_user
-#' @template param-metadata_db_password
-#' @template param-metadata_db_sslmode
-#' @template param-store_build_metadata
-#' @template param-upload
-#' @template param-process_updated
-#' @template param-process_new
-#' @template param-process_removed
-#' @template param-s3-access-key-id
-#' @template param-s3-secret-access-key
-#'
-#' @importFrom dplyr bind_rows pull filter
-#' @importFrom purrr walk2
-#' @importFrom withr with_options
-#' @examples
-#' \dontrun{
-#' process_cran_updates(
-#'   interval = lubridate::interval(lubridate::today() - 3, lubridate::today() - 5L),
-#'   s3_endpoint = "https://hel1.your-objectstorage.com", s3_region = "hel1",
-#'   s3_bucket = "devxy-r-package-binaries-hel1",
-#'   s3_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
-#'   s3_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S"),
-#'   process_removed = FALSE,
-#'   platform = "alpine-321"
-#' )
-#' }
-#'
-#' @export
-
 #' Process removed packages from CRAN
 #'
 #' @noRd
@@ -155,6 +101,59 @@ process_removed_packages <- function(
   })
 }
 
+#' @title Process updated and new CRAN packages
+#' @description
+#' Packages which got removed from CRAN can be deleted by setting `prune = TRUE`.
+#' Argument `interval` allows to specify a range which should be processed.
+#'
+#' @template param-package_name
+#' @template param-tag
+#' @template param-codename
+#' @template param-s3_endpoint
+#' @template param-s3_region
+#' @template param-s3_bucket
+#' @template param-platform
+#' @template param-local_output_dir_root
+#' @template param-local_clone_dir
+#' @template param-interval
+#' @template param-archive
+#' @template param-force
+#' @template param-filter_r_minor_sensitive
+#' @template param-r_minor_packages_forge_type
+#' @template param-r_minor_packages_issue_url
+#' @template param-metadata_db_host
+#' @template param-metadata_db_type
+#' @template param-metadata_db_name
+#' @template param-metadata_db_port
+#' @template param-metadata_db_table
+#' @template param-metadata_db_user
+#' @template param-metadata_db_password
+#' @template param-metadata_db_sslmode
+#' @template param-store_build_metadata
+#' @template param-upload
+#' @template param-process_updated
+#' @template param-process_new
+#' @template param-process_removed
+#' @template param-s3-access-key-id
+#' @template param-s3-secret-access-key
+#'
+#' @importFrom dplyr bind_rows pull filter
+#' @importFrom purrr walk2
+#' @importFrom withr with_options
+#' @examples
+#' \dontrun{
+#' process_cran_updates(
+#'   interval = lubridate::interval(lubridate::today() - 3, lubridate::today() - 5L),
+#'   s3_endpoint = "https://hel1.your-objectstorage.com", s3_region = "hel1",
+#'   s3_bucket = "devxy-r-package-binaries-hel1",
+#'   s3_access_key_id = Sys.getenv("HETZNER_S3_ACCESS_KEY_K3S"),
+#'   s3_secret_access_key = Sys.getenv("HETZNER_S3_SECRET_KEY_K3S"),
+#'   process_removed = FALSE,
+#'   platform = "alpine-321"
+#' )
+#' }
+#'
+#' @export
 process_cran_updates <- function(
   package_name,
   tag,
