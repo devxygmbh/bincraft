@@ -43,8 +43,12 @@ safe_cli_msg <- function(msg) {
   }
 
   # Now escape any remaining unmatched braces
+
   msg <- gsub("\\{", "{{", msg, fixed = TRUE)
   msg <- gsub("\\}", "}}", msg, fixed = TRUE)
+
+  # Escape backticks to prevent cli inline code formatting issues
+  msg <- gsub("`", "'", msg, fixed = TRUE)
 
   # Restore protected patterns
   for (placeholder in names(protected_patterns)) {

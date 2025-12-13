@@ -359,7 +359,7 @@ run_pak_install_with_mutex <- function(local_clone_dir_single, env_vars) {
 #' @details Exponential backoff: delay = min(base_delay * 2^(attempt-1), max_delay)
 retry_with_backoff <- function(
   func,
-  max_attempts = 5L,
+  max_attempts = 10L,
   base_delay = 1L,
   max_delay = 60L
 ) {
@@ -379,14 +379,14 @@ retry_with_backoff <- function(
               sprintf("Dependency resolution error (not retryable): %s", error_msg)
             )
           }
-          stop(e, call. = FALSE)
+          stop(error_msg, call. = FALSE)
         }
 
         if (attempt >= max_attempts) {
           log_error(
             sprintf("All %s attempts failed. Giving up.", max_attempts)
           )
-          stop(e, call. = FALSE)
+          stop(error_msg, call. = FALSE)
         }
 
         delay <- min(base_delay * (2L^(attempt - 1L)), max_delay)
