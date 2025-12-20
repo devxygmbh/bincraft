@@ -50,6 +50,9 @@ safe_cli_msg <- function(msg) {
   # Escape backticks to prevent cli inline code formatting issues
   msg <- gsub("`", "'", msg, fixed = TRUE)
 
+  # Escape single quotes to prevent glue "Unterminated quote" errors
+  msg <- gsub("'", "''", msg, fixed = TRUE)
+
   # Restore protected patterns
   for (placeholder in names(protected_patterns)) {
     msg <- sub(placeholder, protected_patterns[[placeholder]], msg, fixed = TRUE)

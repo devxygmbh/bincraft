@@ -4,7 +4,7 @@
 \alias{retry_with_backoff}
 \title{Retry a function with exponential backoff}
 \usage{
-retry_with_backoff(func, max_attempts = 5L, base_delay = 1L, max_delay = 60L)
+retry_with_backoff(func, max_attempts = 10L, base_delay = 1L, max_delay = 60L)
 }
 \arguments{
 \item{func}{(\link{function})\cr
