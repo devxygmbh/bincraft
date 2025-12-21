@@ -1372,7 +1372,7 @@ handle_system_dependencies <- function(
           "Error in installing dependencies for package %s with tag %s: %s",
           package_name[1L],
           tag[1L],
-          e
+          conditionMessage(e)
         )
       )
       store_build_metadata(

@@ -226,8 +226,9 @@ setup_installation_env_vars <- function(platform) {
 #'
 #' Cleans up additional pak cache locations and removes old lock files.
 #'
+#' @param max_age Maximum age in seconds for lock files to keep (default 60)
 #' @return Invisible NULL
-perform_aggressive_cleanup <- function() {
+perform_aggressive_cleanup <- function(max_age = 60L) {
   log_info("Performing aggressive pak cache cleanup...")
 
   additional_cache_paths <- c(
@@ -236,9 +237,9 @@ perform_aggressive_cleanup <- function() {
     file.path(tempdir(), "pkgcache")
   )
 
+  removed_count <- 0L
   for (cache_path in additional_cache_paths) {
     if (dir.exists(cache_path)) {
-      # Remove any lock files older than 1 minute
       lock_files <- list.files(
         cache_path,
         pattern = "\\.lock$",
@@ -253,12 +254,17 @@ perform_aggressive_cleanup <- function() {
             file.mtime(lock_file),
             units = "secs"
           ))
-          if (file_age > 60L) {
+          if (file_age > max_age) {
             unlink(lock_file, force = TRUE)
+            removed_count <- removed_count + 1L
           }
         }
       }
     }
+  }
+
+  if (removed_count > 0L) {
+    log_info(sprintf("Removed %d stale lock file(s).", removed_count))
   }
 }
 
@@ -331,7 +337,8 @@ run_pak_install_with_mutex <- function(local_clone_dir_single, env_vars) {
               "Check if the package version is compatible with current R package versions."
             ))
           }
-          stop(e, call. = FALSE)
+          # Escape braces in error message to prevent cli/glue interpretation
+          stop(gsub("}", "}}", gsub("{", "{{", conditionMessage(e), fixed = TRUE), fixed = TRUE), call. = FALSE)
         }
       )
     },
@@ -379,14 +386,16 @@ retry_with_backoff <- function(
               sprintf("Dependency resolution error (not retryable): %s", error_msg)
             )
           }
-          stop(error_msg, call. = FALSE)
+          # Escape braces in error message to prevent cli/glue interpretation
+          stop(gsub("}", "}}", gsub("{", "{{", error_msg, fixed = TRUE), fixed = TRUE), call. = FALSE)
         }
 
         if (attempt >= max_attempts) {
           log_error(
             sprintf("All %s attempts failed. Giving up.", max_attempts)
           )
-          stop(error_msg, call. = FALSE)
+          # Escape braces in error message to prevent cli/glue interpretation
+          stop(gsub("}", "}}", gsub("{", "{{", error_msg, fixed = TRUE), fixed = TRUE), call. = FALSE)
         }
 
         delay <- min(base_delay * (2L^(attempt - 1L)), max_delay)
@@ -394,6 +403,23 @@ retry_with_backoff <- function(
           "Attempt %d/%d failed with %s. Retrying in %g seconds...", # nolint
           attempt, max_attempts, error_classification$error_type, delay
         ))
+
+        # For locking errors, progressively reduce max_age threshold to clean locks
+        # Earlier attempts tolerate older locks, later attempts get more aggressive
+        if (error_classification$error_type == "locking error") {
+          # Start at 300s, reduce to 60s by attempt 5, then 30s for remaining
+          lock_max_age <- if (attempt <= 3L) {
+            300L - (attempt * 60L)
+          } else if (attempt <= 6L) {
+            60L
+          } else {
+            30L
+          }
+          log_info(sprintf("Cleaning lock files older than %d seconds...", lock_max_age))
+          cleanup_stale_locks(max_age = lock_max_age)
+          perform_aggressive_cleanup(max_age = lock_max_age)
+        }
+
         Sys.sleep(delay)
       }
     )

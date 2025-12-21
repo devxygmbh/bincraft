@@ -4,7 +4,10 @@
 \alias{perform_aggressive_cleanup}
 \title{Perform aggressive cache cleanup}
 \usage{
-perform_aggressive_cleanup()
+perform_aggressive_cleanup(max_age = 60L)
+}
+\arguments{
+\item{max_age}{Maximum age in seconds for lock files to keep (default 60)}
 }
 \value{
 Invisible NULL

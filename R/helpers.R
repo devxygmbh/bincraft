@@ -143,7 +143,8 @@ download_source_tarball <- function(url, destfile) {
       TRUE
     },
     error = function(e) {
-      stop(conditionMessage(e), call. = FALSE)
+      # Escape braces in error message to prevent cli/glue interpretation
+      stop(gsub("}", "}}", gsub("{", "{{", conditionMessage(e), fixed = TRUE), fixed = TRUE), call. = FALSE)
     }
   )
   invisible(TRUE)
