@@ -35,7 +35,7 @@ steps:
       - mv /tmp/public/* ./ && mv /tmp/.git ./ && mv /tmp/statichost.yaml .
 
   - name: 'Push changes to branch'
-    image: reg.devxy.io/docker.io/appleboy/drone-git-push:1.2.0
+    image: reg.devxy.io/docker.io/appleboy/drone-git-push:1.2.1
     settings:
       remote: ${CI_REPO_CLONE_SSH_URL}
       branch: pkgdown
