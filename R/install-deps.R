@@ -34,10 +34,10 @@ install_pkg_sys_deps <- function(
     local_clone_dir,
     paste0(package_name[1L], "_", tail(tag, 1L))
   )
-  clone_package_repo(package_name, tag, local_clone_dir_single) # nolint: object_usage_linter
+  clone_package_repo(package_name, tag, local_clone_dir_single)
 
   # Setup environment variables
-  env_vars <- setup_installation_env_vars(platform) # nolint: object_usage_linter
+  env_vars <- setup_installation_env_vars(platform)
 
   log_info("Installing R package dependencies")
 
@@ -46,22 +46,30 @@ install_pkg_sys_deps <- function(
 
   # Perform additional cleanup if requested
   if (aggressive_cleanup) {
-    perform_aggressive_cleanup() # nolint: object_usage_linter
+    perform_aggressive_cleanup()
   }
 
   # Run installation with mutex protection
-  run_pak_install_with_mutex( # nolint: object_usage_linter
+  run_pak_install_with_mutex(
     local_clone_dir_single,
     env_vars
   )
 
   log_debug(
-    sprintf("Removing temporary clone dir at {.path %s}.", local_clone_dir_single)
+    sprintf(
+      "Removing temporary clone dir at {.path %s}.",
+      local_clone_dir_single
+    )
   )
 
-  total_build_time <- round(Sys.time() - t1, 2L) # nolint: object_usage_linter
-  time_units <- units(difftime(Sys.time(), t1)) # nolint: object_usage_linter
-  log_info(sprintf("R package dependencies installation time (%s): %s %s.", package_name[[1L]], total_build_time, time_units))
+  total_build_time <- round(Sys.time() - t1, 2L)
+  time_units <- units(difftime(Sys.time(), t1))
+  log_info(sprintf(
+    "R package dependencies installation time (%s): %s %s.",
+    package_name[[1L]],
+    total_build_time,
+    time_units
+  ))
 
   unlink(sprintf("%s", local_clone_dir_single), recursive = TRUE, force = TRUE)
 }

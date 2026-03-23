@@ -6,15 +6,26 @@
 #' @export
 query_metadata_table <- function(table = "single_builds") {
   if (requireNamespace("RPostgres", quietly = TRUE)) {
-    connection <- insistently(~
-      DBI::dbConnect(RPostgres::Postgres(),
-        dbname = "build_metadata", host = "r-binaries.devxy.io",
-        port = 15432L, user = "rpkgs", password = Sys.getenv("PGPASS"),
+    connection <- insistently(
+      ~ DBI::dbConnect(
+        RPostgres::Postgres(),
+        dbname = "build_metadata",
+        host = "r-binaries.devxy.io",
+        port = 15432L,
+        user = "rpkgs",
+        password = Sys.getenv("PGPASS"),
         sslmode = "require"
-      ), rate = retry_config, quiet = FALSE)()
+      ),
+      rate = retry_config,
+      quiet = FALSE
+    )()
 
     # Use connection in tbl call
-    insistently(function() tbl(connection, table), rate = retry_config, quiet = FALSE)()
+    insistently(
+      function() tbl(connection, table),
+      rate = retry_config,
+      quiet = FALSE
+    )()
   }
 }
 
@@ -24,14 +35,25 @@ query_metadata_table <- function(table = "single_builds") {
 #' @export
 list_metadata_tables <- function() {
   if (requireNamespace("RPostgres", quietly = TRUE)) {
-    connection <- insistently(~
-      dbConnect(RPostgres::Postgres(),
-        dbname = "build_metadata", host = "r-binaries.devxy.io",
-        port = 15432L, user = "rpkgs", password = Sys.getenv("PGPASS"),
+    connection <- insistently(
+      ~ dbConnect(
+        RPostgres::Postgres(),
+        dbname = "build_metadata",
+        host = "r-binaries.devxy.io",
+        port = 15432L,
+        user = "rpkgs",
+        password = Sys.getenv("PGPASS"),
         sslmode = "require"
-      ), rate = retry_config, quiet = FALSE)()
+      ),
+      rate = retry_config,
+      quiet = FALSE
+    )()
 
     # Use connection in dbListTables call
-    insistently(function() dbListTables(connection), rate = retry_config, quiet = FALSE)()
+    insistently(
+      function() dbListTables(connection),
+      rate = retry_config,
+      quiet = FALSE
+    )()
   }
 }

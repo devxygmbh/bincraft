@@ -83,7 +83,11 @@ init_repo <- function(
     )
     if (res) {
       log_success(
-        sprintf("Connectivity to DB {.field %s}, database {.field %s} established.", metadata_db_host, metadata_db_name)
+        sprintf(
+          "Connectivity to DB {.field %s}, database {.field %s} established.",
+          metadata_db_host,
+          metadata_db_name
+        )
       )
     }
     con <- DBI::dbConnect(
@@ -98,10 +102,16 @@ init_repo <- function(
     exists_table <- DBI::dbExistsTable(con, name = metadata_db_table)
     if (exists_table) {
       log_success(
-        sprintf("Table {.field %s} exists. You're ready to build!", metadata_db_table)
+        sprintf(
+          "Table {.field %s} exists. You're ready to build!",
+          metadata_db_table
+        )
       )
       log_info(
-        sprintf("You can now use {.fun %s} with the provided S3 and DB settings to build and publish packages.", "build_binary_package")
+        sprintf(
+          "You can now use {.fun %s} with the provided S3 and DB settings to build and publish packages.",
+          "build_binary_package"
+        )
       )
     } else {
       log_warn(
@@ -111,7 +121,10 @@ init_repo <- function(
       if (answer == 1L) {
         DBI::dbCreateTable(con, metadata_db_table)
         log_success(
-          sprintf("Table {.field %s} created. You're ready to build!", metadata_db_table)
+          sprintf(
+            "Table {.field %s} created. You're ready to build!",
+            metadata_db_table
+          )
         )
       }
     }

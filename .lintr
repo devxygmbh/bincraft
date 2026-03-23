@@ -1,7 +1,0 @@
-linters: all_linters(
-    line_length_linter(150L),
-    indentation_linter = NULL,
-    object_length_linter = NULL,
-    commented_code_linter = NULL,
-    namespace_linter = NULL
-    )

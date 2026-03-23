@@ -88,7 +88,11 @@ acquire_pak_mutex <- function(
               if (lock_age > 300L) {
                 unlink(mutex_file, force = TRUE)
                 log_info(
-                  sprintf("Removed stale %s lock (age: %s min)", operation_type, round(lock_age / 60L, 1L))
+                  sprintf(
+                    "Removed stale %s lock (age: %s min)",
+                    operation_type,
+                    round(lock_age / 60L, 1L)
+                  )
                 )
               }
             }
@@ -178,9 +182,13 @@ classify_error_for_retry <- function(error_msg) {
     "pak subprocess.*error|subprocess.*failed",
     error_msg,
     ignore.case = TRUE
-  ) && !is_dependency_error
+  ) &&
+    !is_dependency_error
 
-  should_retry <- (is_locking_error || is_network_error || is_subprocess_error) && !is_dependency_error
+  should_retry <- (is_locking_error ||
+    is_network_error ||
+    is_subprocess_error) &&
+    !is_dependency_error
 
   error_type <- if (is_locking_error) {
     "locking error"
@@ -192,7 +200,11 @@ classify_error_for_retry <- function(error_msg) {
     "dependency error"
   }
 
-  list(should_retry = should_retry, error_type = error_type, is_dependency_error = is_dependency_error)
+  list(
+    should_retry = should_retry,
+    error_type = error_type,
+    is_dependency_error = is_dependency_error
+  )
 }
 
 #' Setup environment variables for package installation
@@ -213,10 +225,22 @@ setup_installation_env_vars <- function(platform) {
 
   if (grepl("rhel-9", pak::system_r_platform(), fixed = TRUE)) {
     env_vars$PKG_SYSREQS_PLATFORM <- "redhat-9"
-    env_vars$CURL_CA_BUNDLE <- file.path("/etc", "pki", "tls", "certs", "ca-bundle.crt")
+    env_vars$CURL_CA_BUNDLE <- file.path(
+      "/etc",
+      "pki",
+      "tls",
+      "certs",
+      "ca-bundle.crt"
+    )
   } else if (grepl("rhel-8", pak::system_r_platform(), fixed = TRUE)) {
     env_vars$PKG_SYSREQS_PLATFORM <- "redhat-8"
-    env_vars$CURL_CA_BUNDLE <- file.path("/etc", "pki", "tls", "certs", "ca-bundle.crt")
+    env_vars$CURL_CA_BUNDLE <- file.path(
+      "/etc",
+      "pki",
+      "tls",
+      "certs",
+      "ca-bundle.crt"
+    )
   }
 
   env_vars
@@ -278,7 +302,11 @@ perform_aggressive_cleanup <- function(max_age = 60L) {
 #' @return Invisible NULL
 clone_package_repo <- function(package_name, tag, local_clone_dir_single) {
   log_debug(
-    sprintf("Cloning package {.pkg %s} with tag {.field %s}.", package_name[1L], tail(tag, 1L))
+    sprintf(
+      "Cloning package {.pkg %s} with tag {.field %s}.",
+      package_name[1L],
+      tail(tag, 1L)
+    )
   )
 
   if (!dir.exists(local_clone_dir_single)) {
@@ -338,7 +366,15 @@ run_pak_install_with_mutex <- function(local_clone_dir_single, env_vars) {
             ))
           }
           # Escape braces in error message to prevent cli/glue interpretation
-          stop(gsub("}", "}}", gsub("{", "{{", conditionMessage(e), fixed = TRUE), fixed = TRUE), call. = FALSE)
+          stop(
+            gsub(
+              "}",
+              "}}",
+              gsub("{", "{{", conditionMessage(e), fixed = TRUE),
+              fixed = TRUE
+            ),
+            call. = FALSE
+          )
         }
       )
     },
@@ -377,17 +413,28 @@ retry_with_backoff <- function(
       },
       error = function(e) {
         error_msg <- conditionMessage(e)
-        error_classification <- classify_error_for_retry(error_msg) # nolint: object_usage_linter
+        error_classification <- classify_error_for_retry(error_msg)
 
         if (!error_classification$should_retry) {
           # For dependency resolution errors and other non-retryable errors, fail immediately
           if (error_classification$is_dependency_error) {
             log_error(
-              sprintf("Dependency resolution error (not retryable): %s", error_msg)
+              sprintf(
+                "Dependency resolution error (not retryable): %s",
+                error_msg
+              )
             )
           }
           # Escape braces in error message to prevent cli/glue interpretation
-          stop(gsub("}", "}}", gsub("{", "{{", error_msg, fixed = TRUE), fixed = TRUE), call. = FALSE)
+          stop(
+            gsub(
+              "}",
+              "}}",
+              gsub("{", "{{", error_msg, fixed = TRUE),
+              fixed = TRUE
+            ),
+            call. = FALSE
+          )
         }
 
         if (attempt >= max_attempts) {
@@ -395,13 +442,24 @@ retry_with_backoff <- function(
             sprintf("All %s attempts failed. Giving up.", max_attempts)
           )
           # Escape braces in error message to prevent cli/glue interpretation
-          stop(gsub("}", "}}", gsub("{", "{{", error_msg, fixed = TRUE), fixed = TRUE), call. = FALSE)
+          stop(
+            gsub(
+              "}",
+              "}}",
+              gsub("{", "{{", error_msg, fixed = TRUE),
+              fixed = TRUE
+            ),
+            call. = FALSE
+          )
         }
 
         delay <- min(base_delay * (2L^(attempt - 1L)), max_delay)
         log_warn(sprintf(
-          "Attempt %d/%d failed with %s. Retrying in %g seconds...", # nolint
-          attempt, max_attempts, error_classification$error_type, delay
+          "Attempt %d/%d failed with %s. Retrying in %g seconds...",
+          attempt,
+          max_attempts,
+          error_classification$error_type,
+          delay
         ))
 
         # For locking errors, progressively reduce max_age threshold to clean locks
@@ -415,7 +473,10 @@ retry_with_backoff <- function(
           } else {
             30L
           }
-          log_info(sprintf("Cleaning lock files older than %d seconds...", lock_max_age))
+          log_info(sprintf(
+            "Cleaning lock files older than %d seconds...",
+            lock_max_age
+          ))
           cleanup_stale_locks(max_age = lock_max_age)
           perform_aggressive_cleanup(max_age = lock_max_age)
         }

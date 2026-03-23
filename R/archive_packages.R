@@ -51,14 +51,27 @@ archive_package <- function(
 
   if (is.null(arch)) {
     local_arch <- Sys.info()[["machine"]]
-    if (grepl("arm64", local_arch, fixed = TRUE) || grepl("aarch64", local_arch, fixed = TRUE)) {
+    if (
+      grepl("arm64", local_arch, fixed = TRUE) ||
+        grepl("aarch64", local_arch, fixed = TRUE)
+    ) {
       arch <- "arm64"
-    } else if (grepl("amd64", local_arch, fixed = TRUE) || grepl("x86_64", local_arch, fixed = TRUE)) {
+    } else if (
+      grepl("amd64", local_arch, fixed = TRUE) ||
+        grepl("x86_64", local_arch, fixed = TRUE)
+    ) {
       arch <- "amd64"
     }
   }
 
-  remote_bin_dir <- file.path(s3_bucket, arch, codename, "latest", "src", "contrib")
+  remote_bin_dir <- file.path(
+    s3_bucket,
+    arch,
+    codename,
+    "latest",
+    "src",
+    "contrib"
+  )
 
   if (is_r_minor_sensitive) {
     files <- s3fs::s3_dir_ls(file.path(remote_bin_dir, is_r_minor_sensitive))
@@ -68,12 +81,20 @@ archive_package <- function(
 
   minor_version <- NULL
   if (is_r_minor_sensitive) {
-    minor_version <- paste(R.version$major, strsplit(R.version$minor, ".", fixed = TRUE)[[1L]][1L], sep = ".")
+    minor_version <- paste(
+      R.version$major,
+      strsplit(R.version$minor, ".", fixed = TRUE)[[1L]][1L],
+      sep = "."
+    )
   }
 
   for (pkg in package_name) {
-    archive_single_package( # nolint: object_usage_linter
-      pkg, remote_bin_dir, is_r_minor_sensitive, minor_version, files
+    archive_single_package(
+      pkg,
+      remote_bin_dir,
+      is_r_minor_sensitive,
+      minor_version,
+      files
     )
   }
 
@@ -82,7 +103,7 @@ archive_package <- function(
 
 #' Create Meta/archive.rds for \{remotes\} package
 #' @description
-#' Inspired from <https://stackoverflow.com/questions/35584396/how-to-generate-meta-archive-rds-to-be-compatible-with-devtoolsinstall-version> # nolint
+#' Inspired from <https://stackoverflow.com/questions/35584396/how-to-generate-meta-archive-rds-to-be-compatible-with-devtoolsinstall-version>
 #' @param files Input files
 #'
 #' @importFrom data.table data.table tstrsplit as.data.table :=
@@ -98,8 +119,7 @@ write_archive_rds <- function(files) {
   dt_data <- dt_data[endsWith(file_path, ".tar.gz")]
 
   # split into package and version
-  dt_data[
-    ,
+  dt_data[,
     c("package", "version") := tstrsplit(
       sub("\\.tar\\.gz$", "", file_path),
       "_",

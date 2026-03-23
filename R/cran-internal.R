@@ -98,7 +98,7 @@ process_unarchived_pkgs <- function(
   # Find packages with multiple versions (duplicated names)
   duplicated_packages <- unique(package_names[duplicated(package_names)])
   # Filter out Windows-only packages
-  # FIXME: find a way to determinate Windows-only packages systematically # nolint todo_comment_linter
+  # FIXME: find a way to determinate Windows-only packages systematically
   non_archived <- setdiff(duplicated_packages, "RInno")
   formatted_pkgs <- paste(shQuote(non_archived, type = "cmd"), collapse = " ")
   cat(formatted_pkgs, "\n")

@@ -55,7 +55,12 @@ safe_cli_msg <- function(msg) {
 
   # Restore protected patterns
   for (placeholder in names(protected_patterns)) {
-    msg <- sub(placeholder, protected_patterns[[placeholder]], msg, fixed = TRUE)
+    msg <- sub(
+      placeholder,
+      protected_patterns[[placeholder]],
+      msg,
+      fixed = TRUE
+    )
   }
 
   msg
@@ -68,7 +73,8 @@ safe_cli_msg <- function(msg) {
 #' @keywords internal
 log_debug <- function(msg, ...) {
   logger <- get_logger()
-  if (logger$threshold >= 500L) { # DEBUG level
+  if (logger$threshold >= 500L) {
+    # DEBUG level
     safe_msg <- safe_cli_msg(msg)
     cli::cli_inform(paste("Debug:", safe_msg))
   }
@@ -82,7 +88,8 @@ log_debug <- function(msg, ...) {
 #' @keywords internal
 log_info <- function(msg, ...) {
   logger <- get_logger()
-  if (logger$threshold >= 400L) { # INFO level
+  if (logger$threshold >= 400L) {
+    # INFO level
     safe_msg <- safe_cli_msg(msg)
     cli::cli_alert_info(safe_msg)
   }
@@ -96,7 +103,8 @@ log_info <- function(msg, ...) {
 #' @keywords internal
 log_success <- function(msg, ...) {
   logger <- get_logger()
-  if (logger$threshold >= 400L) { # INFO level
+  if (logger$threshold >= 400L) {
+    # INFO level
     safe_msg <- safe_cli_msg(msg)
     cli::cli_alert_success(safe_msg)
   }
@@ -110,7 +118,8 @@ log_success <- function(msg, ...) {
 #' @keywords internal
 log_warn <- function(msg, ...) {
   logger <- get_logger()
-  if (logger$threshold >= 300L) { # WARN level
+  if (logger$threshold >= 300L) {
+    # WARN level
     safe_msg <- safe_cli_msg(msg)
     cli::cli_alert_warning(safe_msg)
   }
@@ -124,7 +133,8 @@ log_warn <- function(msg, ...) {
 #' @keywords internal
 log_error <- function(msg, ...) {
   logger <- get_logger()
-  if (logger$threshold >= 200L) { # ERROR level
+  if (logger$threshold >= 200L) {
+    # ERROR level
     safe_msg <- safe_cli_msg(msg)
     cli::cli_alert_danger(safe_msg)
   }
@@ -138,7 +148,8 @@ log_error <- function(msg, ...) {
 #' @keywords internal
 log_header <- function(msg, ...) {
   logger <- get_logger()
-  if (logger$threshold >= 400L) { # INFO level
+  if (logger$threshold >= 400L) {
+    # INFO level
     safe_msg <- safe_cli_msg(msg)
     cli::cli_h2(safe_msg)
   }

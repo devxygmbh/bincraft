@@ -33,8 +33,7 @@ utils::globalVariables(c(".", "OS_type", "Package", "%nin%"))
 
   # Create package-specific logger that only logs internally
   pkg_logger <- lgr::get_logger("bincraft")
-  pkg_logger$
-    set_threshold(log_level)$
-    set_appenders(list(memory = memory_appender))$
-    set_propagate(FALSE)
+  pkg_logger$set_threshold(log_level)$set_appenders(list(
+    memory = memory_appender
+  ))$set_propagate(FALSE)
 }

@@ -26,9 +26,7 @@ poc.R
 .bkp
 statichost.yaml
 
-# flir files
-^flir$
-.lintr
+jarl.toml
 ^local_
 ^amd64
 ^arm64

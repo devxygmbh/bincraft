@@ -30,16 +30,22 @@ upload_single_binary <- function(
 
   log_header(sprintf("Uploading ({.pkg %s})", package_name[1L]))
 
-  local_bin_path <- set_bin_path(local_output_dir_root = local_output_dir_root, codename)
+  local_bin_path <- set_bin_path(
+    local_output_dir_root = local_output_dir_root,
+    codename
+  )
   remote_bin_path <- set_bin_path(local_output_dir_root = s3_bucket, codename)
 
   tarball_name <- sprintf("%s_%s.tar.gz", package_name, tag)
   local_tarball_path <- file.path(local_bin_path, tarball_name)
 
-
   if (!file.exists(local_tarball_path)) {
     log_info(
-      sprintf("{.fun upload_single_binary}: File {.pkg %s} {.field %s} does not exist locally - skipping upload.", package_name, tag) # nolint
+      sprintf(
+        "{.fun upload_single_binary}: File {.pkg %s} {.field %s} does not exist locally - skipping upload.",
+        package_name,
+        tag
+      )
     )
     return(TRUE)
   }
@@ -56,15 +62,34 @@ upload_single_binary <- function(
   )
 
   if (is_r_minor_sensitive) {
-    minor_version <- paste(R.version$major, strsplit(R.version$minor, ".", fixed = TRUE)[[1L]][1L], sep = ".")
-    remote_tarball_path <- file.path(remote_bin_path, minor_version, tarball_name)
+    minor_version <- paste(
+      R.version$major,
+      strsplit(R.version$minor, ".", fixed = TRUE)[[1L]][1L],
+      sep = "."
+    )
+    remote_tarball_path <- file.path(
+      remote_bin_path,
+      minor_version,
+      tarball_name
+    )
     file_exists <- s3fs::s3_file_exists(remote_tarball_path)
-    archive_path <- file.path(remote_bin_path, minor_version, "Archive", package_name, tarball_name)
+    archive_path <- file.path(
+      remote_bin_path,
+      minor_version,
+      "Archive",
+      package_name,
+      tarball_name
+    )
     archive_exists <- s3fs::s3_file_exists(archive_path)
   } else {
     remote_tarball_path <- file.path(remote_bin_path, tarball_name)
     file_exists <- s3fs::s3_file_exists(remote_tarball_path)
-    archive_path <- file.path(remote_bin_path, "Archive", package_name, tarball_name)
+    archive_path <- file.path(
+      remote_bin_path,
+      "Archive",
+      package_name,
+      tarball_name
+    )
     archive_exists <- s3fs::s3_file_exists(archive_path)
   }
   file_exists <- file_exists | archive_exists
@@ -77,11 +102,21 @@ upload_single_binary <- function(
   if (should_upload) {
     if (file_exists && force) {
       log_info(
-        sprintf("{.fun upload_single_binary}: Force uploading package {.pkg %s} {.field %s} to {.path %s} because {.code force = TRUE} was set.", package_name, tag, remote_tarball_path) # nolint
+        sprintf(
+          "{.fun upload_single_binary}: Force uploading package {.pkg %s} {.field %s} to {.path %s} because {.code force = TRUE} was set.",
+          package_name,
+          tag,
+          remote_tarball_path
+        )
       )
     } else {
       log_info(
-        sprintf("{.fun upload_single_binary}: Uploading {.pkg %s} {.field %s} to {.path %s}.", package_name, tag, remote_tarball_path)
+        sprintf(
+          "{.fun upload_single_binary}: Uploading {.pkg %s} {.field %s} to {.path %s}.",
+          package_name,
+          tag,
+          remote_tarball_path
+        )
       )
     }
 
@@ -97,14 +132,27 @@ upload_single_binary <- function(
 
     do.call(s3fs::s3_file_upload, upload_args)
 
-    log_success(sprintf("Successfully uploaded package {.pkg %s} with tag {.field %s}.", package_name, tag))
+    log_success(sprintf(
+      "Successfully uploaded package {.pkg %s} with tag {.field %s}.",
+      package_name,
+      tag
+    ))
     log_info(
-      sprintf("{.fun upload_single_binary}: Deleting binary for {.pkg %s} {.field %s} at path {.path %s}.", package_name, tag, local_tarball_path) # nolint line_length_linter
+      sprintf(
+        "{.fun upload_single_binary}: Deleting binary for {.pkg %s} {.field %s} at path {.path %s}.",
+        package_name,
+        tag,
+        local_tarball_path
+      )
     )
     file.remove(local_tarball_path)
   } else {
     log_info(
-      sprintf("{.fun upload_single_binary}: Package {.pkg %s} {.field %s} already exists in S3. Skipping upload.", package_name, tag)
+      sprintf(
+        "{.fun upload_single_binary}: Package {.pkg %s} {.field %s} already exists in S3. Skipping upload.",
+        package_name,
+        tag
+      )
     )
   }
 }
@@ -146,7 +194,12 @@ upload_source_tarball <- function(
 
   codename <- set_codename(codename)
   remote_bin_path <- set_bin_path(local_output_dir_root = s3_bucket, codename)
-  version <- strsplit(gh::gh(sprintf("GET /repos/cran/%s/commits", package_name))[[1L]]$commit$message, "version ")[[1L]][2] # nolint
+  version <- strsplit(
+    gh::gh(sprintf("GET /repos/cran/%s/commits", package_name))[[
+      1L
+    ]]$commit$message,
+    "version "
+  )[[1L]][2]
 
   tmpfile <- tempfile()
   # this can fail, e.g. if there was a new package published and shortly
@@ -169,38 +222,59 @@ upload_source_tarball <- function(
     },
     error = function(e) {
       # This block executes only if insistently gives up after all retries
-      warning(sprintf(
-        "Failed to download %s after %d retries: %s. Skipping this package.",
-        basename(download_url),
-        3L,
-        conditionMessage(e) # Display the final error message
-      ), call. = FALSE)
+      warning(
+        sprintf(
+          "Failed to download %s after %d retries: %s. Skipping this package.",
+          basename(download_url),
+          3L,
+          conditionMessage(e) # Display the final error message
+        ),
+        call. = FALSE
+      )
       # Set flag to FALSE and return FALSE from the tryCatch block
-      download_successful <- FALSE # nolint
+      download_successful <- FALSE
       FALSE
     }
   )
   if (!download_successful) {
     log_warn(
-      sprintf("Failure downloading source tarball for package %s (%s)", package_name, version)
+      sprintf(
+        "Failure downloading source tarball for package %s (%s)",
+        package_name,
+        version
+      )
     )
     return(TRUE)
   }
 
   if (is_r_minor_sensitive) {
-    minor_version <- paste(R.version$major, strsplit(R.version$minor, ".", fixed = TRUE)[[1L]][1L], sep = ".")
+    minor_version <- paste(
+      R.version$major,
+      strsplit(R.version$minor, ".", fixed = TRUE)[[1L]][1L],
+      sep = "."
+    )
     upload_path <- sprintf(
       "s3://%s/%s/%s_%s.tar.gz",
-      remote_bin_path, minor_version, package_name, version
+      remote_bin_path,
+      minor_version,
+      package_name,
+      version
     )
   } else {
     upload_path <- sprintf(
       "s3://%s/%s_%s.tar.gz",
-      remote_bin_path, package_name, version
+      remote_bin_path,
+      package_name,
+      version
     )
   }
 
   s3fs::s3_file_upload(tmpfile, upload_path, overwrite = TRUE)
 
-  log_success(sprintf("Successfully uploaded source tarball for package %s %s to %s.", package_name, version, upload_path))
+  log_success(sprintf(
+    "Successfully uploaded source tarball for package %s %s to %s.",
+    package_name,
+    version,
+    upload_path
+  ))
 }

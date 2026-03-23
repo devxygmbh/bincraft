@@ -13,30 +13,37 @@ detect_linux_codename <- function() {
     return(NULL)
   }
 
-  os_release <- system2("cat", args = "/etc/os-release", stdout = TRUE) # nolint: nonportable_path, absolute_path
+  os_release <- system2("cat", args = "/etc/os-release", stdout = TRUE)
 
   if (any(grepl("alpine", os_release, fixed = TRUE))) {
-    os_version <- system2("grep",
-      args = "'^VERSION_ID=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'", stdout = TRUE
+    os_version <- system2(
+      "grep",
+      args = "'^VERSION_ID=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'",
+      stdout = TRUE
     )
     version_stripped <- substr(gsub(".", "", os_version, fixed = TRUE), 1L, 3L)
     return(paste0("alpine", version_stripped))
   }
 
-
-  dist_fam <- system2("grep",
-    args = "'^ID_LIKE=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'", stdout = TRUE
+  dist_fam <- system2(
+    "grep",
+    args = "'^ID_LIKE=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'",
+    stdout = TRUE
   )
 
   if (identical(dist_fam, "debian")) {
-    return(system2("grep",
-      args = "'^VERSION_CODENAME=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'", stdout = TRUE
+    return(system2(
+      "grep",
+      args = "'^VERSION_CODENAME=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'",
+      stdout = TRUE
     ))
   }
 
   if (grepl("rhel|fedora", dist_fam)) {
-    platform_id <- system2("grep",
-      args = "'^PLATFORM_ID=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'", stdout = TRUE
+    platform_id <- system2(
+      "grep",
+      args = "'^PLATFORM_ID=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'",
+      stdout = TRUE
     )
     if (platform_id == "platform:el9") {
       return("rhel9")
@@ -54,9 +61,15 @@ detect_linux_codename <- function() {
 #' @export
 set_bin_path <- function(local_output_dir_root, codename) {
   local_arch <- Sys.info()[["machine"]]
-  if (grepl("arm64", local_arch, fixed = TRUE) || grepl("aarch64", local_arch, fixed = TRUE)) {
+  if (
+    grepl("arm64", local_arch, fixed = TRUE) ||
+      grepl("aarch64", local_arch, fixed = TRUE)
+  ) {
     arch <- "arm64"
-  } else if (grepl("amd64", local_arch, fixed = TRUE) || grepl("x86_64", local_arch, fixed = TRUE)) {
+  } else if (
+    grepl("amd64", local_arch, fixed = TRUE) ||
+      grepl("x86_64", local_arch, fixed = TRUE)
+  ) {
     arch <- "amd64"
   }
 
@@ -69,7 +82,12 @@ set_bin_path <- function(local_output_dir_root, codename) {
   }
 
   file.path(
-    local_output_dir_root, arch, codename, "latest", "src", "contrib"
+    local_output_dir_root,
+    arch,
+    codename,
+    "latest",
+    "src",
+    "contrib"
   )
 }
 
@@ -115,8 +133,18 @@ check_for_binary <- function(
   )
   codename <- set_codename(codename)
   remote_bin_path <- set_bin_path(local_output_dir_root = s3_bucket, codename)
-  os_version <- strsplit(gh::gh(sprintf("GET /repos/cran/%s/commits", package_name))[[1L]]$commit$message, "version ")[[1L]][2L] # nolint
-  s3fs::s3_file_exists(sprintf("s3://%s/%s_%s.tar.gz", remote_bin_path, package_name, os_version))
+  os_version <- strsplit(
+    gh::gh(sprintf("GET /repos/cran/%s/commits", package_name))[[
+      1L
+    ]]$commit$message,
+    "version "
+  )[[1L]][2L]
+  s3fs::s3_file_exists(sprintf(
+    "s3://%s/%s_%s.tar.gz",
+    remote_bin_path,
+    package_name,
+    os_version
+  ))
 }
 
 #' @importFrom purrr rate_backoff
@@ -134,17 +162,28 @@ download_source_tarball <- function(url, destfile) {
       status_code <- download.file(url, destfile, quiet = TRUE, mode = "wb")
       if (status_code != 0L) {
         # If download.file returns non-zero, treat it as an error condition
-        stop(sprintf(
-          "download.file failed for %s with status code %d",
-          basename(url),
-          status_code
-        ), call. = FALSE)
+        stop(
+          sprintf(
+            "download.file failed for %s with status code %d",
+            basename(url),
+            status_code
+          ),
+          call. = FALSE
+        )
       }
       TRUE
     },
     error = function(e) {
       # Escape braces in error message to prevent cli/glue interpretation
-      stop(gsub("}", "}}", gsub("{", "{{", conditionMessage(e), fixed = TRUE), fixed = TRUE), call. = FALSE)
+      stop(
+        gsub(
+          "}",
+          "}}",
+          gsub("{", "{{", conditionMessage(e), fixed = TRUE),
+          fixed = TRUE
+        ),
+        call. = FALSE
+      )
     }
   )
   invisible(TRUE)
@@ -163,19 +202,35 @@ insistent_downloader <- purrr::insistently(
 #' @param base_delay Base delay in seconds (multiplied by attempt number).
 #' @return The result of `func()` on success.
 #' @noRd
-retry_s3_operation <- function(func, label, max_attempts = 3L, base_delay = 5L) {
+retry_s3_operation <- function(
+  func,
+  label,
+  max_attempts = 3L,
+  base_delay = 5L
+) {
   for (attempt in seq_len(max_attempts)) {
     result <- tryCatch(func(), error = function(e) e)
-    if (!inherits(result, "error")) return(result)
+    if (!inherits(result, "error")) {
+      return(result)
+    }
     if (attempt == max_attempts) {
-      stop(sprintf(
-        "Failed to %s after %d attempts. Last error: %s. This typically means an S3 object was removed between listing and querying.",
-        label, max_attempts, conditionMessage(result)
-      ), call. = FALSE)
+      stop(
+        sprintf(
+          "Failed to %s after %d attempts. Last error: %s. This typically means an S3 object was removed between listing and querying.",
+          label,
+          max_attempts,
+          conditionMessage(result)
+        ),
+        call. = FALSE
+      )
     }
     log_warn(sprintf(
       "Attempt %d/%d to %s failed (%s). Retrying in %ds...",
-      attempt, max_attempts, label, conditionMessage(result), attempt * base_delay
+      attempt,
+      max_attempts,
+      label,
+      conditionMessage(result),
+      attempt * base_delay
     ))
     Sys.sleep(attempt * base_delay)
   }
@@ -194,6 +249,8 @@ parse_bytes <- function(x) {
     PB = 1024L^5L
   )
   # Default to bytes if no unit
-  if (unit == "") unit <- "B"
+  if (unit == "") {
+    unit <- "B"
+  }
   num * multipliers[unit]
 }

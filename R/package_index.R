@@ -137,8 +137,8 @@ upload_package_index <- function(
   pkgs <- s3fs::s3_dir_ls(remote_bin_dir)
   log_success("Finished listing remote packages")
   # We remove 4 from the count as we don't want to count the PACKAGES* files + Archive/ dir
-  pkg_count <- length(pkgs) - 5L # nolint
-  unique_pkgs <- length(unique(vapply( # nolint: object_usage_linter
+  pkg_count <- length(pkgs) - 5L
+  unique_pkgs <- length(unique(vapply(
     strsplit(basename(pkgs), "_", fixed = TRUE),
     function(x) x[1L],
     character(1L)
@@ -153,7 +153,10 @@ upload_package_index <- function(
 
   # write Meta/archive.rds for remotes::install_version
   log_success(
-    sprintf("Started creating/updating {.path %s}", file.path("Meta", "archive.rds")) # nolint
+    sprintf(
+      "Started creating/updating {.path %s}",
+      file.path("Meta", "archive.rds")
+    )
   )
   retry_s3_operation(
     function() {
@@ -175,12 +178,21 @@ upload_package_index <- function(
     label = file.path("update Meta", "archive.rds")
   )
   log_success(
-    sprintf("Successfully uploaded {.path %s}", file.path("Meta", "archive.rds"))
+    sprintf(
+      "Successfully uploaded {.path %s}",
+      file.path("Meta", "archive.rds")
+    )
   )
 
-  total_build_time <- round(Sys.time() - t1, 2L) # nolint
-  time_units <- units(difftime(Sys.time(), t1)) # nolint: object_usage_linter
-  log_info(sprintf("Time updating PACKAGES index for %s (%s unique) packages: %s %s.", pkg_count, unique_pkgs, total_build_time, time_units))
+  total_build_time <- round(Sys.time() - t1, 2L)
+  time_units <- units(difftime(Sys.time(), t1))
+  log_info(sprintf(
+    "Time updating PACKAGES index for %s (%s unique) packages: %s %s.",
+    pkg_count,
+    unique_pkgs,
+    total_build_time,
+    time_units
+  ))
 
   purrr::walk2(
     c("PACKAGES", "PACKAGES.db", "PACKAGES.rds", "PACKAGES.gz"),
@@ -188,7 +200,9 @@ upload_package_index <- function(
       remote_bin_dir,
       c("PACKAGES", "PACKAGES.db", "PACKAGES.rds", "PACKAGES.gz")
     ),
-    \(x, y) s3fs::s3_file_upload(x, y, overwrite = TRUE, CacheControl = "no-store")
+    \(x, y) {
+      s3fs::s3_file_upload(x, y, overwrite = TRUE, CacheControl = "no-store")
+    }
   )
 
   log_success(

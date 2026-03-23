@@ -77,7 +77,12 @@ get_minor_version <- function() {
 #' @template param-last_version
 #' @template param-is_r_minor_sensitive
 #' @return Logical indicating if package exists
-check_root_package_exists <- function(remote_bin_path, package_name, last_version, is_r_minor_sensitive) {
+check_root_package_exists <- function(
+  remote_bin_path,
+  package_name,
+  last_version,
+  is_r_minor_sensitive
+) {
   # Handle case where is_r_minor_sensitive might be empty/NULL
   if (length(is_r_minor_sensitive) == 0L || is.null(is_r_minor_sensitive)) {
     is_r_minor_sensitive <- FALSE
@@ -112,8 +117,13 @@ check_root_package_exists <- function(remote_bin_path, package_name, last_versio
 #' @template param-s3_region
 #' @return Character vector of archived package filenames
 list_archived_packages <- function(
-  remote_bin_path, package_name, is_r_minor_sensitive,
-  s3_access_key_id, s3_secret_access_key, s3_endpoint, s3_region
+  remote_bin_path,
+  package_name,
+  is_r_minor_sensitive,
+  s3_access_key_id,
+  s3_secret_access_key,
+  s3_endpoint,
+  s3_region
 ) {
   # Establish S3 connection
   s3fs::s3_file_system(
@@ -213,8 +223,14 @@ get_system_architecture_info <- function(binary_output_path) {
 #' @template param-s3_region
 #' @return Logical indicating if package exists
 check_s3_root_package <- function(
-  remote_bin_path, package_name, last_version, is_r_minor_sensitive,
-  s3_access_key_id, s3_secret_access_key, s3_endpoint, s3_region
+  remote_bin_path,
+  package_name,
+  last_version,
+  is_r_minor_sensitive,
+  s3_access_key_id,
+  s3_secret_access_key,
+  s3_endpoint,
+  s3_region
 ) {
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
@@ -259,8 +275,14 @@ check_s3_root_package <- function(
 #' @template param-s3_region
 #' @return Character vector of all package filenames
 get_all_s3_packages <- function(
-  remote_bin_path, package_name, last_version, is_r_minor_sensitive,
-  s3_access_key_id, s3_secret_access_key, s3_endpoint, s3_region
+  remote_bin_path,
+  package_name,
+  last_version,
+  is_r_minor_sensitive,
+  s3_access_key_id,
+  s3_secret_access_key,
+  s3_endpoint,
+  s3_region
 ) {
   # Handle case where is_r_minor_sensitive might be empty/NULL
   if (length(is_r_minor_sensitive) == 0L || is.null(is_r_minor_sensitive)) {
@@ -268,8 +290,13 @@ get_all_s3_packages <- function(
   }
 
   archived_pkgs <- list_archived_packages(
-    remote_bin_path, package_name, is_r_minor_sensitive,
-    s3_access_key_id, s3_secret_access_key, s3_endpoint, s3_region
+    remote_bin_path,
+    package_name,
+    is_r_minor_sensitive,
+    s3_access_key_id,
+    s3_secret_access_key,
+    s3_endpoint,
+    s3_region
   )
   root_pkg_name <- sprintf("%s_%s.tar.gz", package_name, last_version)
   c(root_pkg_name, archived_pkgs)
@@ -284,7 +311,12 @@ get_all_s3_packages <- function(
 #' @template param-source_org_url
 #' @template param-tag_limit
 #' @return Character vector of filtered tags
-process_tag_filtering <- function(tag, package_name, source_org_url, tag_limit) {
+process_tag_filtering <- function(
+  tag,
+  package_name,
+  source_org_url,
+  tag_limit
+) {
   if (length(tag) == 1L && (is.null(tag) || tag == "latest")) {
     filter_tags(package_name, tag = NULL, source_org_url, tag_limit)
   } else {
@@ -323,17 +355,30 @@ move_and_rename_tarball <- function(
   )
 
   log_debug(
-    sprintf("{.fun build_single_tag}: Moving package from {.path %s} to {.path %s}", source_path, dest_path)
+    sprintf(
+      "{.fun build_single_tag}: Moving package from {.path %s} to {.path %s}",
+      source_path,
+      dest_path
+    )
   )
 
   if (file.exists(source_path)) {
     file.rename(source_path, dest_path)
   } else {
     log_info(
-      sprintf("{.fun build_single_tag}: File for package {.pkg %s} {.field %s} at {.path %s} does not exist - skipping.", package_name, tag, source_path) # nolint line_length_linter
+      sprintf(
+        "{.fun build_single_tag}: File for package {.pkg %s} {.field %s} at {.path %s} does not exist - skipping.",
+        package_name,
+        tag,
+        source_path
+      )
     )
-    log_debug(sprintf("Listing dir 'binary_output_path': %s", binary_output_path))
-    if (get_logger()$threshold <= 500L) { # DEBUG level
+    log_debug(sprintf(
+      "Listing dir 'binary_output_path': %s",
+      binary_output_path
+    ))
+    if (get_logger()$threshold <= 500L) {
+      # DEBUG level
       message(list.files(binary_output_path))
     }
   }

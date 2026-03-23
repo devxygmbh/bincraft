@@ -232,7 +232,8 @@ initialize_build_environment <- function(
   codename <- set_codename(codename)
 
   if (is.null(platform)) {
-    platform <- switch(codename,
+    platform <- switch(
+      codename,
       jammy = "ubuntu-2204",
       noble = "ubuntu-2404",
       rhel9 = "redhat-9",
@@ -317,7 +318,7 @@ filter_tags <- function(package_name, tag, source_org_url, tag_limit) {
   gert::git_config_global_set("advice.detachedHead", "false")
 
   gert::git_clone(
-    sprintf("%s/%s", source_org_url, package_name), # nolint
+    sprintf("%s/%s", source_org_url, package_name),
     path = file.path(tempdir(), "tmp1"),
     verbose = FALSE
   )
@@ -389,7 +390,7 @@ filter_packages_with_errors <- function(
   arch,
   pkgs_to_build
 ) {
-  pkg_tag_pairs <- parse_package_tag_pairs(pkg_differences) # nolint: object_usage_linter
+  pkg_tag_pairs <- parse_package_tag_pairs(pkg_differences)
 
   tryCatch(
     {
@@ -423,7 +424,6 @@ filter_packages_with_errors <- function(
       for (i in seq_along(pkg_tag_pairs)) {
         pair <- pkg_tag_pairs[[i]]
         if (check_package_error(con, table_name, pair, platform, arch)) {
-          # nolint: object_usage_linter
           packages_with_errors <- c(packages_with_errors, pkg_differences[i])
           log_warn(
             sprintf(
@@ -440,7 +440,7 @@ filter_packages_with_errors <- function(
       if (length(packages_with_errors) > 0L) {
         pkg_differences <- setdiff(pkg_differences, packages_with_errors)
         log_info(sprintf(
-          "Filtered out %d/%d package(s) due to previous errors. %d package(s) remaining to build.", # nolint nonportable_path_linter
+          "Filtered out %d/%d package(s) due to previous errors. %d package(s) remaining to build.",
           length(packages_with_errors),
           length(pkgs_to_build),
           length(pkg_differences)
@@ -632,7 +632,7 @@ execute_package_builds <- function(
     future.seed = TRUE
   )
 
-  total_build_time <- round(Sys.time() - t1, 2L) # nolint
+  total_build_time <- round(Sys.time() - t1, 2L)
   log_info(
     sprintf("Execution time (%s): %s.", package_name[1L], total_build_time)
   )
@@ -806,7 +806,7 @@ check_s3_packages <- function(
   last_version <- strsplit(
     gh::gh(sprintf(
       "GET %s",
-      paste("/repos", "cran", package_name, "commits", sep = "/") # nolint paste_linter
+      paste("/repos", "cran", package_name, "commits", sep = "/")
     ))[[
       1L
     ]]$commit$message,
@@ -824,7 +824,7 @@ check_s3_packages <- function(
     s3_secret_access_key,
     s3_endpoint,
     s3_region
-  ) # nolint: object_usage_linter
+  )
   if (!root_pkg) {
     return(list(should_skip = FALSE))
   }
@@ -839,14 +839,14 @@ check_s3_packages <- function(
     s3_secret_access_key,
     s3_endpoint,
     s3_region
-  ) # nolint: object_usage_linter
+  )
 
   tags_filtered <- process_tag_filtering(
     tag,
     package_name,
     source_org_url,
     tag_limit
-  ) # nolint: object_usage_linter
+  )
 
   pkgs_to_build <- sprintf("%s_%s.tar.gz", package_name, tags_filtered)
 
@@ -867,7 +867,7 @@ check_s3_packages <- function(
 
   log_info(
     sprintf(
-      "Filtered out %d/%d package(s) as they already exist in the remote bucket. %d package(s) potentially remaining to build.", # nolint nonportable_path_linter
+      "Filtered out %d/%d package(s) as they already exist in the remote bucket. %d package(s) potentially remaining to build.",
       filtered_count,
       total_count,
       remaining_count
@@ -894,7 +894,7 @@ check_s3_packages <- function(
 
   if (length(pkg_differences) == 0L) {
     log_info(
-      "{.fun build_binary_package}: All packages were filtered out due to previous build errors being present in the metadata database. Skipping." # nolint
+      "{.fun build_binary_package}: All packages were filtered out due to previous build errors being present in the metadata database. Skipping."
     )
     return(list(should_skip = TRUE))
   }
@@ -1531,7 +1531,7 @@ handle_build_output_files <- function(
         package_name,
         tag
       )
-    ) # nolint
+    )
   } else {
     move_and_rename_tarball(
       package_name,

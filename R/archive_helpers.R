@@ -10,7 +10,12 @@
 #' @template param-minor_version
 #' @template param-package_name
 #' @return Character string with archive search path
-get_remote_search_path <- function(remote_bin_dir, is_r_minor_sensitive, minor_version, package_name) {
+get_remote_search_path <- function(
+  remote_bin_dir,
+  is_r_minor_sensitive,
+  minor_version,
+  package_name
+) {
   if (is_r_minor_sensitive) {
     file.path(remote_bin_dir, minor_version, "Archive", package_name)
   } else {
@@ -29,9 +34,21 @@ get_remote_search_path <- function(remote_bin_dir, is_r_minor_sensitive, minor_v
 #' @template param-package_name
 #' @template param-old_versions
 #' @return Character vector with archive destination paths
-get_archive_path <- function(remote_bin_dir, is_r_minor_sensitive, minor_version, package_name, old_versions) {
+get_archive_path <- function(
+  remote_bin_dir,
+  is_r_minor_sensitive,
+  minor_version,
+  package_name,
+  old_versions
+) {
   if (is_r_minor_sensitive) {
-    file.path(remote_bin_dir, minor_version, "Archive", package_name, basename(old_versions))
+    file.path(
+      remote_bin_dir,
+      minor_version,
+      "Archive",
+      package_name,
+      basename(old_versions)
+    )
   } else {
     file.path(remote_bin_dir, "Archive", package_name, basename(old_versions))
   }
@@ -47,9 +64,23 @@ get_archive_path <- function(remote_bin_dir, is_r_minor_sensitive, minor_version
 #' @template param-package_name_local
 #' @template param-last_version
 #' @return List with old_versions and index elements
-find_old_versions <- function(all_versions, package_name, package_name_local, last_version) {
-  if (any(grepl(sprintf("%s_%s.tar.gz", package_name, last_version), all_versions))) {
-    index <- grep(sprintf("_%s.tar.gz", last_version), all_versions, fixed = TRUE)
+find_old_versions <- function(
+  all_versions,
+  package_name,
+  package_name_local,
+  last_version
+) {
+  if (
+    any(grepl(
+      sprintf("%s_%s.tar.gz", package_name, last_version),
+      all_versions
+    ))
+  ) {
+    index <- grep(
+      sprintf("_%s.tar.gz", last_version),
+      all_versions,
+      fixed = TRUE
+    )
     return(list(old_versions = all_versions[-index], index = index))
   }
 
@@ -62,7 +93,12 @@ find_old_versions <- function(all_versions, package_name, package_name_local, la
 
   for (i in versions) {
     version_matches <- vapply(
-      strsplit(vapply(strsplit(all_versions, "_", fixed = TRUE), function(x) x[2L], character(1L)),
+      strsplit(
+        vapply(
+          strsplit(all_versions, "_", fixed = TRUE),
+          function(x) x[2L],
+          character(1L)
+        ),
         ".tar.gz",
         fixed = TRUE
       ),
@@ -109,10 +145,21 @@ clean_duplicated_packages <- function(old_versions) {
 #' @template param-minor_version
 #' @template param-files
 #' @return Invisible NULL
-archive_single_package <- function(package_name, remote_bin_dir, is_r_minor_sensitive, minor_version, files) {
+archive_single_package <- function(
+  package_name,
+  remote_bin_dir,
+  is_r_minor_sensitive,
+  minor_version,
+  files
+) {
   log_header(sprintf("Archiving ({.pkg %s})", package_name))
 
-  remote_search_path <- get_remote_search_path(remote_bin_dir, is_r_minor_sensitive, minor_version, package_name)
+  remote_search_path <- get_remote_search_path(
+    remote_bin_dir,
+    is_r_minor_sensitive,
+    minor_version,
+    package_name
+  )
 
   if (!s3fs::s3_dir_exists(remote_search_path)) {
     s3fs::s3_dir_create(remote_search_path)
@@ -122,29 +169,51 @@ archive_single_package <- function(package_name, remote_bin_dir, is_r_minor_sens
 
   # only archive if more than one package exists in the root
   if (length(all_versions) <= 1L) {
-    log_info(sprintf("Skipping {.pkg %s} as only one package versions exists.", package_name))
+    log_info(sprintf(
+      "Skipping {.pkg %s} as only one package versions exists.",
+      package_name
+    ))
     return(invisible(NULL))
   }
 
   # get most recent version from CRAN
   last_version <- strsplit(
-    gh::gh(sprintf("GET %s", paste("/repos", "cran", package_name, "commits", sep = "/")))[[1L]]$commit$message, # nolint paste_linter
+    gh::gh(sprintf(
+      "GET %s",
+      paste("/repos", "cran", package_name, "commits", sep = "/")
+    ))[[1L]]$commit$message,
     "version ",
     fixed = TRUE
   )[[1L]][2L]
 
   # Find old versions
-  result <- find_old_versions(all_versions, package_name, package_name, last_version)
+  result <- find_old_versions(
+    all_versions,
+    package_name,
+    package_name,
+    last_version
+  )
   old_versions <- result$old_versions
   latest_index <- result$index # Used in log message below
 
   old_versions <- clean_duplicated_packages(old_versions)
 
   if (length(old_versions) > 0L) {
-    archive_path <- get_archive_path(remote_bin_dir, is_r_minor_sensitive, minor_version, package_name, old_versions)
+    archive_path <- get_archive_path(
+      remote_bin_dir,
+      is_r_minor_sensitive,
+      minor_version,
+      package_name,
+      old_versions
+    )
 
-    latest_files <- basename(all_versions[latest_index]) # nolint object_usage_linter
-    log_info(sprintf("Archiving %s to %s, keeping %s.", toString(basename(old_versions)), toString(archive_path), toString(latest_files))) # nolint line_length_linter
+    latest_files <- basename(all_versions[latest_index])
+    log_info(sprintf(
+      "Archiving %s to %s, keeping %s.",
+      toString(basename(old_versions)),
+      toString(archive_path),
+      toString(latest_files)
+    ))
 
     s3fs::s3_file_move(
       old_versions,
@@ -153,6 +222,9 @@ archive_single_package <- function(package_name, remote_bin_dir, is_r_minor_sens
       overwrite = TRUE
     )
 
-    log_success(sprintf("Successfully archived package {.pkg %s}.", package_name))
+    log_success(sprintf(
+      "Successfully archived package {.pkg %s}.",
+      package_name
+    ))
   }
 }

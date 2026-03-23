@@ -318,7 +318,7 @@ process_cran_updates <- function(
 #' @template param-new_packages
 #' @export
 get_r_minor_sensitive_packages <- function(
-  r_minor_packages_forge_type = "Forgejo", # nolint
+  r_minor_packages_forge_type = "Forgejo",
   r_minor_packages_issue_url = NULL,
   interval = NULL,
   updated_packages = NULL,
@@ -341,7 +341,7 @@ get_r_minor_sensitive_packages <- function(
   } else if (r_minor_packages_forge_type == "GitHub") {
     resp <- httr2::request(r_minor_packages_issue_url) |>
       httr2::req_headers(
-        Accept = "application/vnd.github.v3+json" # nolint
+        Accept = "application/vnd.github.v3+json"
       ) |>
       httr2::req_perform()
     resp_body <- httr2::resp_body_json(resp)

@@ -38,7 +38,10 @@ store_build_metadata <- function(
   build_duration = NA,
   size = NA
 ) {
-  if (metadata_db_type == "postgres" && !requireNamespace("RPostgres", quietly = TRUE)) {
+  if (
+    metadata_db_type == "postgres" &&
+      !requireNamespace("RPostgres", quietly = TRUE)
+  ) {
     log_info(paste0(
       "{.function store_build_metadata}: {.pkg RPostgres} must be installed ",
       "when ` metadata_db_type = 'postgres'`"
@@ -47,34 +50,63 @@ store_build_metadata <- function(
   }
 
   if (metadata_db_type == "postgres") {
-    driver <- RPostgres::Postgres() # nolint
+    driver <- RPostgres::Postgres()
   }
 
-  con <- purrr::insistently(~
-    dbConnect(driver,
-      dbname = metadata_db_name, host = metadata_db_host,
-      port = metadata_db_port, user = metadata_db_user, password = metadata_db_password,
+  con <- purrr::insistently(
+    ~ dbConnect(
+      driver,
+      dbname = metadata_db_name,
+      host = metadata_db_host,
+      port = metadata_db_port,
+      user = metadata_db_user,
+      password = metadata_db_password,
       sslmode = metadata_db_sslmode
-    ), rate = retry_config, quiet = FALSE)()
+    ),
+    rate = retry_config,
+    quiet = FALSE
+  )()
 
-  r_version <- paste(R.version$major, strsplit(R.version$minor, ".", fixed = TRUE)[[1L]][1L], sep = ".")
+  r_version <- paste(
+    R.version$major,
+    strsplit(R.version$minor, ".", fixed = TRUE)[[1L]][1L],
+    sep = "."
+  )
 
   table_name <- DBI::dbQuoteIdentifier(con, metadata_db_table)
-  query <- paste0("SELECT * FROM ", table_name, " WHERE name = $1 AND tag = $2 AND platform = $3 AND arch = $4 and r_version = $5") # nolint
+  query <- paste0(
+    "SELECT * FROM ",
+    table_name,
+    " WHERE name = $1 AND tag = $2 AND platform = $3 AND arch = $4 and r_version = $5"
+  )
   existing_entries <- purrr::insistently(
-    ~ dbGetQuery(con, query,
+    ~ dbGetQuery(
+      con,
+      query,
       params = list(package_name, tag, platform, arch, r_version)
     ),
-    rate = retry_config, quiet = FALSE
+    rate = retry_config,
+    quiet = FALSE
   )()
 
   if (nrow(existing_entries) >= 1L && !force) {
-    log_info(sprintf("{.fun store_build_metadata}: Build metadata for {.pkg %s} {.field %s} already exists.", package_name, tag)) # nolint
+    log_info(sprintf(
+      "{.fun store_build_metadata}: Build metadata for {.pkg %s} {.field %s} already exists.",
+      package_name,
+      tag
+    ))
   } else if (nrow(existing_entries) >= 1L && force) {
-    log_info(sprintf("{.fun store_build_metadata}: Force overwriting build metadata for {.pkg %s} {.field %s} (%s) because {.code force = TRUE} was set.", package_name, tag, platform)) # nolint
+    log_info(sprintf(
+      "{.fun store_build_metadata}: Force overwriting build metadata for {.pkg %s} {.field %s} (%s) because {.code force = TRUE} was set.",
+      package_name,
+      tag,
+      platform
+    ))
 
     query <- paste0(
-      "UPDATE ", table_name, " SET timestamp = $1, error_occurred = $2, error_text = $3, ",
+      "UPDATE ",
+      table_name,
+      " SET timestamp = $1, error_occurred = $2, error_text = $3, ",
       paste0(
         "duration = $4, size = $5, removed = $6 WHERE name = $7 and tag = $8 ",
         "and platform = $9 and arch = $10 and r_version = $11"
@@ -82,7 +114,8 @@ store_build_metadata <- function(
     )
     insistently(
       ~ dbExecute(
-        con, query,
+        con,
+        query,
         params = list(
           format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
           error_occurred,
@@ -97,12 +130,17 @@ store_build_metadata <- function(
           r_version
         )
       ),
-      rate = retry_config, quiet = FALSE
+      rate = retry_config,
+      quiet = FALSE
     )()
   } else if (nrow(existing_entries) == 0L) {
-    log_info(sprintf("Storing build metadata for {.pkg %s} {.field %s}.", package_name, tag))
+    log_info(sprintf(
+      "Storing build metadata for {.pkg %s} {.field %s}.",
+      package_name,
+      tag
+    ))
     # if no entry exists already, we can insert the info via dbWriteTable by passing a DF
-    metadata <- data.frame( # nolint
+    metadata <- data.frame(
       name = package_name,
       tag = tag,
       platform = platform,
@@ -118,9 +156,9 @@ store_build_metadata <- function(
     )
     # Write the data frame to the SQLite database
     purrr::insistently(
-      ~
-        dbWriteTable(con, metadata_db_table, metadata, append = TRUE),
-      rate = retry_config, quiet = FALSE
+      ~ dbWriteTable(con, metadata_db_table, metadata, append = TRUE),
+      rate = retry_config,
+      quiet = FALSE
     )()
   }
   dbDisconnect(con)
@@ -151,17 +189,24 @@ remove_from_metadata <- function(
   metadata_db_sslmode = NULL
 ) {
   if (metadata_db_type == "postgres") {
-    driver <- RPostgres::Postgres() # nolint
+    driver <- RPostgres::Postgres()
   }
-  con <- purrr::insistently(~
-    dbConnect(driver,
-      dbname = metadata_db_name, host = metadata_db_host,
-      port = metadata_db_port, user = metadata_db_user, password = metadata_db_password,
+  con <- purrr::insistently(
+    ~ dbConnect(
+      driver,
+      dbname = metadata_db_name,
+      host = metadata_db_host,
+      port = metadata_db_port,
+      user = metadata_db_user,
+      password = metadata_db_password,
       sslmode = metadata_db_sslmode
-    ), rate = retry_config, quiet = FALSE)()
+    ),
+    rate = retry_config,
+    quiet = FALSE
+  )()
 
   table_name <- DBI::dbQuoteIdentifier(con, metadata_db_table)
-  query <- paste0("UPDATE ", table_name, " SET removed = true WHERE name = $1") # nolint
+  query <- paste0("UPDATE ", table_name, " SET removed = true WHERE name = $1")
   purrr::insistently(
     ~ dbExecute(con, query, params = list(package_name)),
     rate = retry_config,
