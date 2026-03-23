@@ -804,10 +804,14 @@ check_s3_packages <- function(
 
   # get last CRAN version to search for it in S3 root
   last_version <- strsplit(
-    gh::gh(sprintf(
-      "GET %s",
-      paste("/repos", "cran", package_name, "commits", sep = "/")
-    ))[[
+    purrr::insistently(
+      ~ gh::gh(sprintf(
+        "GET %s",
+        paste("/repos", "cran", package_name, "commits", sep = "/")
+      )),
+      rate = retry_config,
+      quiet = FALSE
+    )()[[
       1L
     ]]$commit$message,
     "version ",

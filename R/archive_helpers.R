@@ -178,10 +178,14 @@ archive_single_package <- function(
 
   # get most recent version from CRAN
   last_version <- strsplit(
-    gh::gh(sprintf(
-      "GET %s",
-      paste("/repos", "cran", package_name, "commits", sep = "/")
-    ))[[1L]]$commit$message,
+    purrr::insistently(
+      ~ gh::gh(sprintf(
+        "GET %s",
+        paste("/repos", "cran", package_name, "commits", sep = "/")
+      )),
+      rate = retry_config,
+      quiet = FALSE
+    )()[[1L]]$commit$message,
     "version ",
     fixed = TRUE
   )[[1L]][2L]

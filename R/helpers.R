@@ -134,7 +134,11 @@ check_for_binary <- function(
   codename <- set_codename(codename)
   remote_bin_path <- set_bin_path(local_output_dir_root = s3_bucket, codename)
   os_version <- strsplit(
-    gh::gh(sprintf("GET /repos/cran/%s/commits", package_name))[[
+    purrr::insistently(
+      ~ gh::gh(sprintf("GET /repos/cran/%s/commits", package_name)),
+      rate = retry_config,
+      quiet = FALSE
+    )()[[
       1L
     ]]$commit$message,
     "version "
