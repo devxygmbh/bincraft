@@ -156,6 +156,31 @@ insistent_downloader <- purrr::insistently(
   quiet = FALSE
 )
 
+#' Retry an S3 operation with linear backoff
+#' @param func A function to execute (no arguments).
+#' @param label A descriptive label for log/error messages.
+#' @param max_attempts Maximum number of attempts before failing.
+#' @param base_delay Base delay in seconds (multiplied by attempt number).
+#' @return The result of `func()` on success.
+#' @noRd
+retry_s3_operation <- function(func, label, max_attempts = 3L, base_delay = 5L) {
+  for (attempt in seq_len(max_attempts)) {
+    result <- tryCatch(func(), error = function(e) e)
+    if (!inherits(result, "error")) return(result)
+    if (attempt == max_attempts) {
+      stop(sprintf(
+        "Failed to %s after %d attempts. Last error: %s. This typically means an S3 object was removed between listing and querying.",
+        label, max_attempts, conditionMessage(result)
+      ), call. = FALSE)
+    }
+    log_warn(sprintf(
+      "Attempt %d/%d to %s failed (%s). Retrying in %ds...",
+      attempt, max_attempts, label, conditionMessage(result), attempt * base_delay
+    ))
+    Sys.sleep(attempt * base_delay)
+  }
+}
+
 parse_bytes <- function(x) {
   x <- toupper(gsub("\\s+", "", x))
   num <- as.numeric(gsub("[^0-9.]", "", x))

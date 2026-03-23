@@ -146,25 +146,33 @@ upload_package_index <- function(
     5L
 
   t1 <- Sys.time()
-  cranlike::update_PACKAGES(sprintf("s3://%s", remote_bin_dir))
+  retry_s3_operation(
+    function() cranlike::update_PACKAGES(sprintf("s3://%s", remote_bin_dir)),
+    label = "update PACKAGES"
+  )
 
   # write Meta/archive.rds for remotes::install_version
   log_success(
     sprintf("Started creating/updating {.path %s}", file.path("Meta", "archive.rds")) # nolint
   )
-  files <- s3fs::s3_dir_ls(
-    file.path(remote_bin_dir, "Archive"),
-    recurse = TRUE,
-    regexp = "*.tar.gz"
-  )
-  archive_rds <- write_archive_rds(files)
-  tmp <- tempfile()
-  saveRDS(archive_rds, tmp)
-  s3fs::s3_file_upload(
-    tmp,
-    file.path(remote_bin_dir, "Meta", "archive.rds"),
-    overwrite = TRUE,
-    CacheControl = "no-store"
+  retry_s3_operation(
+    function() {
+      files <- s3fs::s3_dir_ls(
+        file.path(remote_bin_dir, "Archive"),
+        recurse = TRUE,
+        regexp = "*.tar.gz"
+      )
+      archive_rds <- write_archive_rds(files)
+      tmp <- tempfile()
+      saveRDS(archive_rds, tmp)
+      s3fs::s3_file_upload(
+        tmp,
+        file.path(remote_bin_dir, "Meta", "archive.rds"),
+        overwrite = TRUE,
+        CacheControl = "no-store"
+      )
+    },
+    label = file.path("update Meta", "archive.rds")
   )
   log_success(
     sprintf("Successfully uploaded {.path %s}", file.path("Meta", "archive.rds"))
