@@ -31,21 +31,18 @@ safe_cli_msg <- function(msg) {
   for (i in seq_along(cli_patterns)) {
     matches <- gregexpr(cli_patterns[i], msg, perl = TRUE)[[1L]]
     if (matches[1L] != -1L) {
-      for (j in seq_along(matches)) {
-        start_pos <- matches[j]
-        length_match <- attr(matches, "match.length")[j]
-        pattern_text <- substr(msg, start_pos, start_pos + length_match - 1L)
+      match_texts <- regmatches(msg, list(matches))[[1L]]
+      for (j in seq_along(match_texts)) {
         placeholder <- paste0("__CLI_PATTERN_", i, "_", j, "__")
-        protected_patterns[[placeholder]] <- pattern_text
-        msg <- sub(pattern_text, placeholder, msg, fixed = TRUE)
+        protected_patterns[[placeholder]] <- match_texts[j]
+        msg <- sub(match_texts[j], placeholder, msg, fixed = TRUE)
       }
     }
   }
 
   # Now escape any remaining unmatched braces
-
-  msg <- gsub("\\{", "{{", msg, fixed = TRUE)
-  msg <- gsub("\\}", "}}", msg, fixed = TRUE)
+  msg <- gsub("{", "{{", msg, fixed = TRUE)
+  msg <- gsub("}", "}}", msg, fixed = TRUE)
 
   # Escape backticks to prevent cli inline code formatting issues
   msg <- gsub("`", "'", msg, fixed = TRUE)
