@@ -13,42 +13,33 @@ detect_linux_codename <- function() {
     return(NULL)
   }
 
-  os_release <- system2("cat", args = "/etc/os-release", stdout = TRUE)
+  os_release <- readLines("/etc/os-release", warn = FALSE)
+  parse_os_field <- function(field) {
+    line <- grep(paste0("^", field, "="), os_release, value = TRUE)
+    if (length(line) == 0L) return(NULL)
+    gsub('"', "", sub(paste0("^", field, "="), "", line[1L]))
+  }
 
   if (any(grepl("alpine", os_release, fixed = TRUE))) {
-    os_version <- system2(
-      "grep",
-      args = "'^VERSION_ID=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'",
-      stdout = TRUE
-    )
+    os_version <- parse_os_field("VERSION_ID")
     version_stripped <- substr(gsub(".", "", os_version, fixed = TRUE), 1L, 3L)
     return(paste0("alpine", version_stripped))
   }
 
-  dist_fam <- system2(
-    "grep",
-    args = "'^ID_LIKE=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'",
-    stdout = TRUE
-  )
+  dist_fam <- parse_os_field("ID_LIKE")
 
   if (identical(dist_fam, "debian")) {
-    return(system2(
-      "grep",
-      args = "'^VERSION_CODENAME=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'",
-      stdout = TRUE
-    ))
+    return(parse_os_field("VERSION_CODENAME"))
   }
 
-  if (grepl("rhel|fedora", dist_fam)) {
-    platform_id <- system2(
-      "grep",
-      args = "'^PLATFORM_ID=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'",
-      stdout = TRUE
-    )
-    if (platform_id == "platform:el9") {
+  if (!is.null(dist_fam) && grepl("rhel|fedora", dist_fam)) {
+    platform_id <- parse_os_field("PLATFORM_ID")
+    if (identical(platform_id, "platform:el9")) {
       return("rhel9")
-    } else if (platform_id == "platform:el8") {
+    } else if (identical(platform_id, "platform:el8")) {
       return("rhel8")
+    } else if (identical(platform_id, "platform:el10")) {
+      return("rhel10")
     }
   }
 
