@@ -72,36 +72,6 @@ get_minor_version <- function() {
 #' Verifies if the latest version of a package exists in the S3 repository,
 #' accounting for R minor version sensitivity.
 #'
-#' @template param-remote_bin_path
-#' @template param-package_name
-#' @template param-last_version
-#' @template param-is_r_minor_sensitive
-#' @return Logical indicating if package exists
-check_root_package_exists <- function(
-  remote_bin_path,
-  package_name,
-  last_version,
-  is_r_minor_sensitive
-) {
-  # Handle case where is_r_minor_sensitive might be empty/NULL
-  if (length(is_r_minor_sensitive) == 0L || is.null(is_r_minor_sensitive)) {
-    is_r_minor_sensitive <- FALSE
-  }
-
-  if (is_r_minor_sensitive) {
-    minor_version <- get_minor_version()
-    s3fs::s3_file_exists(file.path(
-      remote_bin_path,
-      minor_version,
-      sprintf("%s_%s.tar.gz", package_name, last_version)
-    ))
-  } else {
-    s3fs::s3_file_exists(file.path(
-      remote_bin_path,
-      sprintf("%s_%s.tar.gz", package_name, last_version)
-    ))
-  }
-}
 
 #' List archived packages from S3
 #'
