@@ -624,13 +624,17 @@ execute_package_builds <- function(
     result
   }
 
-  # Use parallel processing by default
-  result <- future.apply::future_mapply(
-    worker_function,
-    package_name,
-    tag,
-    future.seed = TRUE
-  )
+  # Use future_mapply for parallel plans, regular mapply for sequential
+  if (inherits(future::plan(), "sequential")) {
+    result <- mapply(worker_function, package_name, tag)
+  } else {
+    result <- future.apply::future_mapply(
+      worker_function,
+      package_name,
+      tag,
+      future.seed = TRUE
+    )
+  }
 
   total_build_time <- round(Sys.time() - t1, 2L)
   log_info(
