@@ -12,12 +12,16 @@ steps:
     image: reg.devxy.io/docker.io/woodpeckerci/plugin-prettier:1.4.1
     depends_on: []
 
-  - name: lint-r
-    image: reg.devxy.io/docker.io/library/alpine:3.23
+  - name: lint-r-jarl
+    image: reg.devxy.io/r/r-alpine:4.5-3.22
+    environment:
+      JARL_VERSION: '0.5.0'
     commands:
-      - apk add -q --no-cache curl
-      - curl --proto '=https' --tlsv1.2 -LsSf https://github.com/etiennebacher/jarl/releases/latest/download/jarl-installer.sh | INSTALLER_PRINT_QUIET=1 sh
-      - source $HOME/.local/bin/env && jarl check R/
+      - apk add --no-cache -q curl ca-certificates
+      - curl -sLO "https://github.com/etiennebacher/jarl/releases/download/$JARL_VERSION/jarl-installer.sh"
+      - sh ./jarl-installer.sh
+      - source $HOME/.local/bin/env
+      - jarl check ./R/
 
   - name: format-r
     image: reg.devxy.io/docker.io/library/buildpack-deps:trixie-curl

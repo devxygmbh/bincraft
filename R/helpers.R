@@ -16,7 +16,9 @@ detect_linux_codename <- function() {
   os_release <- readLines("/etc/os-release", warn = FALSE)
   parse_os_field <- function(field) {
     line <- grep(paste0("^", field, "="), os_release, value = TRUE)
-    if (length(line) == 0L) return(NULL)
+    if (length(line) == 0L) {
+      return(NULL)
+    }
     gsub('"', "", sub(paste0("^", field, "="), "", line[1L]))
   }
 

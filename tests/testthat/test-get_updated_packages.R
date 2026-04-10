@@ -146,21 +146,24 @@ test_that("functions handle API errors gracefully", {
 
   # Test get_new_cran_packages with API error
   mockery::stub(
-    get_new_cran_packages, "pkgsearch::cran_new",
+    get_new_cran_packages,
+    "pkgsearch::cran_new",
     function(...) stop("API error", call. = FALSE)
   )
   expect_error(get_new_cran_packages())
 
   # Test get_removed_cran_packages with API error
   mockery::stub(
-    get_removed_cran_packages, "pkgsearch::cran_events",
+    get_removed_cran_packages,
+    "pkgsearch::cran_events",
     function(...) stop("API error", call. = FALSE)
   )
   expect_error(get_removed_cran_packages())
 
   # Test get_updated_cran_packages with API error
   mockery::stub(
-    get_updated_cran_packages, "pkgsearch::cran_events",
+    get_updated_cran_packages,
+    "pkgsearch::cran_events",
     function(...) stop("API error", call. = FALSE)
   )
   expect_error(get_updated_cran_packages())
