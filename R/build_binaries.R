@@ -625,7 +625,7 @@ execute_package_builds <- function(
   }
 
   # Use future_mapply for parallel plans, regular mapply for sequential
-  if (inherits(future::plan(), "sequential")) {
+  if (future::nbrOfWorkers() <= 1L) {
     result <- mapply(worker_function, package_name, tag)
   } else {
     result <- future.apply::future_mapply(
