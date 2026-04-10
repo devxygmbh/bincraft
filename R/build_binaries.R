@@ -236,6 +236,7 @@ initialize_build_environment <- function(
       codename,
       jammy = "ubuntu-2204",
       noble = "ubuntu-2404",
+      rhel10 = "redhat-10",
       rhel9 = "redhat-9",
       rhel8 = "redhat-8",
       alpine320 = "alpine-320",
