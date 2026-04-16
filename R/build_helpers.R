@@ -288,7 +288,17 @@ process_tag_filtering <- function(
   tag_limit
 ) {
   if (length(tag) == 1L && (is.null(tag) || tag == "latest")) {
-    filter_tags(package_name, tag = NULL, source_org_url, tag_limit)
+    tryCatch(
+      filter_tags(package_name, tag = NULL, source_org_url, tag_limit),
+      error = function(e) {
+        log_warn(sprintf(
+          "Failed to retrieve tags for {.pkg %s}: %s. Skipping.",
+          package_name,
+          conditionMessage(e)
+        ))
+        return(character(0L))
+      }
+    )
   } else {
     tag
   }
