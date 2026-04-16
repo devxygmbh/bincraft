@@ -111,7 +111,20 @@ build_binary_package <- function(
   arch <- setup_result$arch
 
   if (is.null(tag) || tag == "latest") {
-    tag <- filter_tags(package_name, tag, source_org_url, tag_limit)
+    tag <- tryCatch(
+      filter_tags(package_name, tag, source_org_url, tag_limit),
+      error = function(e) {
+        log_warn(sprintf(
+          "Failed to retrieve tags for {.pkg %s}: %s. Skipping.",
+          package_name,
+          conditionMessage(e)
+        ))
+        return(NULL)
+      }
+    )
+    if (is.null(tag)) {
+      return("skipped")
+    }
     package_name <- rep(package_name, length(tag))
   }
 
