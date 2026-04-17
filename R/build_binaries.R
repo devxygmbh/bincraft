@@ -349,6 +349,7 @@ detect_forge_type <- function(source_org_url) {
 #'
 #' @param package_name Package name (= repository name)
 #' @param source_org_url Git organization URL
+#' @importFrom httr2 url_parse request req_retry req_perform resp_body_json
 #' @param tag_limit Maximum number of tags to return
 #' @param forge_type Character: "github", "forgejo", or "unknown"
 #' @return Character vector of tag names sorted by recency, or NULL on failure
