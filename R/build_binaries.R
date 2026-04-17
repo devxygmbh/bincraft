@@ -40,6 +40,8 @@
 #' @template param-s3-access-key-id
 #' @template param-s3-secret-access-key
 #'
+#' @template param-s3_package_cache
+#'
 #' @importFrom future.apply future_mapply
 #' @importFrom gert git_config_global_set git_clone
 #' @importFrom pak local_install_dev_deps
@@ -84,7 +86,8 @@ build_binary_package <- function(
   s3_region = NULL,
   s3_bucket = NULL,
   s3_access_key_id = NULL,
-  s3_secret_access_key = NULL
+  s3_secret_access_key = NULL,
+  s3_package_cache = NULL
 ) {
   # Initialize and prepare
   setup_result <- initialize_build_environment(
@@ -153,7 +156,8 @@ build_binary_package <- function(
     metadata_db_password,
     metadata_db_sslmode,
     platform,
-    arch
+    arch,
+    s3_package_cache
   )
 
   if (pkg_info$should_skip) {
@@ -785,6 +789,7 @@ execute_package_builds <- function(
 #' @template param-metadata_db_sslmode
 #' @template param-platform
 #' @template param-arch
+#' @template param-s3_package_cache
 #' @return List with package information
 determine_packages_to_build <- function(
   package_name,
@@ -810,7 +815,8 @@ determine_packages_to_build <- function(
   metadata_db_password,
   metadata_db_sslmode,
   platform,
-  arch
+  arch,
+  s3_package_cache = NULL
 ) {
   # check whether any build attempts need to be made
   if (!force && !is.null(s3_bucket)) {
@@ -836,7 +842,8 @@ determine_packages_to_build <- function(
       metadata_db_sslmode,
       platform,
       arch,
-      codename
+      codename,
+      s3_package_cache
     )
 
     if (s3_result$should_skip) {
@@ -887,6 +894,7 @@ determine_packages_to_build <- function(
 #' @template param-platform
 #' @template param-arch
 #' @template param-codename
+#' @template param-s3_package_cache
 #' @return List with should_skip and filtered_tags
 check_s3_packages <- function(
   package_name,
@@ -910,7 +918,8 @@ check_s3_packages <- function(
   metadata_db_sslmode,
   platform,
   arch,
-  codename = NULL
+  codename = NULL,
+  s3_package_cache = NULL
 ) {
   codename <- set_codename(codename)
   remote_bin_path <- set_bin_path(local_output_dir_root = s3_bucket, codename)
@@ -927,21 +936,93 @@ check_s3_packages <- function(
   # sometimes the var arrives as a vector > 1L here
   package_name <- unique(package_name)
 
-  # get last CRAN version to search for it in S3 root
-  last_version <- strsplit(
-    purrr::insistently(
-      ~ gh::gh(sprintf(
-        "GET %s",
-        paste("/repos", "cran", package_name, "commits", sep = "/")
-      )),
-      rate = retry_config,
-      quiet = FALSE
-    )()[[
-      1L
-    ]]$commit$message,
-    "version ",
-    fixed = TRUE
-  )[[1L]][2L]
+  # Fast path: use pre-fetched S3 listing instead of per-package API calls
+  if (!is.null(s3_package_cache)) {
+    tags_filtered <- process_tag_filtering(
+      tag,
+      package_name,
+      source_org_url,
+      tag_limit
+    )
+
+    pkgs_to_build <- sprintf("%s_%s.tar.gz", package_name, tags_filtered)
+
+    if (all(pkgs_to_build %in% s3_package_cache)) {
+      log_info(
+        "{.fun build_binary_package}: All packages to be built already exist in the remote bucket. ",
+        "Skipping due to {.code force = FALSE}."
+      )
+      return(list(should_skip = TRUE))
+    }
+
+    pkg_differences <- setdiff(pkgs_to_build, s3_package_cache)
+
+    if (store_build_metadata) {
+      pkg_differences <- filter_packages_with_errors(
+        pkg_differences,
+        metadata_db_type,
+        metadata_db_host,
+        metadata_db_name,
+        metadata_db_table,
+        metadata_db_port,
+        metadata_db_user,
+        metadata_db_password,
+        metadata_db_sslmode,
+        platform,
+        arch,
+        pkgs_to_build
+      )
+    }
+
+    if (length(pkg_differences) == 0L) {
+      log_info(
+        "{.fun build_binary_package}: All packages were filtered out due to previous build errors being present in the metadata database. Skipping."
+      )
+      return(list(should_skip = TRUE))
+    }
+
+    filtered_tags <- unname(vapply(
+      pkg_differences,
+      function(x) {
+        parts <- strsplit(x, "_", fixed = TRUE)[[1L]]
+        if (length(parts) < 2L) {
+          return(NA_character_)
+        }
+        version_part <- parts[2L]
+        strsplit(version_part, ".tar.gz", fixed = TRUE)[[1L]][1L]
+      },
+      character(1L)
+    ))
+
+    log_info(
+      sprintf(
+        "Building %d/%d versions as they are not present in the remote bucket: %s",
+        length(pkg_differences),
+        length(pkgs_to_build),
+        toString(pkg_differences)
+      )
+    )
+
+    return(list(should_skip = FALSE, filtered_tags = filtered_tags))
+  }
+
+  # Infer latest version from tags (first tag is most recent)
+  tags_filtered <- process_tag_filtering(
+    tag,
+    package_name,
+    source_org_url,
+    tag_limit
+  )
+
+  if (length(tags_filtered) == 0L) {
+    log_warn(sprintf(
+      "No tags found for {.pkg %s}. Skipping.",
+      package_name
+    ))
+    return(list(should_skip = FALSE))
+  }
+
+  last_version <- tags_filtered[1L]
 
   # Check if root package exists
   root_pkg <- check_s3_root_package(
@@ -968,13 +1049,6 @@ check_s3_packages <- function(
     s3_secret_access_key,
     s3_endpoint,
     s3_region
-  )
-
-  tags_filtered <- process_tag_filtering(
-    tag,
-    package_name,
-    source_org_url,
-    tag_limit
   )
 
   pkgs_to_build <- sprintf("%s_%s.tar.gz", package_name, tags_filtered)
