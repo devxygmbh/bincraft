@@ -318,10 +318,112 @@ initialize_build_environment <- function(
   )
 }
 
+#' Detect forge type from a git organization URL
+#'
+#' @param source_org_url Git organization URL
+#' @return Character: "github", "forgejo", or "unknown"
+#' @noRd
+detect_forge_type <- function(source_org_url) {
+  if (grepl("github\\.com", source_org_url, ignore.case = TRUE)) {
+    return("github")
+  }
+  # Forgejo/Gitea instances — check for known hosts or try API discovery
+  # Forgejo and Gitea share the same API, so we treat them identically
+  if (grepl("codefloe\\.com|gitea\\.|forgejo\\.", source_org_url, ignore.case = TRUE)) {
+    return("forgejo")
+  }
+  "unknown"
+}
+
+#' Fetch git tags via forge HTTP API
+#'
+#' @param package_name Package name (= repository name)
+#' @param source_org_url Git organization URL
+#' @param tag_limit Maximum number of tags to return
+#' @param forge_type Character: "github", "forgejo", or "unknown"
+#' @return Character vector of tag names sorted by recency, or NULL on failure
+#' @noRd
+fetch_tags_via_api <- function(package_name, source_org_url, tag_limit, forge_type) {
+  tryCatch(
+    {
+      if (forge_type == "github") {
+        # Extract owner from URL: https://github.com/cran -> "cran"
+        owner <- basename(source_org_url)
+        response <- gh::gh(
+          "GET /repos/{owner}/{repo}/tags",
+          owner = owner,
+          repo = package_name,
+          per_page = tag_limit,
+          .limit = tag_limit
+        )
+        vapply(response, `[[`, character(1L), "name")
+      } else if (forge_type == "forgejo") {
+        # Extract base URL and owner: https://codefloe.com/rpkgs -> base=https://codefloe.com, owner=rpkgs
+        parsed <- httr2::url_parse(source_org_url)
+        owner <- basename(parsed$path)
+        base_url <- sprintf("%s://%s", parsed$scheme, parsed$hostname)
+        api_url <- sprintf(
+          "%s/api/v1/repos/%s/%s/tags?limit=%d",
+          base_url, owner, package_name, tag_limit
+        )
+        req <- httr2::request(api_url) |>
+          httr2::req_retry(max_tries = 3L, backoff = ~ 2)
+        resp <- httr2::req_perform(req)
+        tags_data <- httr2::resp_body_json(resp)
+        vapply(tags_data, `[[`, character(1L), "name")
+      } else {
+        NULL
+      }
+    },
+    error = function(e) {
+      log_debug(sprintf(
+        "API tag fetch failed for %s/%s: %s. Falling back to git ls-remote.",
+        source_org_url, package_name, conditionMessage(e)
+      ))
+      NULL
+    }
+  )
+}
+
+#' Fetch git tags via git ls-remote (fallback)
+#'
+#' @param package_name Package name (= repository name)
+#' @param source_org_url Git organization URL
+#' @param tag_limit Maximum number of tags to return
+#' @return Character vector of tag names sorted by version descending
+#' @noRd
+fetch_tags_via_ls_remote <- function(package_name, source_org_url, tag_limit) {
+  repo_url <- sprintf("%s/%s", source_org_url, package_name)
+  output <- tryCatch(
+    system2(
+      "git",
+      args = c("ls-remote", "--tags", "--sort=-version:refname", repo_url),
+      stdout = TRUE,
+      stderr = FALSE
+    ),
+    error = function(e) character(0L)
+  )
+
+  if (length(output) == 0L) {
+    return(character(0L))
+  }
+
+  # Parse "refs/tags/1.2.3" from ls-remote output, skip ^{} dereferenced entries
+  refs <- sub(".*refs/tags/", "", output)
+  refs <- refs[!grepl("\\^\\{\\}$", refs)]
+  refs <- refs[!grepl("^R-", refs, fixed = FALSE)]
+
+  if (length(refs) > tag_limit) {
+    refs <- refs[seq_len(tag_limit)]
+  }
+  refs
+}
+
 #' Filter git tags for package versions
 #'
 #' Retrieves and filters git tags from a package repository, excluding
-#' R-prefixed tags and applying tag limits.
+#' R-prefixed tags and applying tag limits. Uses forge HTTP APIs (GitHub,
+#' Forgejo/Gitea) with git ls-remote as fallback.
 #'
 #' @template param-package_name
 #' @template param-tag
@@ -329,46 +431,42 @@ initialize_build_environment <- function(
 #' @template param-tag_limit
 #' @return Character vector of filtered tags
 filter_tags <- function(package_name, tag, source_org_url, tag_limit) {
-  gert::git_config_global_set("advice.detachedHead", "false")
-
-  gert::git_clone(
-    sprintf("%s/%s", source_org_url, package_name),
-    path = file.path(tempdir(), "tmp1"),
-    verbose = FALSE
-  )
+  forge_type <- detect_forge_type(source_org_url)
 
   if (!is.null(tag) && tag == "latest") {
-    tags <- withr::with_dir(
-      file.path(tempdir(), "tmp1"),
-      system("git tag --sort=-creatordate | head -1", intern = TRUE)
-    )
-  } else {
-    if (!is.null(tag_limit)) {
-      all_tags <- withr::with_dir(
-        file.path(tempdir(), "tmp1"),
-        system("git tag --sort=-creatordate", intern = TRUE)
-      )
-      all_tags <- all_tags[!grepl("R-", all_tags, fixed = TRUE)]
-      if (length(all_tags) < tag_limit) {
-        tag_limit <- length(all_tags)
-      } else {
-        log_info(
-          sprintf(
-            "{.fun filter_tags}: Filtered for the %s most recent tags (out of {.field %s} total)",
-            tag_limit,
-            length(all_tags)
-          )
-        )
-      }
-      tags <- all_tags[1L:tag_limit]
-    } else {
-      # gert does not support sorting so we cannot use it for the above condition
-      all_tags <- gert::git_tag_list(repo = file.path(tempdir(), "tmp1"))
-      all_tags <- all_tags[!grepl("R-", all_tags$name, fixed = TRUE), ]
-      tags <- all_tags$name
+    # For "latest", try API first, then ls-remote, get just 1 tag
+    tags <- fetch_tags_via_api(package_name, source_org_url, 1L, forge_type)
+    if (is.null(tags) || length(tags) == 0L) {
+      tags <- fetch_tags_via_ls_remote(package_name, source_org_url, 1L)
     }
-    unlink(file.path(tempdir(), "tmp1"), force = TRUE, recursive = TRUE)
+    return(tags)
   }
+
+  # Normal case: get tag_limit most recent tags
+  tags <- fetch_tags_via_api(package_name, source_org_url, tag_limit, forge_type)
+  if (is.null(tags) || length(tags) == 0L) {
+    tags <- fetch_tags_via_ls_remote(package_name, source_org_url, tag_limit)
+  }
+
+  # Filter out R-prefixed tags (API results may include them)
+  tags <- tags[!grepl("^R-", tags)]
+
+  if (length(tags) > tag_limit) {
+    tags <- tags[seq_len(tag_limit)]
+  }
+
+  if (length(tags) < tag_limit) {
+    tag_limit <- length(tags)
+  } else {
+    log_info(
+      sprintf(
+        "{.fun filter_tags}: Filtered for the %s most recent tags (out of {.field %s} total)",
+        tag_limit,
+        length(tags)
+      )
+    )
+  }
+
   tags
 }
 
