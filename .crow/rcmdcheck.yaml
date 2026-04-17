@@ -19,6 +19,7 @@ steps:
         from_secret: GITHUB_PAT
       RCMDCHECK_NUM_COLORS: 300
     commands:
+      - apk add -q --no-cache libgit2-dev libuv-dev
       - R -q -e 'install.packages("remotes")'
       - R -q -e 'install.packages(c("rcmdcheck", remotes::dev_package_deps(dependencies = TRUE)$package), Ncpus = 2)'
       - R -q -e 'rcmdcheck::rcmdcheck(args = "--no-manual", error_on = "warning")'
