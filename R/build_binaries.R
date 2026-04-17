@@ -1506,7 +1506,7 @@ check_build_skip_conditions <- function(
           tag
         )
       )
-      list(should_skip = TRUE, reason = "skipped")
+      return(list(should_skip = TRUE, reason = "skipped"))
     }
   }
 
