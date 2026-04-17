@@ -12,13 +12,14 @@ depends_on:
 
 steps:
   'Check package':
-    image: reg.devxy.io/r/r-alpine:4.5-3.22
+    image: reg.devxy.io/r/r-alpine:4.5-3.23
     pull: true
     environment:
       GITHUB_PAT:
         from_secret: GITHUB_PAT
       RCMDCHECK_NUM_COLORS: 300
     commands:
+      - apk add -q --no-cache libgit2-dev libuv-dev
       - R -q -e 'install.packages("remotes")'
       - R -q -e 'install.packages(c("rcmdcheck", remotes::dev_package_deps(dependencies = TRUE)$package), Ncpus = 2)'
       - R -q -e 'rcmdcheck::rcmdcheck(args = "--no-manual", error_on = "warning")'

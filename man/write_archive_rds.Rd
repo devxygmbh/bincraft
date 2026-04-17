@@ -10,5 +10,5 @@ write_archive_rds(files)
 \item{files}{Input files}
 }
 \description{
-Inspired from \url{https://stackoverflow.com/questions/35584396/how-to-generate-meta-archive-rds-to-be-compatible-with-devtoolsinstall-version} # nolint
+Inspired from \url{https://stackoverflow.com/questions/35584396/how-to-generate-meta-archive-rds-to-be-compatible-with-devtoolsinstall-version}
 }

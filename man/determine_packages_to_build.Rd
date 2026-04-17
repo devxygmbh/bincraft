@@ -28,7 +28,8 @@ determine_packages_to_build(
   metadata_db_password,
   metadata_db_sslmode,
   platform,
-  arch
+  arch,
+  s3_package_cache = NULL
 )
 }
 \arguments{
@@ -107,6 +108,12 @@ Platform identifier}
 
 \item{arch}{(\link{character})\cr
 Architecture}
+
+\item{s3_package_cache}{(\link{character} or \code{NULL})\cr
+Optional pre-fetched character vector of S3 package filenames (basenames like
+\code{"pkg_1.0.0.tar.gz"}). When provided, S3 existence checks use in-memory set
+lookup instead of per-package S3 API calls. Obtain via
+\code{basename(s3fs::s3_dir_ls(..., recurse = TRUE))}.}
 }
 \value{
 List with package information

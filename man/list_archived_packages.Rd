@@ -2,7 +2,7 @@
 % Please edit documentation in R/build_helpers.R
 \name{list_archived_packages}
 \alias{list_archived_packages}
-\title{List archived packages from S3}
+\title{Check if root package exists in S3}
 \usage{
 list_archived_packages(
   remote_bin_path,
@@ -41,6 +41,12 @@ S3 region}
 Character vector of archived package filenames
 }
 \description{
+Verifies if the latest version of a package exists in the S3 repository,
+accounting for R minor version sensitivity.
+}
+\details{
+List archived packages from S3
+
 Retrieves list of archived package files for a given package,
 accounting for R minor version sensitivity.
 }

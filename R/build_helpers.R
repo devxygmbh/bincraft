@@ -95,15 +95,6 @@ list_archived_packages <- function(
   s3_endpoint,
   s3_region
 ) {
-  # Establish S3 connection
-  s3fs::s3_file_system(
-    aws_access_key_id = s3_access_key_id,
-    aws_secret_access_key = s3_secret_access_key,
-    endpoint = s3_endpoint,
-    region_name = s3_region,
-    refresh = TRUE
-  )
-
   # Handle case where is_r_minor_sensitive might be empty/NULL
   if (length(is_r_minor_sensitive) == 0L || is.null(is_r_minor_sensitive)) {
     is_r_minor_sensitive <- FALSE
@@ -202,14 +193,6 @@ check_s3_root_package <- function(
   s3_endpoint,
   s3_region
 ) {
-  s3fs::s3_file_system(
-    aws_access_key_id = s3_access_key_id,
-    aws_secret_access_key = s3_secret_access_key,
-    endpoint = s3_endpoint,
-    region_name = s3_region,
-    refresh = TRUE
-  )
-
   # Handle case where is_r_minor_sensitive might be empty/NULL
   if (length(is_r_minor_sensitive) == 0L || is.null(is_r_minor_sensitive)) {
     is_r_minor_sensitive <- FALSE
