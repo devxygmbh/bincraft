@@ -2,7 +2,11 @@ test_that("check_s3_packages skips S3 calls when s3_package_cache is provided an
   skip_on_cran()
 
   # Simulate a cache that contains the package we're checking
-  cache <- c("testpkg_1.0.0.tar.gz", "testpkg_0.9.0.tar.gz", "testpkg_0.8.0.tar.gz")
+  cache <- c(
+    "testpkg_1.0.0.tar.gz",
+    "testpkg_0.9.0.tar.gz",
+    "testpkg_0.8.0.tar.gz"
+  )
 
   result <- check_s3_packages(
     package_name = "testpkg",

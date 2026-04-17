@@ -333,7 +333,13 @@ detect_forge_type <- function(source_org_url) {
   }
   # Forgejo/Gitea instances — check for known hosts or try API discovery
   # Forgejo and Gitea share the same API, so we treat them identically
-  if (grepl("codefloe\\.com|gitea\\.|forgejo\\.", source_org_url, ignore.case = TRUE)) {
+  if (
+    grepl(
+      "codefloe\\.com|gitea\\.|forgejo\\.",
+      source_org_url,
+      ignore.case = TRUE
+    )
+  ) {
     return("forgejo")
   }
   "unknown"
@@ -347,7 +353,12 @@ detect_forge_type <- function(source_org_url) {
 #' @param forge_type Character: "github", "forgejo", or "unknown"
 #' @return Character vector of tag names sorted by recency, or NULL on failure
 #' @noRd
-fetch_tags_via_api <- function(package_name, source_org_url, tag_limit, forge_type) {
+fetch_tags_via_api <- function(
+  package_name,
+  source_org_url,
+  tag_limit,
+  forge_type
+) {
   tryCatch(
     {
       if (forge_type == "github") {
@@ -368,10 +379,13 @@ fetch_tags_via_api <- function(package_name, source_org_url, tag_limit, forge_ty
         base_url <- sprintf("%s://%s", parsed$scheme, parsed$hostname)
         api_url <- sprintf(
           "%s/api/v1/repos/%s/%s/tags?limit=%d",
-          base_url, owner, package_name, tag_limit
+          base_url,
+          owner,
+          package_name,
+          tag_limit
         )
         req <- httr2::request(api_url) |>
-          httr2::req_retry(max_tries = 3L, backoff = ~ 2)
+          httr2::req_retry(max_tries = 3L, backoff = ~2)
         resp <- httr2::req_perform(req)
         tags_data <- httr2::resp_body_json(resp)
         vapply(tags_data, `[[`, character(1L), "name")
@@ -382,7 +396,9 @@ fetch_tags_via_api <- function(package_name, source_org_url, tag_limit, forge_ty
     error = function(e) {
       log_debug(sprintf(
         "API tag fetch failed for %s/%s: %s. Falling back to git ls-remote.",
-        source_org_url, package_name, conditionMessage(e)
+        source_org_url,
+        package_name,
+        conditionMessage(e)
       ))
       NULL
     }
@@ -447,7 +463,12 @@ filter_tags <- function(package_name, tag, source_org_url, tag_limit) {
   }
 
   # Normal case: get tag_limit most recent tags
-  tags <- fetch_tags_via_api(package_name, source_org_url, tag_limit, forge_type)
+  tags <- fetch_tags_via_api(
+    package_name,
+    source_org_url,
+    tag_limit,
+    forge_type
+  )
   if (is.null(tags) || length(tags) == 0L) {
     tags <- fetch_tags_via_ls_remote(package_name, source_org_url, tag_limit)
   }
