@@ -915,6 +915,15 @@ check_s3_packages <- function(
   codename <- set_codename(codename)
   remote_bin_path <- set_bin_path(local_output_dir_root = s3_bucket, codename)
 
+  # Initialize S3 once for all checks in this function
+  s3fs::s3_file_system(
+    aws_access_key_id = s3_access_key_id,
+    aws_secret_access_key = s3_secret_access_key,
+    endpoint = s3_endpoint,
+    region_name = s3_region,
+    refresh = TRUE
+  )
+
   # sometimes the var arrives as a vector > 1L here
   package_name <- unique(package_name)
 
