@@ -21,6 +21,7 @@ Imports:
     future.apply,
     gert,
     gh,
+    httr2,
     lgr,
     lubridate,
     pak,
@@ -33,7 +34,6 @@ Imports:
 Suggests:
     bit,
     bit64,
-    httr2,
     mockery,
     RPostgres,
     RSQLite,
