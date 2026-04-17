@@ -32,7 +32,8 @@ build_binary_package(
   s3_region = NULL,
   s3_bucket = NULL,
   s3_access_key_id = NULL,
-  s3_secret_access_key = NULL
+  s3_secret_access_key = NULL,
+  s3_package_cache = NULL
 )
 }
 \arguments{
@@ -123,6 +124,12 @@ S3 access key ID}
 
 \item{s3_secret_access_key}{(\link{character})\cr
 S3 secret access key}
+
+\item{s3_package_cache}{(\link{character} or \code{NULL})\cr
+Optional pre-fetched character vector of S3 package filenames (basenames like
+\code{"pkg_1.0.0.tar.gz"}). When provided, S3 existence checks use in-memory set
+lookup instead of per-package S3 API calls. Obtain via
+\code{basename(s3fs::s3_dir_ls(..., recurse = TRUE))}.}
 }
 \description{
 Builds binary packages from a given URL for a specific architecture.

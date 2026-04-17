@@ -27,5 +27,6 @@ Character vector of filtered tags
 }
 \description{
 Retrieves and filters git tags from a package repository, excluding
-R-prefixed tags and applying tag limits.
+R-prefixed tags and applying tag limits. Uses forge HTTP APIs (GitHub,
+Forgejo/Gitea) with git ls-remote as fallback.
 }
