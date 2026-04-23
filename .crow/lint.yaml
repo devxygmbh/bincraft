@@ -30,7 +30,7 @@ steps:
       - . $HOME/.local/bin/env && air format --check R/
 
   - name: lint-markdown
-    image: reg.devxy.io/docker.io/davidanson/markdownlint-cli2:v0.22.0
+    image: reg.devxy.io/docker.io/davidanson/markdownlint-cli2:v0.22.1
     depends_on: []
     commands:
       - 'markdownlint-cli2 *.{md,markdown}'
