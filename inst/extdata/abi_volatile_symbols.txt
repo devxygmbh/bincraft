@@ -1,0 +1,37 @@
+# R C-API symbols whose presence in package sources marks the package as
+# ABI-risky: they touch internals that change across R minor versions.
+#
+# Source of truth: derived from paquetier ABI-matrix runs that surfaced these
+# breaks across R 4.2 - 4.6 (e.g. rlang, ragg).
+# When a future R minor adds an ABI break, the matrix's LOAD_ERROR lines will
+# name new symbols - append them here.
+#
+# Format: one symbol per line. Blank lines and lines starting with `#` ignored.
+#
+# Removed entries and why (2026-05-23, after full-CRAN audit):
+#   R_GetCCallable   - stable public API (R >= 2.3) for cross-package C calls.
+#                      Its presence does not indicate volatility; failures
+#                      attributed to it actually came from the *provider*
+#                      package's exported function disappearing.
+#   USE_RINTERNALS   - a `#define` toggle, not a usage. Its presence merely
+#                      *permits* the source to touch struct-layout-dependent
+#                      macros; it does not prove it does. Too noisy as a
+#                      grep heuristic.
+# Together these two accounted for 59 of 90 (66%) of full-CRAN rule-3 upgrades,
+# spuriously promoting otherwise safe-compiled packages like Hmisc, stringi,
+# digest, Rcpp itself, etc.
+
+R_mkClosure
+R_MakeMissingBinding
+R_HashtabSEXP
+R_ActiveBindingFunction
+R_ClosureExpr
+R_ClosureFormals
+R_ClosureEnv
+R_PromiseExpr
+R_PromiseValue
+R_PromiseEnv
+R_NewEnv
+R_BindingIsLocked
+R_LockBinding
+R_MakeActiveBinding

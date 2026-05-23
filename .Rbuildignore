@@ -30,6 +30,7 @@ jarl.toml
 ^local_
 ^amd64
 ^arm64
+^tools$
 
 CLAUDE.md
 .claude

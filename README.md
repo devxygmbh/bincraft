@@ -11,6 +11,7 @@ It is the core engine of the [rpkgs.com](https://rpkgs.com) project.
 - Process CRAN repository updates
 - Support building binaries for Ubuntu, RHEL and Alpine Linux
 - Allows building packages for specific R minor versions (`is_r_minor_sensitive = TRUE`)
+- ABI-risk classifier ([design doc](tools/abi-classifier.md)) tells the build pipeline whether a package needs per-R-minor recompiles, building-once-then-replicating, or no compile at all
 - Creation of custom/personal repositories
 
 Besides building binaries, the package optionally allows to store the build metadata (duration, version, name, errors, etc.) in a (Postgres) database.
