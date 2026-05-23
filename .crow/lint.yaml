@@ -13,7 +13,7 @@ steps:
     depends_on: []
 
   - name: lint-r-jarl
-    image: reg.devxy.io/r/r-alpine:4.6-3.22
+    image: reg.devxy.io/r/r-alpine:4.5-3.22
     environment:
       JARL_VERSION: '0.5.0'
     commands:
