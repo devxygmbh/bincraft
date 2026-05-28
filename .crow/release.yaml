@@ -42,6 +42,7 @@ steps:
       remote: ${CI_REPO_CLONE_SSH_URL}
       branch: main
       commit: true
+      pull: true
       ssh_key:
         from_secret: rpkgs_bot_ssh_key
       commit_message: '[skip ci] Update version in DESCRIPTION after release'
