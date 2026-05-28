@@ -28,6 +28,30 @@ repos:
     hooks:
       - id: yamllint
         args: [--strict, -c=.yamllint.yaml]
+  - repo: https://github.com/lorenzwalthert/precommit
+    rev: v0.4.3
+    hooks:
+      - id: roxygenize
+        additional_dependencies:
+          - cli
+          - pat-s/cranlike@s3
+          - data.table
+          - DBI
+          - dplyr
+          - future
+          - future.apply
+          - gert
+          - gh
+          - httr2
+          - lgr
+          - lubridate
+          - pak
+          - pkgbuild
+          - pkgsearch
+          - purrr
+          - s3fs
+          - withr
+          - pat-s/desc@description-from-remote
   - repo: local
     hooks:
       - id: yaml-file-extension
@@ -35,3 +59,10 @@ repos:
         entry: YAML filenames must have .yaml extension.
         language: fail
         files: .yml$
+      - id: r-cmd-check
+        name: R CMD check
+        entry: Rscript -e "devtools::check(error_on = 'warning')"
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
