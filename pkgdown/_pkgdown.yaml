@@ -69,7 +69,6 @@ reference:
       - archive_single_package
       - check_build_skip_conditions
       - check_package_error
-      - check_root_package_exists
       - check_s3_packages
       - check_s3_root_package
       - classify_error_for_retry
