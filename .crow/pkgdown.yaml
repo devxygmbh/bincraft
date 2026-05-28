@@ -14,13 +14,13 @@ steps:
       - event: tag
 
   - name: Build pkgdown
-    image: reg.devxy.io/r/r-alpine:4.6-3.23
+    image: reg.devxy.io/r/r-alpine:4.5-3.23
     environment:
       GITHUB_PAT:
         from_secret: GITHUB_PAT
     pull: true
     commands:
-      - apk add -q --no-cache pandoc
+      - apk add -q --no-cache pandoc libgit2-dev
       - R -q -e 'install.packages("remotes")'
       - R -q -e 'install.packages(c("pkgdown", remotes::dev_package_deps(dependencies = TRUE)$package), Ncpus = 2)'
       - R -q -e 'pkgdown::build_site()'
