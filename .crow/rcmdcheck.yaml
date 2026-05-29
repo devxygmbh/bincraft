@@ -12,7 +12,7 @@ depends_on:
 
 steps:
   'Check package':
-    image: reg.devxy.io/r/r-alpine:4.5-3.23
+    image: reg.devxy.io/r/r-alpine:4.6-3.23
     pull: true
     environment:
       GITHUB_PAT:

@@ -14,7 +14,7 @@ steps:
       - event: tag
 
   - name: Build pkgdown
-    image: reg.devxy.io/r/r-alpine:4.5-3.23
+    image: reg.devxy.io/r/r-alpine:4.6-3.23
     environment:
       GITHUB_PAT:
         from_secret: GITHUB_PAT
