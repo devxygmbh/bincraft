@@ -139,34 +139,67 @@ test_that("date filtering works correctly in get_updated_cran_packages", {
   }
 })
 
-# Mock tests for error handling and edge cases
-test_that("functions handle API errors gracefully", {
-  # Mock pkgsearch functions to simulate API errors
+# A persistent crandb outage must not abort callers — leaf functions should
+# log a warning and return an empty data frame with the canonical shape so the
+# rest of the pipeline keeps processing.
+test_that("get_new_cran_packages returns empty df when pkgsearch::cran_new keeps failing", {
   skip_if_not_installed("mockery")
 
-  # Test get_new_cran_packages with API error
+  mockery::stub(
+    get_new_cran_packages,
+    "purrr::insistently",
+    function(f, ...) purrr::as_mapper(f)
+  )
   mockery::stub(
     get_new_cran_packages,
     "pkgsearch::cran_new",
     function(...) stop("API error", call. = FALSE)
   )
-  expect_error(get_new_cran_packages())
 
-  # Test get_removed_cran_packages with API error
+  result <- get_new_cran_packages()
+  expect_s3_class(result, "data.frame")
+  expect_named(result, c("name", "version", "date"))
+  expect_identical(nrow(result), 0L)
+})
+
+test_that("get_removed_cran_packages returns empty df when pkgsearch::cran_events keeps failing", {
+  skip_if_not_installed("mockery")
+
+  mockery::stub(
+    get_removed_cran_packages,
+    "purrr::insistently",
+    function(f, ...) purrr::as_mapper(f)
+  )
   mockery::stub(
     get_removed_cran_packages,
     "pkgsearch::cran_events",
     function(...) stop("API error", call. = FALSE)
   )
-  expect_error(get_removed_cran_packages())
 
-  # Test get_updated_cran_packages with API error
+  result <- get_removed_cran_packages()
+  expect_s3_class(result, "data.frame")
+  expect_named(result, c("name", "version", "date"))
+  expect_identical(nrow(result), 0L)
+})
+
+test_that("get_updated_cran_packages returns empty df when pkgsearch::cran_events keeps failing", {
+  skip_if_not_installed("mockery")
+
+  mockery::stub(
+    get_updated_cran_packages,
+    "purrr::insistently",
+    function(f, ...) purrr::as_mapper(f)
+  )
   mockery::stub(
     get_updated_cran_packages,
     "pkgsearch::cran_events",
     function(...) stop("API error", call. = FALSE)
   )
-  expect_error(get_updated_cran_packages())
+
+  result <- get_updated_cran_packages()
+  expect_s3_class(result, "data.frame")
+  expect_named(result, c("name", "version", "date"))
+  expect_identical(nrow(result), 0L)
 })
 
 # Integration test

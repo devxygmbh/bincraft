@@ -221,10 +221,6 @@ process_cran_updates <- function(
   new_pkgs <- get_new_cran_packages(interval)
   all_pkgs <- dplyr::bind_rows(updated_pkgs, new_pkgs)
 
-  new_pkgs <- get_new_cran_packages(interval)
-
-  all_pkgs <- dplyr::bind_rows(updated_pkgs, new_pkgs)
-
   if (filter_r_minor_sensitive) {
     all_pkgs <- get_r_minor_sensitive_packages(
       r_minor_packages_forge_type,

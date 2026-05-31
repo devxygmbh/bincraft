@@ -15,15 +15,38 @@ get_updated_cran_packages <- function(
   ),
   limit = 2000L
 ) {
-  events <- pkgsearch::cran_events(
-    releases = TRUE,
-    archivals = FALSE,
-    limit = limit
+  events <- tryCatch(
+    purrr::insistently(
+      ~ pkgsearch::cran_events(
+        releases = TRUE,
+        archivals = FALSE,
+        limit = limit
+      ),
+      rate = retry_config,
+      quiet = FALSE
+    )(),
+    error = function(e) {
+      log_warn(sprintf(
+        "{.fun get_updated_cran_packages}: pkgsearch::cran_events failed after retries: %s. Returning empty result.", # nolint
+        conditionMessage(e)
+      ))
+      NULL
+    }
   )
+
+  if (is.null(events) || length(events) == 0L) {
+    return(empty_cran_df())
+  }
+
   events_filtered <- purrr::keep(
     events,
     ~ as.Date(.x$date) %within% date_interval
   )
+
+  if (length(events_filtered) == 0L) {
+    return(empty_cran_df())
+  }
+
   events_formatted <- data.frame(
     name = purrr::map_chr(events_filtered, "name"),
     version = purrr::map_chr(events_filtered, ~ .x$package$Version),
@@ -55,19 +78,30 @@ get_new_cran_packages <- function(
     lubridate::today()
   )
 ) {
-  new_packages <- pkgsearch::cran_new(
-    from = lubridate::int_start(date_interval),
-    to = lubridate::int_end(date_interval)
+  new_packages <- tryCatch(
+    purrr::insistently(
+      ~ pkgsearch::cran_new(
+        from = lubridate::int_start(date_interval),
+        to = lubridate::int_end(date_interval)
+      ),
+      rate = retry_config,
+      quiet = FALSE
+    )(),
+    error = function(e) {
+      log_warn(sprintf(
+        "{.fun get_new_cran_packages}: pkgsearch::cran_new failed after retries: %s. Returning empty result.", # nolint
+        conditionMessage(e)
+      ))
+      NULL
+    }
   )
 
-  # Handle empty results
-  if (nrow(new_packages) == 0L || is.null(new_packages$Package)) {
-    return(data.frame(
-      name = character(0L),
-      version = character(0L),
-      date = as.Date(character(0L)),
-      stringsAsFactors = FALSE
-    ))
+  if (
+    is.null(new_packages) ||
+      nrow(new_packages) == 0L ||
+      is.null(new_packages$Package)
+  ) {
+    return(empty_cran_df())
   }
 
   data.frame(
@@ -96,16 +130,47 @@ get_removed_cran_packages <- function(
   ),
   limit = 300L
 ) {
-  events <- pkgsearch::cran_events(releases = FALSE, limit = limit)
+  events <- tryCatch(
+    purrr::insistently(
+      ~ pkgsearch::cran_events(releases = FALSE, limit = limit),
+      rate = retry_config,
+      quiet = FALSE
+    )(),
+    error = function(e) {
+      log_warn(sprintf(
+        "{.fun get_removed_cran_packages}: pkgsearch::cran_events failed after retries: %s. Returning empty result.", # nolint
+        conditionMessage(e)
+      ))
+      NULL
+    }
+  )
+
+  if (is.null(events) || length(events) == 0L) {
+    return(empty_cran_df())
+  }
 
   events_filtered <- purrr::keep(
     events,
     ~ as.Date(.x$date) %within% date_interval
   )
 
+  if (length(events_filtered) == 0L) {
+    return(empty_cran_df())
+  }
+
   data.frame(
     name = purrr::map_chr(events_filtered, "name"),
     version = purrr::map_chr(events_filtered, ~ .x$package$Version),
     date = as.Date(purrr::map_chr(events_filtered, "date"))
+  )
+}
+
+# Canonical empty result shared by the three CRAN feed helpers.
+empty_cran_df <- function() {
+  data.frame(
+    name = character(0L),
+    version = character(0L),
+    date = as.Date(character(0L)),
+    stringsAsFactors = FALSE
   )
 }
