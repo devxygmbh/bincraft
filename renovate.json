@@ -1,4 +1,10 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["local>devxy/renovate-config"]
+  "extends": ["local>devxy/renovate-config"],
+  "packageRules": [
+    {
+      "matchPackageNames": ["reg.devxy.io/r/r-alpine"],
+      "ignoreVersions": ["4.5-3.23"]
+    }
+  ]
 }
