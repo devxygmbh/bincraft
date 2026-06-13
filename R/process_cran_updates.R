@@ -101,6 +101,41 @@ process_removed_packages <- function(
   })
 }
 
+#' Classify a single CRAN package for R-minor sensitivity
+#'
+#' Clones the package source to a temp dir and runs
+#' [needs_per_minor_recompile()]. Fails safe to `TRUE` (build per minor) if the
+#' clone or classification errors, so a possibly-ABI-fragile binary is never
+#' served from the cross-minor generic slot by mistake.
+#' @keywords internal
+classify_r_minor_sensitive <- function(
+  package_name,
+  tag,
+  source_org_url = "https://github.com/cran",
+  local_clone_dir = tempdir()
+) {
+  dest <- file.path(
+    local_clone_dir,
+    sprintf("classify_%s_%s", package_name, tag)
+  )
+  on.exit(unlink(dest, recursive = TRUE, force = TRUE), add = TRUE)
+  tryCatch(
+    {
+      clone_repository(package_name, tag, source_org_url, dest)
+      isTRUE(as.logical(needs_per_minor_recompile(dest)))
+    },
+    error = function(e) {
+      log_warn(sprintf(
+        "{.fun classify_r_minor_sensitive}: failed for {.pkg %s} {.field %s}: %s. Treating as r-minor-sensitive.", # nolint
+        package_name,
+        tag,
+        conditionMessage(e)
+      ))
+      TRUE
+    }
+  )
+}
+
 #' @title Process updated and new CRAN packages
 #' @description
 #' Packages which got removed from CRAN can be deleted by setting `prune = TRUE`.
@@ -119,6 +154,8 @@ process_removed_packages <- function(
 #' @template param-archive
 #' @template param-force
 #' @template param-filter_r_minor_sensitive
+#' @template param-r_minor_detection
+#' @template param-r_minor_sensitive_only
 #' @template param-r_minor_packages_forge_type
 #' @template param-r_minor_packages_issue_url
 #' @template param-metadata_db_host
@@ -138,7 +175,7 @@ process_removed_packages <- function(
 #' @template param-s3-secret-access-key
 #'
 #' @importFrom dplyr bind_rows pull filter
-#' @importFrom purrr walk2
+#' @importFrom purrr pwalk
 #' @importFrom withr with_options
 #' @examples
 #' \dontrun{
@@ -158,7 +195,7 @@ process_cran_updates <- function(
   package_name,
   tag,
   platform,
-  local_clone_dir,
+  local_clone_dir = tempdir(),
   interval = lubridate::today(),
   codename = NULL,
   local_output_dir_root = ".",
@@ -170,6 +207,8 @@ process_cran_updates <- function(
   upload = FALSE,
   force = FALSE,
   filter_r_minor_sensitive = FALSE,
+  r_minor_detection = c("none", "issue", "classifier"),
+  r_minor_sensitive_only = FALSE,
   r_minor_packages_forge_type = "Forgejo",
   r_minor_packages_issue_url = NULL,
   metadata_db_type = "postgres",
@@ -194,6 +233,12 @@ process_cran_updates <- function(
   }
   if (is.null(s3_bucket)) {
     stop("s3_bucket must be defined", call. = FALSE)
+  }
+
+  r_minor_detection <- match.arg(r_minor_detection)
+  # back-compat: the old boolean maps onto the issue-list path
+  if (isTRUE(filter_r_minor_sensitive) && r_minor_detection == "none") {
+    r_minor_detection <- "issue"
   }
 
   if (process_removed) {
@@ -221,7 +266,7 @@ process_cran_updates <- function(
   new_pkgs <- get_new_cran_packages(interval)
   all_pkgs <- dplyr::bind_rows(updated_pkgs, new_pkgs)
 
-  if (filter_r_minor_sensitive) {
+  if (r_minor_detection == "issue") {
     all_pkgs <- get_r_minor_sensitive_packages(
       r_minor_packages_forge_type,
       r_minor_packages_issue_url,
@@ -235,7 +280,7 @@ process_cran_updates <- function(
     cli::cli_par()
     cli::cli_end()
 
-    if (filter_r_minor_sensitive) {
+    if (r_minor_detection != "none") {
       log_success("{.fun process_cran_updates}: Packages to process:")
       print(all_pkgs)
     } else {
@@ -268,13 +313,34 @@ process_cran_updates <- function(
     all_pkgs <- filter(all_pkgs, `name` %nin% win_only)
 
     if (nrow(all_pkgs) > 0L) {
-      purrr::walk2(
-        all_pkgs$name,
-        all_pkgs$version,
-        ~ {
+      sensitive <- switch(
+        r_minor_detection,
+        classifier = vapply(
+          seq_len(nrow(all_pkgs)),
+          function(i) {
+            classify_r_minor_sensitive(
+              all_pkgs$name[i],
+              all_pkgs$version[i],
+              local_clone_dir = local_clone_dir
+            )
+          },
+          logical(1L)
+        ),
+        issue = rep(TRUE, nrow(all_pkgs)),
+        none = rep(FALSE, nrow(all_pkgs))
+      )
+
+      if (isTRUE(r_minor_sensitive_only)) {
+        all_pkgs <- all_pkgs[sensitive, , drop = FALSE]
+        sensitive <- sensitive[sensitive]
+      }
+
+      purrr::pwalk(
+        list(all_pkgs$name, all_pkgs$version, sensitive),
+        function(.name, .version, .sensitive) {
           build_binary_package(
-            .x,
-            .y,
+            .name,
+            .version,
             platform = platform,
             upload = upload,
             archive = archive,
@@ -285,7 +351,7 @@ process_cran_updates <- function(
             s3_region = s3_region,
             s3_access_key_id = s3_access_key_id,
             s3_secret_access_key = s3_secret_access_key,
-            is_r_minor_sensitive = filter_r_minor_sensitive,
+            is_r_minor_sensitive = .sensitive,
             metadata_db_type = metadata_db_type,
             metadata_db_host = metadata_db_host,
             metadata_db_name = metadata_db_name,

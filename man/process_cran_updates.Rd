@@ -8,7 +8,7 @@ process_cran_updates(
   package_name,
   tag,
   platform,
-  local_clone_dir,
+  local_clone_dir = tempdir(),
   interval = lubridate::today(),
   codename = NULL,
   local_output_dir_root = ".",
@@ -20,6 +20,8 @@ process_cran_updates(
   upload = FALSE,
   force = FALSE,
   filter_r_minor_sensitive = FALSE,
+  r_minor_detection = c("none", "issue", "classifier"),
+  r_minor_sensitive_only = FALSE,
   r_minor_packages_forge_type = "Forgejo",
   r_minor_packages_issue_url = NULL,
   metadata_db_type = "postgres",
@@ -84,6 +86,15 @@ Whether to force-build packages}
 If TRUE, filters the packages to be processed by a list of packages known to be minor version specific.
 These packages must be stored as plain text and line separated in an issue of a Git repository.
 Forgejo and GitHub repositories are supported.}
+
+\item{r_minor_detection}{How to decide which packages are R-minor-sensitive.
+\code{"none"} (default) builds everything into the generic slot. \code{"issue"} uses
+the curated tracking issue (the legacy \code{filter_r_minor_sensitive} path).
+\code{"classifier"} classifies each candidate via \code{\link[=needs_per_minor_recompile]{needs_per_minor_recompile()}}
+and routes only \code{risky} packages to the per-minor slot.}
+
+\item{r_minor_sensitive_only}{When \code{TRUE}, only R-minor-sensitive packages are
+built (used for the additional per-minor passes under non-primary R versions).}
 
 \item{r_minor_packages_forge_type}{(\link{character})\cr
 Forge type to query R minor sensitive packages from.

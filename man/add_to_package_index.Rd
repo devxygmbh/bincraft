@@ -12,7 +12,8 @@ add_to_package_index(
   local_output_dir_root = file.path("mnt", "cache", "binaries"),
   codename = NULL,
   s3_access_key_id = NULL,
-  s3_secret_access_key = NULL
+  s3_secret_access_key = NULL,
+  r_minor = NULL
 )
 }
 \arguments{
@@ -39,6 +40,10 @@ S3 access key ID}
 
 \item{s3_secret_access_key}{(\link{character})\cr
 S3 secret access key}
+
+\item{r_minor}{Optional \code{"major.minor"} string. When set, the index is
+written/read under the per-minor slot \verb{…/contrib/<r_minor>/} instead of the
+generic \verb{…/contrib/} slot.}
 }
 \description{
 Add package to repository index

@@ -16,7 +16,9 @@ needs_comp <- !is.na(ap[, "NeedsCompilation"]) &
   tolower(ap[, "NeedsCompilation"]) == "yes"
 
 parse_linking_to <- function(x) {
-  if (is.na(x)) return(character())
+  if (is.na(x)) {
+    return(character())
+  }
   pkgs <- trimws(strsplit(x, ",", fixed = TRUE)[[1L]])
   sub("\\s*\\(.*\\)$", "", pkgs)
 }

@@ -32,7 +32,11 @@ parse_linking_to <- function(x) {
 classify_extracted <- function(pkg_dir) {
   desc_path <- file.path(pkg_dir, "DESCRIPTION")
   if (!file.exists(desc_path)) {
-    return(list(tier = "<error>", reason = "no DESCRIPTION", hits = character()))
+    return(list(
+      tier = "<error>",
+      reason = "no DESCRIPTION",
+      hits = character()
+    ))
   }
   desc <- read.dcf(desc_path)
   needs <- if ("NeedsCompilation" %in% colnames(desc)) {
@@ -110,7 +114,11 @@ classify_extracted <- function(pkg_dir) {
 }
 
 classify_pkg <- function(pkg, ver) {
-  url <- sprintf("https://cloud.r-project.org/src/contrib/%s_%s.tar.gz", pkg, ver)
+  url <- sprintf(
+    "https://cloud.r-project.org/src/contrib/%s_%s.tar.gz",
+    pkg,
+    ver
+  )
   tarball <- tempfile(fileext = ".tar.gz")
   on.exit(unlink(tarball))
   extract_dir <- tempfile("abi_")
@@ -156,7 +164,10 @@ ap <- utils::available.packages(
 needs_comp <- !is.na(ap[, "NeedsCompilation"]) &
   tolower(ap[, "NeedsCompilation"]) == "yes"
 to_classify <- ap[needs_comp, c("Package", "Version"), drop = FALSE]
-cat(sprintf("Total packages with NeedsCompilation=yes: %d\n", nrow(to_classify)))
+cat(sprintf(
+  "Total packages with NeedsCompilation=yes: %d\n",
+  nrow(to_classify)
+))
 
 # Parallel classification
 ncores <- as.integer(Sys.getenv("ABI_CORES", "16"))

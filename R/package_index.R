@@ -1,3 +1,22 @@
+#' Build the S3 remote contrib dir for a package index
+#'
+#' @param r_minor Optional `"major.minor"` string (e.g. `"4.4"`). When non-NULL
+#'   the path points at the per-minor slot.
+#' @keywords internal
+package_index_remote_dir <- function(
+  s3_bucket,
+  arch,
+  codename,
+  r_minor = NULL
+) {
+  base <- file.path(s3_bucket, arch, codename, "latest", "src", "contrib")
+  if (is.null(r_minor)) {
+    base
+  } else {
+    file.path(base, r_minor)
+  }
+}
+
 #' Add package to repository index
 #' @template param-package_name
 #' @template param-codename
@@ -7,6 +26,9 @@
 #' @template param-local_output_dir_root
 #' @template param-s3-access-key-id
 #' @template param-s3-secret-access-key
+#' @param r_minor Optional `"major.minor"` string. When set, the index is
+#'   written/read under the per-minor slot `…/contrib/<r_minor>/` instead of the
+#'   generic `…/contrib/` slot.
 #'
 #' @importFrom cranlike add_PACKAGES
 #' @importFrom s3fs s3_dir_ls s3_file_system
@@ -19,7 +41,8 @@ add_to_package_index <- function(
   local_output_dir_root = file.path("mnt", "cache", "binaries"),
   codename = NULL,
   s3_access_key_id = NULL,
-  s3_secret_access_key = NULL
+  s3_secret_access_key = NULL,
+  r_minor = NULL
 ) {
   codename <- set_codename(codename)
 
@@ -37,14 +60,7 @@ add_to_package_index <- function(
   }
 
   local_bin_dir <- set_bin_path(local_output_dir_root, codename)
-  remote_bin_dir <- file.path(
-    s3_bucket,
-    arch,
-    codename,
-    "latest",
-    "src",
-    "contrib"
-  )
+  remote_bin_dir <- package_index_remote_dir(s3_bucket, arch, codename, r_minor)
 
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,
@@ -82,6 +98,9 @@ add_to_package_index <- function(
 #' @template param-arch
 #' @template param-s3-access-key-id
 #' @template param-s3-secret-access-key
+#' @param r_minor Optional `"major.minor"` string. When set, the index is
+#'   written/read under the per-minor slot `…/contrib/<r_minor>/` instead of the
+#'   generic `…/contrib/` slot.
 #'
 #' @importFrom s3fs s3_file_upload s3_dir_ls
 #' @importFrom cranlike update_PACKAGES
@@ -95,7 +114,8 @@ upload_package_index <- function(
   codename = NULL,
   arch = NULL,
   s3_access_key_id = NULL,
-  s3_secret_access_key = NULL
+  s3_secret_access_key = NULL,
+  r_minor = NULL
 ) {
   log_info("Updating PACKAGES* files in S3.")
 
@@ -116,14 +136,7 @@ upload_package_index <- function(
     }
   }
 
-  remote_bin_dir <- file.path(
-    s3_bucket,
-    arch,
-    codename,
-    "latest",
-    "src",
-    "contrib"
-  )
+  remote_bin_dir <- package_index_remote_dir(s3_bucket, arch, codename, r_minor)
 
   s3fs::s3_file_system(
     aws_access_key_id = s3_access_key_id,

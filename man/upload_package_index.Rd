@@ -13,7 +13,8 @@ upload_package_index(
   codename = NULL,
   arch = NULL,
   s3_access_key_id = NULL,
-  s3_secret_access_key = NULL
+  s3_secret_access_key = NULL,
+  r_minor = NULL
 )
 }
 \arguments{
@@ -43,6 +44,10 @@ S3 access key ID}
 
 \item{s3_secret_access_key}{(\link{character})\cr
 S3 secret access key}
+
+\item{r_minor}{Optional \code{"major.minor"} string. When set, the index is
+written/read under the per-minor slot \verb{…/contrib/<r_minor>/} instead of the
+generic \verb{…/contrib/} slot.}
 }
 \description{
 Upload package index files to S3

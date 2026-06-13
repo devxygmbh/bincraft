@@ -39,13 +39,18 @@ cat("\nCRAN PACKAGES projection (rule 1 + rule 2 only):\n")
 cat(sprintf(
   "  total packages:           %5d\n  pure-r (no compile):      %5d  (%5.1f%%)\n  safe-compiled (compile,   %5d  (%5.1f%%)\n    no risky LinkingTo)\n  risky (LinkingTo only):   %5d  (%5.1f%%)\n",
   total,
-  sum(pure_r), 100 * sum(pure_r) / total,
-  sum(safe_compiled), 100 * sum(safe_compiled) / total,
-  sum(risky), 100 * sum(risky) / total
+  sum(pure_r),
+  100 * sum(pure_r) / total,
+  sum(safe_compiled),
+  100 * sum(safe_compiled) / total,
+  sum(risky),
+  100 * sum(risky) / total
 ))
 
 cat("\nBreakdown of risky-LinkingTo by dep:\n")
 for (dep in risky_deps) {
-  n <- sum(vapply(linking_pkgs, function(p) dep %in% p, logical(1L)) & needs_comp)
+  n <- sum(
+    vapply(linking_pkgs, function(p) dep %in% p, logical(1L)) & needs_comp
+  )
   cat(sprintf("  %-8s %5d  (%5.1f%%)\n", dep, n, 100 * n / total))
 }
