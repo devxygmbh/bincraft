@@ -65,9 +65,9 @@ repos:
         files: .yml$
       - id: r-cmd-check
         name: R CMD check
-        # Pinned to R 4.5: R 4.6.0 in the exec-env ships an rlang built against a
-        # different minor (SET_GROWABLE_BIT relocation error on load).
-        entry: /opt/R/4.5.3/bin/Rscript -e "devtools::check(error_on = 'warning')"
+        # Wrapper runs the exec-env's pinned R 4.5.3 and skips when it's absent;
+        # see tools/r-cmd-check.sh for why.
+        entry: tools/r-cmd-check.sh
         language: system
         pass_filenames: false
         always_run: true

@@ -4,7 +4,7 @@
   "packageRules": [
     {
       "matchPackageNames": ["reg.devxy.io/r/r-alpine"],
-      "allowedVersions": "!/^4\\.5-3\\.23$/"
+      "enabled": false
     }
   ]
 }
