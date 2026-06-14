@@ -115,8 +115,14 @@ write_archive_rds <- function(files) {
   package <- NULL
   file_path <- NULL
 
+  files <- files[endsWith(basename(files), ".tar.gz")]
+  if (length(files) == 0L) {
+    # No archived versions (e.g. a freshly created per-minor slot) — nothing to
+    # index. Return an empty named list so an empty Meta/archive.rds is written.
+    return(list())
+  }
+
   dt_data <- data.table(file_path = basename(files))
-  dt_data <- dt_data[endsWith(file_path, ".tar.gz")]
 
   # split into package and version
   dt_data[,
