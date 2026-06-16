@@ -132,6 +132,16 @@ upload_single_binary <- function(
 
     do.call(s3fs::s3_file_upload, upload_args)
 
+    if (!s3fs::s3_file_exists(remote_tarball_path)) {
+      log_warn(sprintf(
+        "{.fun upload_single_binary}: Upload of {.pkg %s} {.field %s} to {.path %s} could not be confirmed in S3.",
+        package_name,
+        tag,
+        remote_tarball_path
+      ))
+      return(FALSE)
+    }
+
     log_success(sprintf(
       "Successfully uploaded package {.pkg %s} with tag {.field %s}.",
       package_name,
@@ -146,6 +156,7 @@ upload_single_binary <- function(
       )
     )
     file.remove(local_tarball_path)
+    return(TRUE)
   } else {
     log_info(
       sprintf(
@@ -154,6 +165,7 @@ upload_single_binary <- function(
         tag
       )
     )
+    return(TRUE)
   }
 }
 

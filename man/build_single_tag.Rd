@@ -21,6 +21,7 @@ build_single_tag(
   s3_secret_access_key = NULL,
   force = FALSE,
   install_system_dependencies = TRUE,
+  upload = FALSE,
   store_build_metadata = FALSE,
   metadata_db_type = "postgres",
   metadata_db_host = NULL,
@@ -84,6 +85,9 @@ Whether to force-build packages}
 
 \item{install_system_dependencies}{(\link{logical})\cr
 Whether to infer and install system dependencies of packages}
+
+\item{upload}{(\link{logical})\cr
+Whether to upload the built packages to the specified remote.}
 
 \item{store_build_metadata}{(\link{logical})\cr
 Whether to store the build metadata in the referenced database.}

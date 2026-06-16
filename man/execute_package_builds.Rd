@@ -29,7 +29,8 @@ execute_package_builds(
   s3_region,
   s3_access_key_id,
   s3_secret_access_key,
-  local_bin_path
+  local_bin_path,
+  upload = FALSE
 )
 }
 \arguments{
@@ -111,6 +112,9 @@ S3 secret access key}
 
 \item{local_bin_path}{(\link{character})\cr
 Local binary path for output}
+
+\item{upload}{(\link{logical})\cr
+Whether to upload the built packages to the specified remote.}
 }
 \value{
 Build results

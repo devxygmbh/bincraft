@@ -192,7 +192,8 @@ build_binary_package <- function(
     s3_region,
     s3_access_key_id,
     s3_secret_access_key,
-    local_bin_path
+    local_bin_path,
+    upload
   )
 
   # Handle upload and archiving
@@ -612,6 +613,7 @@ filter_packages_with_errors <- function(
 #' @template param-is_r_minor_sensitive
 #' @template param-force
 #' @template param-install_system_dependencies
+#' @template param-upload
 #' @template param-store_build_metadata
 #' @template param-metadata_db_host
 #' @template param-metadata_db_name
@@ -652,7 +654,8 @@ execute_package_builds <- function(
   s3_region,
   s3_access_key_id,
   s3_secret_access_key,
-  local_bin_path
+  local_bin_path,
+  upload = FALSE
 ) {
   t1 <- Sys.time()
   cli::cli_h2(sprintf("Building ({.pkg %s})", package_name[1L]))
@@ -681,6 +684,7 @@ execute_package_builds <- function(
           arch = arch,
           force = force,
           install_system_dependencies = install_system_dependencies,
+          upload = upload,
           store_build_metadata = store_build_metadata,
           metadata_db_host = metadata_db_host,
           metadata_db_name = metadata_db_name,
@@ -696,36 +700,14 @@ execute_package_builds <- function(
           s3_secret_access_key = s3_secret_access_key
         )
 
-        tarball_name <- sprintf("%s_%s.tar.gz", x, y)
-        if (file.exists(file.path(local_bin_path, tarball_name))) {
+        # build_single_tag now publishes and records the build itself, returning
+        # "skipped"/"error" or invisibly TRUE on success.
+        if (!identical(result, "skipped") && !identical(result, "error")) {
           log_success(
             sprintf("Finished processing package %s with tag %s.", x, y)
           )
-        } else if (result != "skipped") {
-          log_warn(
-            sprintf(
-              "Error in building package %s with tag %s: Uncommon/unspecific error during build.",
-              x,
-              y
-            )
-          )
-          store_build_metadata(
-            x,
-            y,
-            platform,
-            error_occurred = TRUE,
-            force = TRUE,
-            arch = arch,
-            error = "Unspecific error during build",
-            metadata_db_host = metadata_db_host,
-            metadata_db_name = metadata_db_name,
-            metadata_db_port = metadata_db_port,
-            metadata_db_table = metadata_db_table,
-            metadata_db_password = metadata_db_password,
-            metadata_db_user = metadata_db_user,
-            metadata_db_sslmode = metadata_db_sslmode
-          )
         }
+        result
       },
       error = function(e) {
         log_warn(
@@ -757,9 +739,9 @@ execute_package_builds <- function(
           metadata_db_user = metadata_db_user,
           metadata_db_sslmode = metadata_db_sslmode
         )
+        "error"
       }
     )
-    result
   }
 
   # Use future_mapply for parallel plans, regular mapply for sequential
@@ -1187,37 +1169,9 @@ handle_post_build_actions <- function(
   s3_secret_access_key
 ) {
   if (upload && any(result != "skipped")) {
-    Map(
-      function(x, y) {
-        tryCatch(
-          {
-            upload_single_binary(
-              package_name = x,
-              tag = y,
-              force = force,
-              codename = codename,
-              is_r_minor_sensitive = is_r_minor_sensitive,
-              s3_endpoint = s3_endpoint,
-              s3_bucket = s3_bucket,
-              s3_region = s3_region,
-              s3_access_key_id = s3_access_key_id,
-              s3_secret_access_key = s3_secret_access_key
-            )
-          },
-          error = function(e) {
-            message(sprintf(
-              "Error in uploading package %s with tag %s: %s",
-              x,
-              y,
-              e
-            ))
-          }
-        )
-      },
-      package_name,
-      tag
-    )
-
+    # Binary upload now happens inside build_single_tag, so the build-metadata
+    # row is only written after the binary is confirmed in S3. Here we only fall
+    # back to uploading a source tarball when no binary made it to S3.
     if (
       !check_for_binary(
         package_name[1L],
@@ -1269,6 +1223,7 @@ handle_post_build_actions <- function(
 #' @template param-force
 #' @template param-codename
 #' @template param-binary_output_path
+#' @template param-upload
 #' @template param-store_build_metadata
 #' @template param-metadata_db_host
 #' @template param-metadata_db_type
@@ -1304,6 +1259,7 @@ build_single_tag <- function(
   s3_secret_access_key = NULL,
   force = FALSE,
   install_system_dependencies = TRUE,
+  upload = FALSE,
   store_build_metadata = FALSE,
   metadata_db_type = "postgres",
   metadata_db_host = NULL,
@@ -1406,14 +1362,68 @@ build_single_tag <- function(
     local_clone_dir_single
   )
 
-  if (store_build_metadata && file_result$file_exists) {
+  # Build reported success but produced no artifact: uncommon/unspecific error.
+  if (!file_result$file_exists) {
+    log_warn(sprintf(
+      "Error in building package %s with tag %s: Uncommon/unspecific error during build.",
+      package_name,
+      tag
+    ))
+    if (store_build_metadata) {
+      store_build_metadata(
+        package_name,
+        tag,
+        platform,
+        arch = arch,
+        error_occurred = TRUE,
+        force = TRUE,
+        error = "Unspecific error during build",
+        metadata_db_type = metadata_db_type,
+        metadata_db_host = metadata_db_host,
+        metadata_db_name = metadata_db_name,
+        metadata_db_port = metadata_db_port,
+        metadata_db_table = metadata_db_table,
+        metadata_db_password = metadata_db_password,
+        metadata_db_user = metadata_db_user,
+        metadata_db_sslmode = metadata_db_sslmode
+      )
+    }
+    return("error")
+  }
+
+  # Publish to S3 before recording the build. The success row is written only
+  # once the binary is confirmed in S3, so a run interrupted between build and
+  # upload never leaves a "built" row without the artifact -- which would make
+  # restart-skip logic wrongly drop the package.
+  published <- TRUE
+  if (upload) {
+    published <- isTRUE(upload_single_binary(
+      package_name,
+      tag,
+      s3_endpoint = s3_endpoint,
+      s3_region = s3_region,
+      s3_bucket = s3_bucket,
+      codename = codename,
+      force = force,
+      is_r_minor_sensitive = is_r_minor_sensitive,
+      s3_access_key_id = s3_access_key_id,
+      s3_secret_access_key = s3_secret_access_key
+    ))
+  }
+
+  if (store_build_metadata) {
     store_build_metadata(
       package_name,
       tag,
       platform,
       arch = arch,
-      error_occurred = FALSE,
+      error_occurred = !published,
       force = force,
+      error = if (published) {
+        NA
+      } else {
+        "Upload to S3 failed or could not be confirmed"
+      },
       build_duration = build_result$build_time,
       size = file_result$file_size,
       metadata_db_type = metadata_db_type,
@@ -1425,6 +1435,10 @@ build_single_tag <- function(
       metadata_db_user = metadata_db_user,
       metadata_db_sslmode = metadata_db_sslmode
     )
+  }
+
+  if (!published) {
+    return("error")
   }
 
   invisible(TRUE)
