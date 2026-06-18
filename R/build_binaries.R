@@ -254,6 +254,7 @@ initialize_build_environment <- function(
       codename,
       jammy = "ubuntu-2204",
       noble = "ubuntu-2404",
+      resolute = "ubuntu-2604",
       rhel10 = "redhat-10",
       rhel9 = "redhat-9",
       rhel8 = "redhat-8",
@@ -265,6 +266,15 @@ initialize_build_environment <- function(
       alpine325 = "alpine-325",
       alpine326 = "alpine-326"
     )
+    if (is.null(platform)) {
+      stop(
+        sprintf(
+          "Unsupported OS codename '%s': no platform mapping is defined. Add it to the switch in `initialize_build_environment()` or pass `platform` explicitly.",
+          codename
+        ),
+        call. = FALSE
+      )
+    }
   }
 
   log_debug(sprintf("codename: %s", codename))
