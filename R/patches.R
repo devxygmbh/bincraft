@@ -111,8 +111,7 @@ version_satisfies <- function(version, constraint) {
   if (op == "" || op == "==") {
     return(v == t)
   }
-  switch(
-    op,
+  switch(op,
     ">=" = v >= t,
     "<=" = v <= t,
     ">" = v > t,

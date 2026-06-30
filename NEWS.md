@@ -14,6 +14,9 @@
 - `prepare_patched_repo()` no longer emits a spurious
   `normalizePath: No such file` warning when staging a freshly built patched
   binary.
+- `build_patched_binary()` no longer fails with `is.named(envs) is not TRUE`
+  for a patch entry that sets no env vars (e.g. a pure source-diff patch); the
+  `withr::with_envvar()` wrapper is now skipped when the env is empty.
 
 # bincraft 4.3.1
 
