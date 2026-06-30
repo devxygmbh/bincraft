@@ -36,7 +36,8 @@ process_cran_updates(
   process_new = TRUE,
   process_removed = TRUE,
   s3_access_key_id = NULL,
-  s3_secret_access_key = NULL
+  s3_secret_access_key = NULL,
+  patches = NULL
 )
 }
 \arguments{
@@ -141,6 +142,11 @@ S3 access key ID}
 
 \item{s3_secret_access_key}{(\link{character})\cr
 S3 secret access key}
+
+\item{patches}{Optional path to a patch registry directory containing a
+\code{registry.json} (and any referenced diff files). When set, matching
+packages are pre-built as patched binaries and served to \code{pak} during
+dependency installation. Defaults to \code{NULL} (no patching).}
 }
 \description{
 Packages which got removed from CRAN can be deleted by setting \code{prune = TRUE}.

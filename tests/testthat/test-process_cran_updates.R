@@ -243,3 +243,45 @@ test_that("default detection (none) builds everything as non-sensitive", {
   expect_false(recorded[["a"]])
   expect_false(recorded[["b"]])
 })
+
+test_that("patches is forwarded to build_binary_package", {
+  skip_if_not_installed("mockery")
+  recorded <- list()
+  mockery::stub(
+    process_cran_updates,
+    "get_updated_cran_packages",
+    function(...) {
+      data.frame(
+        name = "somepkg",
+        version = "1.0",
+        stringsAsFactors = FALSE
+      )
+    }
+  )
+  mockery::stub(process_cran_updates, "get_new_cran_packages", function(...) {
+    data.frame(name = character(), version = character())
+  })
+  mockery::stub(process_cran_updates, "tools::CRAN_package_db", function(...) {
+    data.frame(Package = character(), OS_type = character())
+  })
+  mockery::stub(
+    process_cran_updates,
+    "build_binary_package",
+    function(name, tag, ..., patches) {
+      recorded[[name]] <<- patches
+      invisible(TRUE)
+    }
+  )
+
+  process_cran_updates(
+    platform = "alpine-323",
+    process_removed = FALSE,
+    r_minor_detection = "none",
+    patches = "local/patches",
+    s3_endpoint = "x",
+    s3_region = "x",
+    s3_bucket = "x"
+  )
+
+  expect_identical(recorded[["somepkg"]], "local/patches")
+})

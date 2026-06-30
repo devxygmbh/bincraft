@@ -1,3 +1,9 @@
+# bincraft 4.3.1
+
+- `process_cran_updates()` gains a `patches` argument that it forwards to
+  `build_binary_package()`, so the daily update pipeline applies the same
+  package patches (e.g. RcppParallel) as the bulk and targeted build paths.
+
 # bincraft 4.3.0
 
 - `build_binary_package()` gains a `patches` argument: a registry of

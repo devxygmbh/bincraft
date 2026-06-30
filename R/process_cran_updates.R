@@ -173,6 +173,7 @@ classify_r_minor_sensitive <- function(
 #' @template param-process_removed
 #' @template param-s3-access-key-id
 #' @template param-s3-secret-access-key
+#' @template param-patches
 #'
 #' @importFrom dplyr bind_rows pull filter
 #' @importFrom purrr pwalk
@@ -223,7 +224,8 @@ process_cran_updates <- function(
   process_new = TRUE,
   process_removed = TRUE,
   s3_access_key_id = NULL,
-  s3_secret_access_key = NULL
+  s3_secret_access_key = NULL,
+  patches = NULL
 ) {
   if (is.null(s3_endpoint)) {
     stop("s3_endpoint must be defined", call. = FALSE)
@@ -342,6 +344,7 @@ process_cran_updates <- function(
             .name,
             .version,
             platform = platform,
+            patches = patches,
             upload = upload,
             archive = archive,
             force = force,
