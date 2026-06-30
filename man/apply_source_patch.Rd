@@ -7,7 +7,10 @@
 apply_source_patch(patch_path, pkg_src)
 }
 \description{
-Uses \code{patch -p1 --forward} so an already-applied or non-applying patch fails
-cleanly (returns FALSE) instead of corrupting the tree.
+Uses \verb{git apply} rather than the \code{patch} CLI, because \code{git} is always present
+in the build environments (it clones every package) whereas \code{patch} is not
+(e.g. minimal Alpine images). A non-applying or already-applied patch exits
+non-zero, so this returns FALSE instead of corrupting the tree. \verb{git apply}
+does not require \code{pkg_src} to be a git repository.
 }
 \keyword{internal}

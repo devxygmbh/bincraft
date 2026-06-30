@@ -1,3 +1,13 @@
+# bincraft 4.4.1
+
+- Source patches are now applied with `git apply` instead of the `patch` CLI,
+  which is not present in all build environments (e.g. minimal Alpine images).
+  `git` is always available, so registry source diffs apply reliably across
+  platforms.
+- `prepare_patched_repo()` no longer emits a spurious
+  `normalizePath: No such file` warning when staging a freshly built patched
+  binary.
+
 # bincraft 4.3.1
 
 - `process_cran_updates()` gains a `patches` argument that it forwards to

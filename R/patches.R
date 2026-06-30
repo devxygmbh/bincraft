@@ -236,20 +236,22 @@ download_cran_source <- function(
 
 #' Apply a unified diff to an unpacked source tree
 #'
-#' Uses `patch -p1 --forward` so an already-applied or non-applying patch fails
-#' cleanly (returns FALSE) instead of corrupting the tree.
+#' Uses `git apply` rather than the `patch` CLI, because `git` is always present
+#' in the build environments (it clones every package) whereas `patch` is not
+#' (e.g. minimal Alpine images). A non-applying or already-applied patch exits
+#' non-zero, so this returns FALSE instead of corrupting the tree. `git apply`
+#' does not require `pkg_src` to be a git repository.
 #' @keywords internal
 apply_source_patch <- function(patch_path, pkg_src) {
   status <- system2(
-    "patch",
+    "git",
     args = c(
-      "-p1",
-      "--forward",
-      "--batch",
-      "-d",
+      "-C",
       shQuote(pkg_src),
-      "-i",
-      shQuote(patch_path)
+      "apply",
+      "--whitespace=nowarn",
+      "-p1",
+      shQuote(normalizePath(patch_path))
     ),
     stdout = FALSE,
     stderr = FALSE
@@ -408,7 +410,12 @@ prepare_patched_repo <- function(
       if (is.null(built)) {
         next
       }
-      if (!identical(normalizePath(built), normalizePath(target))) {
+      if (
+        !identical(
+          normalizePath(built, mustWork = FALSE),
+          normalizePath(target, mustWork = FALSE)
+        )
+      ) {
         file.copy(built, target, overwrite = TRUE)
       }
       file.copy(target, cached, overwrite = TRUE)

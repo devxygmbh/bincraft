@@ -158,6 +158,7 @@ test_that("configure_args_to_build_args formats configure args", {
 })
 
 test_that("apply_source_patch returns FALSE when patch does not apply", {
+  skip_if_not(nzchar(Sys.which("git")))
   src <- withr::local_tempdir()
   writeLines("unrelated content", file.path(src, "file.txt"))
   bad_patch <- tempfile(fileext = ".patch")
@@ -172,6 +173,31 @@ test_that("apply_source_patch returns FALSE when patch does not apply", {
     bad_patch
   )
   expect_false(apply_source_patch(bad_patch, src))
+})
+
+test_that("apply_source_patch applies a valid diff via git apply", {
+  skip_if_not(nzchar(Sys.which("git")))
+  src <- withr::local_tempdir()
+  dir.create(file.path(src, "sub"))
+  writeLines(c("line one", "line two"), file.path(src, "sub", "f.txt"))
+  good_patch <- tempfile(fileext = ".patch")
+  writeLines(
+    c(
+      "diff --git a/sub/f.txt b/sub/f.txt",
+      "--- a/sub/f.txt",
+      "+++ b/sub/f.txt",
+      "@@ -1,2 +1,2 @@",
+      " line one",
+      "-line two",
+      "+line two patched"
+    ),
+    good_patch
+  )
+  expect_true(apply_source_patch(good_patch, src))
+  expect_true(any(grepl(
+    "line two patched",
+    readLines(file.path(src, "sub", "f.txt"))
+  )))
 })
 
 test_that("build_patched_binary returns NULL when download fails", {
