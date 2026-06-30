@@ -217,6 +217,45 @@ test_that("build_patched_binary returns NULL when download fails", {
   )
 })
 
+test_that("build_patched_binary builds with an empty env (no with_envvar error)", {
+  skip_if_not_installed("mockery")
+  dest <- withr::local_tempdir()
+  mockery::stub(
+    build_patched_binary,
+    "download_cran_source",
+    function(...) "fake.tar.gz"
+  )
+  mockery::stub(
+    build_patched_binary,
+    "utils::untar",
+    function(tarfile, exdir) {
+      dir.create(file.path(exdir, "P"), showWarnings = FALSE)
+      0L
+    }
+  )
+  mockery::stub(
+    build_patched_binary,
+    "pkgbuild::build",
+    function(path, ...) {
+      out <- file.path(dest, "P_1.0.tar.gz")
+      writeLines("binary", out)
+      out
+    }
+  )
+  res <- build_patched_binary(
+    list(
+      package = "P",
+      env = list(),
+      configure_args = character(0L),
+      makevars = list(),
+      patch_path = NULL
+    ),
+    "1.0",
+    dest
+  )
+  expect_identical(res, file.path(dest, "P_1.0.tar.gz"))
+})
+
 test_that("prepare_patched_repo returns NULL when no entries match", {
   dir <- withr::local_tempdir()
   jsonlite::write_json(

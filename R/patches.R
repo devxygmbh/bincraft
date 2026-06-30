@@ -312,17 +312,26 @@ build_patched_binary <- function(entry, version, dest_dir) {
     build_env$R_MAKEVARS_USER <- mk
   }
 
+  do_build <- function() {
+    pkgbuild::build(
+      path = pkg_src,
+      binary = TRUE,
+      vignettes = FALSE,
+      dest_path = dest_dir,
+      args = configure_args_to_build_args(entry$configure_args),
+      quiet = TRUE
+    )
+  }
+
   tryCatch(
-    withr::with_envvar(build_env, {
-      pkgbuild::build(
-        path = pkg_src,
-        binary = TRUE,
-        vignettes = FALSE,
-        dest_path = dest_dir,
-        args = configure_args_to_build_args(entry$configure_args),
-        quiet = TRUE
-      )
-    }),
+    # withr::with_envvar() errors on an empty list (is.named(list()) is FALSE),
+    # so only wrap the build when there are env vars to set (e.g. a pure
+    # source-diff patch sets none).
+    if (length(build_env) > 0L) {
+      withr::with_envvar(build_env, do_build())
+    } else {
+      do_build()
+    },
     error = function(e) {
       log_warn(sprintf(
         "Isolated patched build of {.pkg %s} %s failed: %s",

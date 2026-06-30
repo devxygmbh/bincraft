@@ -1,3 +1,10 @@
+# bincraft 4.4.2
+
+- `build_patched_binary()` no longer fails with `is.named(envs) is not TRUE`
+  for a patch entry that sets no environment variables (e.g. a pure
+  source-diff patch). `withr::with_envvar()` errors on an empty list, so it is
+  now skipped when the entry's env is empty.
+
 # bincraft 4.4.1
 
 - Source patches are now applied with `git apply` instead of the `patch` CLI,
