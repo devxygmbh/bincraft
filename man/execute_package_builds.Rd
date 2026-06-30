@@ -30,7 +30,8 @@ execute_package_builds(
   s3_access_key_id,
   s3_secret_access_key,
   local_bin_path,
-  upload = FALSE
+  upload = FALSE,
+  patches = NULL
 )
 }
 \arguments{
@@ -115,6 +116,11 @@ Local binary path for output}
 
 \item{upload}{(\link{logical})\cr
 Whether to upload the built packages to the specified remote.}
+
+\item{patches}{Optional path to a patch registry directory containing a
+\code{registry.json} (and any referenced diff files). When set, matching
+packages are pre-built as patched binaries and served to \code{pak} during
+dependency installation. Defaults to \code{NULL} (no patching).}
 }
 \value{
 Build results

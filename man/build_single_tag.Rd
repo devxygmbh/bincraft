@@ -30,7 +30,8 @@ build_single_tag(
   metadata_db_port = NULL,
   metadata_db_user = NULL,
   metadata_db_password = NULL,
-  metadata_db_sslmode = NULL
+  metadata_db_sslmode = NULL,
+  patches = NULL
 )
 }
 \arguments{
@@ -115,6 +116,11 @@ User password of metadata database}
 
 \item{metadata_db_sslmode}{(\link{character})\cr
 SSL mode for metadata database}
+
+\item{patches}{Optional path to a patch registry directory containing a
+\code{registry.json} (and any referenced diff files). When set, matching
+packages are pre-built as patched binaries and served to \code{pak} during
+dependency installation. Defaults to \code{NULL} (no patching).}
 }
 \description{
 Build binary for a single tag

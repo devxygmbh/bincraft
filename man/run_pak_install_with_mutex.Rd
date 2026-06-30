@@ -4,7 +4,11 @@
 \alias{run_pak_install_with_mutex}
 \title{Run pak installation with mutex protection}
 \usage{
-run_pak_install_with_mutex(local_clone_dir_single, env_vars)
+run_pak_install_with_mutex(
+  local_clone_dir_single,
+  env_vars,
+  patched_repo = NULL
+)
 }
 \arguments{
 \item{local_clone_dir_single}{(\link{character})\cr
@@ -12,6 +16,8 @@ Directory path for single package clone}
 
 \item{env_vars}{(\link{list})\cr
 Environment variables list for package installation}
+
+\item{patched_repo}{Optional path to a local patched-binary repo to prepend to pak's repos for this install (internal).}
 }
 \value{
 Invisible NULL

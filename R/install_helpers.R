@@ -329,8 +329,13 @@ clone_package_repo <- function(package_name, tag, local_clone_dir_single) {
 #'
 #' @template param-local_clone_dir_single
 #' @template param-env_vars
+#' @param patched_repo Optional path to a local patched-binary repo to prepend to pak's repos for this install (internal).
 #' @return Invisible NULL
-run_pak_install_with_mutex <- function(local_clone_dir_single, env_vars) {
+run_pak_install_with_mutex <- function(
+  local_clone_dir_single,
+  env_vars,
+  patched_repo = NULL
+) {
   mutex_file <- NULL
   tryCatch(
     {
@@ -342,11 +347,20 @@ run_pak_install_with_mutex <- function(local_clone_dir_single, env_vars) {
         {
           retry_with_backoff(function() {
             withr::with_envvar(env_vars, {
-              # Default to non-verbose (suppressed messages)
-              suppressMessages(pak::local_install_deps(sprintf(
-                "%s",
-                local_clone_dir_single
-              )))
+              repos <- getOption("repos")
+              if (!is.null(patched_repo)) {
+                repos <- c(
+                  patched = sprintf("file://%s", patched_repo),
+                  repos
+                )
+              }
+              withr::with_options(list(repos = repos), {
+                # Default to non-verbose (suppressed messages)
+                suppressMessages(pak::local_install_deps(sprintf(
+                  "%s",
+                  local_clone_dir_single
+                )))
+              })
             })
           })
         },

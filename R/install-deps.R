@@ -18,6 +18,8 @@
 #' @template param-platform
 #' @template param-local_clone_dir
 #' @template param-aggressive_cleanup
+#' @template param-patches
+#' @template param-arch
 #'
 #' @export
 install_pkg_sys_deps <- function(
@@ -25,7 +27,9 @@ install_pkg_sys_deps <- function(
   tag,
   local_clone_dir,
   platform = platform,
-  aggressive_cleanup = FALSE
+  aggressive_cleanup = FALSE,
+  patches = NULL,
+  arch = NULL
 ) {
   t1 <- Sys.time()
 
@@ -49,10 +53,25 @@ install_pkg_sys_deps <- function(
     perform_aggressive_cleanup()
   }
 
+  # Build a local repo of patched binaries (if any apply) and serve it to pak.
+  r_minor <- paste(
+    R.version$major,
+    strsplit(R.version$minor, ".", fixed = TRUE)[[1L]][1L],
+    sep = "."
+  )
+  patched_repo <- tryCatch(
+    prepare_patched_repo(patches, platform, arch, r_minor),
+    error = function(e) {
+      log_warn(sprintf("Patch preparation failed: %s", conditionMessage(e)))
+      NULL
+    }
+  )
+
   # Run installation with mutex protection
   run_pak_install_with_mutex(
     local_clone_dir_single,
-    env_vars
+    env_vars,
+    patched_repo = patched_repo
   )
 
   log_debug(

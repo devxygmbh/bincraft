@@ -9,7 +9,9 @@ install_pkg_sys_deps(
   tag,
   local_clone_dir,
   platform = platform,
-  aggressive_cleanup = FALSE
+  aggressive_cleanup = FALSE,
+  patches = NULL,
+  arch = NULL
 )
 }
 \arguments{
@@ -27,6 +29,14 @@ Platform identifier}
 
 \item{aggressive_cleanup}{(\link{logical})\cr
 Perform additional cache cleanup before installation}
+
+\item{patches}{Optional path to a patch registry directory containing a
+\code{registry.json} (and any referenced diff files). When set, matching
+packages are pre-built as patched binaries and served to \code{pak} during
+dependency installation. Defaults to \code{NULL} (no patching).}
+
+\item{arch}{(\link{character})\cr
+Architecture}
 }
 \description{
 This function uses a shared cache approach with safe concurrency controls:

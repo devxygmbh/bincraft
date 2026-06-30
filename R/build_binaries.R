@@ -41,6 +41,7 @@
 #' @template param-s3-secret-access-key
 #'
 #' @template param-s3_package_cache
+#' @template param-patches
 #'
 #' @importFrom future.apply future_mapply
 #' @importFrom gert git_config_global_set git_clone
@@ -87,7 +88,8 @@ build_binary_package <- function(
   s3_bucket = NULL,
   s3_access_key_id = NULL,
   s3_secret_access_key = NULL,
-  s3_package_cache = NULL
+  s3_package_cache = NULL,
+  patches = NULL
 ) {
   # Initialize and prepare
   setup_result <- initialize_build_environment(
@@ -193,7 +195,8 @@ build_binary_package <- function(
     s3_access_key_id,
     s3_secret_access_key,
     local_bin_path,
-    upload
+    upload,
+    patches = patches
   )
 
   # Handle upload and archiving
@@ -638,6 +641,7 @@ filter_packages_with_errors <- function(
 #' @template param-s3-access-key-id
 #' @template param-s3-secret-access-key
 #' @template param-local_bin_path
+#' @template param-patches
 #' @return Build results
 execute_package_builds <- function(
   package_name,
@@ -665,7 +669,8 @@ execute_package_builds <- function(
   s3_access_key_id,
   s3_secret_access_key,
   local_bin_path,
-  upload = FALSE
+  upload = FALSE,
+  patches = NULL
 ) {
   t1 <- Sys.time()
   cli::cli_h2(sprintf("Building ({.pkg %s})", package_name[1L]))
@@ -707,7 +712,8 @@ execute_package_builds <- function(
           s3_bucket = s3_bucket,
           s3_region = s3_region,
           s3_access_key_id = s3_access_key_id,
-          s3_secret_access_key = s3_secret_access_key
+          s3_secret_access_key = s3_secret_access_key,
+          patches = patches
         )
 
         # build_single_tag now publishes and records the build itself, returning
@@ -1248,6 +1254,7 @@ handle_post_build_actions <- function(
 #' @template param-s3_bucket
 #' @template param-s3-access-key-id
 #' @template param-s3-secret-access-key
+#' @template param-patches
 #'
 #' @importFrom cli cli_alert
 #' @importFrom pkgbuild build
@@ -1278,7 +1285,8 @@ build_single_tag <- function(
   metadata_db_port = NULL,
   metadata_db_user = NULL,
   metadata_db_password = NULL,
-  metadata_db_sslmode = NULL
+  metadata_db_sslmode = NULL,
+  patches = NULL
 ) {
   log_debug(
     sprintf(
@@ -1337,7 +1345,8 @@ build_single_tag <- function(
       metadata_db_table,
       metadata_db_password,
       metadata_db_user,
-      metadata_db_sslmode
+      metadata_db_sslmode,
+      patches = patches
     )
     if (!install_deps_result$success) {
       return("error")
@@ -1589,6 +1598,7 @@ clone_repository <- function(
 #' @template param-metadata_db_password
 #' @template param-metadata_db_user
 #' @template param-metadata_db_sslmode
+#' @template param-patches
 #' @return List with success status
 handle_system_dependencies <- function(
   package_name,
@@ -1602,7 +1612,8 @@ handle_system_dependencies <- function(
   metadata_db_table,
   metadata_db_password,
   metadata_db_user,
-  metadata_db_sslmode
+  metadata_db_sslmode,
+  patches = NULL
 ) {
   log_header("Installing system dependencies")
   tryCatch(
@@ -1611,7 +1622,9 @@ handle_system_dependencies <- function(
         package_name,
         tag,
         local_clone_dir_single,
-        platform
+        platform,
+        patches = patches,
+        arch = arch
       )
       return(list(success = TRUE))
     },

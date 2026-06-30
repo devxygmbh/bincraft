@@ -33,7 +33,8 @@ build_binary_package(
   s3_bucket = NULL,
   s3_access_key_id = NULL,
   s3_secret_access_key = NULL,
-  s3_package_cache = NULL
+  s3_package_cache = NULL,
+  patches = NULL
 )
 }
 \arguments{
@@ -130,6 +131,11 @@ Optional pre-fetched character vector of S3 package filenames (basenames like
 \code{"pkg_1.0.0.tar.gz"}). When provided, S3 existence checks use in-memory set
 lookup instead of per-package S3 API calls. Obtain via
 \code{basename(s3fs::s3_dir_ls(..., recurse = TRUE))}.}
+
+\item{patches}{Optional path to a patch registry directory containing a
+\code{registry.json} (and any referenced diff files). When set, matching
+packages are pre-built as patched binaries and served to \code{pak} during
+dependency installation. Defaults to \code{NULL} (no patching).}
 }
 \description{
 Builds binary packages from a given URL for a specific architecture.

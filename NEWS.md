@@ -1,3 +1,10 @@
+# bincraft 4.3.0
+
+- `build_binary_package()` gains a `patches` argument: a registry of
+  per-package env / configure / Makevars overrides and source diffs that are
+  pre-built into patched binaries and served to pak, fixing compiler- and
+  OS-specific failures (e.g. RcppParallel) including for transitive deps.
+
 # bincraft 4.2.1
 
 - `write_archive_rds()` (and thus `upload_package_index()`) no longer errors when a
