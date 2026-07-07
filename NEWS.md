@@ -1,3 +1,13 @@
+# bincraft 4.4.3
+
+- Registry patches (and their `env` / `configure_args` / `makevars` overrides)
+  are now applied to the target package's own source before `pkgbuild::build()`,
+  not only when building patched dependencies. Previously a package that was the
+  build target had its patch applied to a throwaway dependency repo and ignored
+  for the uploaded binary, so source-diff/override patches silently had no
+  effect on the shipped binary. A target patch that fails to apply now aborts
+  the build instead of uploading an unpatched binary.
+
 # bincraft 4.4.2
 
 - `build_patched_binary()` no longer fails with `is.named(envs) is not TRUE`

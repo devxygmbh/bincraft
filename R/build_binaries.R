@@ -1366,7 +1366,8 @@ build_single_tag <- function(
     metadata_db_table,
     metadata_db_password,
     metadata_db_user,
-    metadata_db_sslmode
+    metadata_db_sslmode,
+    patches = patches
   )
 
   if (!build_result$success) {
@@ -1676,6 +1677,7 @@ handle_system_dependencies <- function(
 #' @template param-metadata_db_password
 #' @template param-metadata_db_user
 #' @template param-metadata_db_sslmode
+#' @template param-patches
 #' @return List with success status and build time
 execute_package_build <- function(
   package_name,
@@ -1690,7 +1692,8 @@ execute_package_build <- function(
   metadata_db_table,
   metadata_db_password,
   metadata_db_user,
-  metadata_db_sslmode
+  metadata_db_sslmode,
+  patches = NULL
 ) {
   log_header(
     sprintf(
@@ -1709,13 +1712,80 @@ execute_package_build <- function(
         "'binary_output_path': %s",
         binary_output_path
       )
-      pkgbuild::build(
-        path = sprintf("%s", local_clone_dir_single),
-        binary = TRUE,
-        vignettes = FALSE,
-        dest_path = binary_output_path,
-        quiet = quiet
+
+      # Apply a matching registry patch to the TARGET package's own source
+      # before building. Dependency patching is handled separately
+      # (prepare_patched_repo); without this block the uploaded binary is built
+      # from the unpatched clone and the patch's env/configure/makevars/
+      # source-diff overrides never take effect. Kept inside tryCatch so a
+      # failed patch aborts the build (success = FALSE) instead of uploading an
+      # unpatched binary.
+      entry <- select_target_patch_entry(
+        patches,
+        package_name,
+        tag,
+        platform,
+        arch
       )
+      build_args <- character(0L)
+      build_env <- list()
+      if (!is.null(entry)) {
+        log_info(sprintf(
+          "Applying registry patch to target {.pkg %s} %s [%s]: %s",
+          package_name,
+          tag,
+          describe_patch(entry),
+          entry$reason
+        ))
+        if (!is.null(entry$patch_path)) {
+          if (!apply_source_patch(entry$patch_path, local_clone_dir_single)) {
+            stop(
+              sprintf(
+                paste0(
+                  "Registry patch for %s %s did not apply cleanly to the ",
+                  "target clone; aborting so an unpatched binary is not ",
+                  "uploaded."
+                ),
+                package_name,
+                tag
+              ),
+              call. = FALSE
+            )
+          }
+        }
+        build_args <- configure_args_to_build_args(entry$configure_args)
+        build_env <- entry$env
+        if (length(entry$makevars) > 0L) {
+          mk <- tempfile(fileext = ".mk")
+          writeLines(
+            vapply(
+              names(entry$makevars),
+              function(k) sprintf("%s=%s", k, entry$makevars[[k]]),
+              character(1L)
+            ),
+            mk
+          )
+          build_env$R_MAKEVARS_USER <- mk
+        }
+      }
+
+      do_build <- function() {
+        pkgbuild::build(
+          path = sprintf("%s", local_clone_dir_single),
+          binary = TRUE,
+          vignettes = FALSE,
+          dest_path = binary_output_path,
+          args = build_args,
+          quiet = quiet
+        )
+      }
+      # withr::with_envvar() errors on an empty list, so only wrap when the
+      # entry actually sets env vars (a pure source-diff patch sets none).
+      if (length(build_env) > 0L) {
+        withr::with_envvar(build_env, do_build())
+      } else {
+        do_build()
+      }
 
       log_debug(sprintf(
         "Files in binary_output_path: %s",

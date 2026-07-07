@@ -17,7 +17,8 @@ execute_package_build(
   metadata_db_table,
   metadata_db_password,
   metadata_db_user,
-  metadata_db_sslmode
+  metadata_db_sslmode,
+  patches = NULL
 )
 }
 \arguments{
@@ -59,6 +60,11 @@ User value of metadata database}
 
 \item{metadata_db_sslmode}{(\link{character})\cr
 SSL mode for metadata database}
+
+\item{patches}{Optional path to a patch registry directory containing a
+\code{registry.json} (and any referenced diff files). When set, matching
+packages are pre-built as patched binaries and served to \code{pak} during
+dependency installation. Defaults to \code{NULL} (no patching).}
 }
 \value{
 List with success status and build time

@@ -93,6 +93,45 @@ match_patch_entries <- function(registry, platform, arch) {
   Filter(function(e) entry_matches_platform(e, tokens), registry)
 }
 
+#' Select the single registry entry for a target package build
+#'
+#' Returns the entry matching `package` on the current platform whose version
+#' constraint is satisfied by `version`, or `NULL` when none applies. Used to
+#' patch the target package's own source before `pkgbuild::build()` (dependency
+#' patching goes through [prepare_patched_repo()] instead).
+#' @keywords internal
+select_target_patch_entry <- function(
+  patches_dir,
+  package,
+  version,
+  platform,
+  arch
+) {
+  if (is.null(patches_dir)) {
+    return(NULL)
+  }
+  matched <- match_patch_entries(
+    load_patch_registry(patches_dir),
+    platform,
+    arch
+  )
+  matched <- Filter(function(e) identical(e$package, package), matched)
+  applies <- Filter(
+    function(e) {
+      identical(e$versions, "*") ||
+        isTRUE(tryCatch(
+          version_satisfies(version, e$versions),
+          error = function(err) FALSE
+        ))
+    },
+    matched
+  )
+  if (length(applies) == 0L) {
+    return(NULL)
+  }
+  applies[[1L]]
+}
+
 #' Test whether a version satisfies a single constraint
 #'
 #' @param version A version string (CRAN style, may contain `-`).
@@ -111,13 +150,7 @@ version_satisfies <- function(version, constraint) {
   if (op == "" || op == "==") {
     return(v == t)
   }
-  switch(op,
-    ">=" = v >= t,
-    "<=" = v <= t,
-    ">" = v > t,
-    "<" = v < t,
-    FALSE
-  )
+  switch(op, ">=" = v >= t, "<=" = v <= t, ">" = v > t, "<" = v < t, FALSE)
 }
 
 #' Compute the cache key for a patched binary

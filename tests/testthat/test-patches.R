@@ -84,6 +84,74 @@ test_that("match_patch_entries matches family, codename, arch, and wildcard", {
   expect_setequal(got, c("B", "C"))
 })
 
+test_that("select_target_patch_entry picks the matching package/version/platform", {
+  dir <- withr::local_tempdir()
+  writeLines("--- a patch ---", file.path(dir, "fix.patch"))
+  jsonlite::write_json(
+    list(
+      list(
+        package = "fs",
+        versions = "*",
+        platforms = list("*"),
+        patch = "fix.patch",
+        reason = "force vendored libuv"
+      ),
+      list(
+        package = "RcppParallel",
+        versions = ">=5.1.0",
+        platforms = list("alpine"),
+        reason = "musl"
+      )
+    ),
+    file.path(dir, "registry.json"),
+    auto_unbox = TRUE
+  )
+
+  hit <- select_target_patch_entry(dir, "fs", "2.1.0", "redhat-9", "amd64")
+  expect_identical(hit$package, "fs")
+  expect_true(file.exists(hit$patch_path))
+
+  # wrong package on this platform
+  expect_null(
+    select_target_patch_entry(
+      dir,
+      "RcppParallel",
+      "5.1.11",
+      "redhat-9",
+      "amd64"
+    )
+  )
+  # right package/platform but version constraint not met
+  expect_null(
+    select_target_patch_entry(
+      dir,
+      "RcppParallel",
+      "5.0.0",
+      "alpine-324",
+      "arm64"
+    )
+  )
+  # constraint met on matching platform
+  expect_identical(
+    select_target_patch_entry(
+      dir,
+      "RcppParallel",
+      "5.1.11",
+      "alpine-324",
+      "arm64"
+    )$package,
+    "RcppParallel"
+  )
+  # no registry dir
+  expect_null(select_target_patch_entry(
+    NULL,
+    "fs",
+    "2.1.0",
+    "redhat-9",
+    "amd64"
+  ))
+})
+
 test_that("version_satisfies handles operators and hyphenated versions", {
   expect_true(version_satisfies("5.1.11-2", "5.1.11-2"))
   expect_true(version_satisfies("5.1.11-2", "==5.1.11-2"))
