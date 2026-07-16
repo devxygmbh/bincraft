@@ -1643,7 +1643,10 @@ handle_system_dependencies <- function(
           conditionMessage(e)
         )
       )
-      if (store_build_metadata) {
+      # `store_build_metadata` (the flag) is not in scope in this function; gate
+      # on the DB host instead, which is (no host -> nothing to record, e.g. a
+      # trial build -> avoids a localhost-connection retry storm on failure).
+      if (!is.null(metadata_db_host) && nzchar(metadata_db_host)) {
         store_build_metadata(
           package_name[1L],
           tag[1L],
@@ -1815,7 +1818,10 @@ execute_package_build <- function(
         )
       )
       unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
-      if (store_build_metadata) {
+      # `store_build_metadata` (the flag) is not in scope in this function; gate
+      # on the DB host instead (no host -> nothing to record, e.g. a trial
+      # build -> avoids a localhost-connection retry storm on failure).
+      if (!is.null(metadata_db_host) && nzchar(metadata_db_host)) {
         store_build_metadata(
           package_name,
           tag,
