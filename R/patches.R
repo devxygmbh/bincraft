@@ -353,6 +353,25 @@ build_patched_binary <- function(entry, version, dest_dir) {
     "BINCRAFT_VERBOSE_PATCH_BUILD",
     "FALSE"
   )))
+
+  # Install the package's hard dependencies into the build library first.
+  # pkgbuild::build() runs `R CMD INSTALL`, which needs the package's
+  # Depends/Imports/LinkingTo present or it fails with "dependencies '...' are
+  # not available" *before* compiling -- so a dependency-heavy patched package
+  # (e.g. rstan needs StanHeaders/RcppParallel/RcppEigen/BH/...) never reaches
+  # the patch's makevars. Dependency-light packages are a fast no-op.
+  tryCatch(
+    pak::local_install_deps(pkg_src, ask = FALSE, upgrade = FALSE),
+    error = function(e) {
+      log_warn(sprintf(
+        "Could not pre-install dependencies for {.pkg %s} %s: %s",
+        entry$package,
+        version,
+        conditionMessage(e)
+      ))
+    }
+  )
+
   do_build <- function() {
     pkgbuild::build(
       path = pkg_src,

@@ -216,7 +216,11 @@ build_binary_package <- function(
     s3_secret_access_key
   )
 
-  invisible(TRUE)
+  # Return the per-tag build result ("error" on a failed tag, "skipped", or the
+  # success value) instead of a bare TRUE, so callers -- e.g. a trial-build gate
+  # -- can tell success from failure. build_binary_package() catches build
+  # failures internally, so this return value is the only non-log signal.
+  invisible(result)
 }
 
 #' Initialize build environment and setup paths
