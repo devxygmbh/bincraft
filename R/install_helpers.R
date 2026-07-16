@@ -185,12 +185,32 @@ classify_error_for_retry <- function(error_msg) {
   ) &&
     !is_dependency_error
 
+  # A deterministic compile/build failure (a missing header, a failed make, a
+  # package whose source will not compile) will fail identically on every
+  # retry. It is often surfaced *as* a pak subprocess error and can leave a
+  # stale 00LOCK behind, so it would otherwise be misread as a retryable
+  # subprocess/locking error and burn all `max_attempts` (~4 min) for nothing.
+  # Treat it as non-retryable so the build fails fast.
+  is_compile_error <- grepl(
+    paste0(
+      "compilation failed for package|",
+      "fatal error:|", # C/C++ preprocessor/compile errors
+      "make(\\[[0-9]+\\])?: \\*\\*\\*|", # a failed make rule
+      "ERROR: (compilation|configuration) failed"
+    ),
+    error_msg,
+    ignore.case = TRUE
+  )
+
   should_retry <- (is_locking_error ||
     is_network_error ||
     is_subprocess_error) &&
-    !is_dependency_error
+    !is_dependency_error &&
+    !is_compile_error
 
-  error_type <- if (is_locking_error) {
+  error_type <- if (is_compile_error) {
+    "compile error"
+  } else if (is_locking_error) {
     "locking error"
   } else if (is_network_error) {
     "network error"
