@@ -344,6 +344,15 @@ build_patched_binary <- function(entry, version, dest_dir) {
     build_env$R_MAKEVARS_USER <- mk
   }
 
+  # Suppress the (verbose) build output by default, but let callers opt into
+  # seeing it via BINCRAFT_VERBOSE_PATCH_BUILD=TRUE. When an isolated patched
+  # build fails, pkgbuild's error is only "System command 'R' failed"; the real
+  # compiler error is in the suppressed output, so a trial-build gate needs a
+  # way to surface it.
+  verbose <- isTRUE(as.logical(Sys.getenv(
+    "BINCRAFT_VERBOSE_PATCH_BUILD",
+    "FALSE"
+  )))
   do_build <- function() {
     pkgbuild::build(
       path = pkg_src,
@@ -351,7 +360,7 @@ build_patched_binary <- function(entry, version, dest_dir) {
       vignettes = FALSE,
       dest_path = dest_dir,
       args = configure_args_to_build_args(entry$configure_args),
-      quiet = TRUE
+      quiet = !verbose
     )
   }
 

@@ -739,22 +739,27 @@ execute_package_builds <- function(
           sprintf("%s_%s", x, y)
         )
         unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
-        store_build_metadata(
-          x,
-          y,
-          platform,
-          error_occurred = TRUE,
-          arch = arch,
-          force = TRUE,
-          error = conditionMessage(e),
-          metadata_db_host = metadata_db_host,
-          metadata_db_name = metadata_db_name,
-          metadata_db_port = metadata_db_port,
-          metadata_db_table = metadata_db_table,
-          metadata_db_password = metadata_db_password,
-          metadata_db_user = metadata_db_user,
-          metadata_db_sslmode = metadata_db_sslmode
-        )
+        # Only record the failure when metadata storage is enabled; otherwise a
+        # trial build (store_build_metadata = FALSE, no DB host) would retry a
+        # localhost connection for every failure.
+        if (store_build_metadata) {
+          store_build_metadata(
+            x,
+            y,
+            platform,
+            error_occurred = TRUE,
+            arch = arch,
+            force = TRUE,
+            error = conditionMessage(e),
+            metadata_db_host = metadata_db_host,
+            metadata_db_name = metadata_db_name,
+            metadata_db_port = metadata_db_port,
+            metadata_db_table = metadata_db_table,
+            metadata_db_password = metadata_db_password,
+            metadata_db_user = metadata_db_user,
+            metadata_db_sslmode = metadata_db_sslmode
+          )
+        }
         "error"
       }
     )
@@ -1638,22 +1643,24 @@ handle_system_dependencies <- function(
           conditionMessage(e)
         )
       )
-      store_build_metadata(
-        package_name[1L],
-        tag[1L],
-        platform,
-        arch = arch,
-        error_occurred = TRUE,
-        force = TRUE,
-        error = conditionMessage(e),
-        metadata_db_host = metadata_db_host,
-        metadata_db_name = metadata_db_name,
-        metadata_db_port = metadata_db_port,
-        metadata_db_table = metadata_db_table,
-        metadata_db_password = metadata_db_password,
-        metadata_db_user = metadata_db_user,
-        metadata_db_sslmode = metadata_db_sslmode
-      )
+      if (store_build_metadata) {
+        store_build_metadata(
+          package_name[1L],
+          tag[1L],
+          platform,
+          arch = arch,
+          error_occurred = TRUE,
+          force = TRUE,
+          error = conditionMessage(e),
+          metadata_db_host = metadata_db_host,
+          metadata_db_name = metadata_db_name,
+          metadata_db_port = metadata_db_port,
+          metadata_db_table = metadata_db_table,
+          metadata_db_password = metadata_db_password,
+          metadata_db_user = metadata_db_user,
+          metadata_db_sslmode = metadata_db_sslmode
+        )
+      }
       list(success = FALSE)
     }
   )
@@ -1808,26 +1815,28 @@ execute_package_build <- function(
         )
       )
       unlink(local_clone_dir_single, force = TRUE, recursive = TRUE)
-      store_build_metadata(
-        package_name,
-        tag,
-        platform,
-        arch = arch,
-        error_occurred = TRUE,
-        force = TRUE,
-        error = sprintf(
-          "Error trying to initiate pkgbuild -
-          likely a non-valid R package structure. Full error: %s",
-          e
-        ),
-        metadata_db_host = metadata_db_host,
-        metadata_db_name = metadata_db_name,
-        metadata_db_port = metadata_db_port,
-        metadata_db_table = metadata_db_table,
-        metadata_db_password = metadata_db_password,
-        metadata_db_user = metadata_db_user,
-        metadata_db_sslmode = metadata_db_sslmode
-      )
+      if (store_build_metadata) {
+        store_build_metadata(
+          package_name,
+          tag,
+          platform,
+          arch = arch,
+          error_occurred = TRUE,
+          force = TRUE,
+          error = sprintf(
+            "Error trying to initiate pkgbuild -
+            likely a non-valid R package structure. Full error: %s",
+            e
+          ),
+          metadata_db_host = metadata_db_host,
+          metadata_db_name = metadata_db_name,
+          metadata_db_port = metadata_db_port,
+          metadata_db_table = metadata_db_table,
+          metadata_db_password = metadata_db_password,
+          metadata_db_user = metadata_db_user,
+          metadata_db_sslmode = metadata_db_sslmode
+        )
+      }
       list(success = FALSE)
     }
   )
