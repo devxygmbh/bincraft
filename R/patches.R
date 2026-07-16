@@ -385,18 +385,41 @@ build_patched_binary <- function(entry, version, dest_dir) {
   )
 }
 
+#' Content-addressed key for an assembled patched repo
+#'
+#' Derives a stable hash from the resolved plan (each entry's `patch_cache_key`,
+#' which already folds in package, version, platform, arch, R minor, and patch
+#' content). Identical patch sets yield an identical key regardless of call
+#' order or invocation, so the repo can live at a stable path.
+#' @keywords internal
+patched_repo_key <- function(keys) {
+  tmp <- tempfile()
+  on.exit(unlink(tmp), add = TRUE)
+  writeLines(sort(keys), tmp)
+  substr(unname(tools::md5sum(tmp)), 1L, 16L)
+}
+
 #' Prepare a local repo of patched binaries for the current build
 #'
 #' For each registry entry matching the current platform, ensures a patched
 #' binary is present in `repo_dir` (from `cache_dir` if available, else built
 #' and then cached) and writes a `PACKAGES` index over them.
 #'
+#' The repo is assembled at a content-addressed path derived from the resolved
+#' patch set. Because every `build_binary_package()` resolution in a run passes
+#' the same patches/platform/arch/R, they all resolve to the *same* `file://`
+#' repo URL, so `{pkgcache}` reuses one `_metadata` snapshot instead of minting
+#' a fresh ~70 MB one per resolution. See
+#' <https://codefloe.com/rpkgs/bincraft/issues/62>.
+#'
 #' @param patches_dir Directory with `registry.json`, or `NULL`.
 #' @param platform Build platform, e.g. `"ubuntu-2604"`.
 #' @param arch Build arch, e.g. `"amd64"`.
 #' @param r_minor R `"major.minor"` string, e.g. `"4.5"`.
 #' @param cache_dir Persistent cache for patched binaries.
-#' @param repo_dir Directory to assemble the local repo in.
+#' @param repo_dir Directory to assemble the local repo in. Defaults to a
+#'   content-addressed path under `cache_dir` so identical patch sets reuse a
+#'   stable repo URL; pass an explicit path to override.
 #' @return `repo_dir` if at least one patched binary was produced, else `NULL`.
 #' @keywords internal
 prepare_patched_repo <- function(
@@ -405,7 +428,7 @@ prepare_patched_repo <- function(
   arch,
   r_minor,
   cache_dir = file.path("/mnt", "cache", "patched-binaries"),
-  repo_dir = tempfile("patched_repo_")
+  repo_dir = NULL
 ) {
   entries <- match_patch_entries(
     load_patch_registry(patches_dir),
@@ -416,13 +439,10 @@ prepare_patched_repo <- function(
     return(NULL)
   }
 
-  dir.create(repo_dir, recursive = TRUE, showWarnings = FALSE)
-  dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
-
-  contrib <- file.path(repo_dir, "src", "contrib")
-  dir.create(contrib, recursive = TRUE, showWarnings = FALSE)
-
-  produced <- 0L
+  # Resolve every matching entry up front so the assembled repo is a pure
+  # function of its contents. This lets us derive a stable repo path before
+  # touching the filesystem.
+  plan <- list()
   for (entry in entries) {
     version <- resolve_patch_version(entry)
     if (is.na(version)) {
@@ -433,13 +453,50 @@ prepare_patched_repo <- function(
       ))
       next
     }
-
-    key <- patch_cache_key(entry, version, platform, arch, r_minor)
-    cached <- file.path(cache_dir, sprintf("%s.tar.gz", key))
-    target <- file.path(
-      contrib,
-      sprintf("%s_%s.tar.gz", entry$package, version)
+    plan[[length(plan) + 1L]] <- list(
+      entry = entry,
+      version = version,
+      key = patch_cache_key(entry, version, platform, arch, r_minor)
     )
+  }
+
+  if (length(plan) == 0L) {
+    return(NULL)
+  }
+
+  if (is.null(repo_dir)) {
+    repo_key <- patched_repo_key(vapply(plan, function(p) p$key, character(1L)))
+    repo_dir <- file.path(cache_dir, "repos", repo_key)
+  }
+
+  contrib <- file.path(repo_dir, "src", "contrib")
+  targets <- vapply(
+    plan,
+    function(p) {
+      file.path(contrib, sprintf("%s_%s.tar.gz", p$entry$package, p$version))
+    },
+    character(1L)
+  )
+
+  # Fast path: a fully assembled repo (all binaries plus an index) can be
+  # served as-is. This is the common case after the first resolution in a run.
+  if (
+    file.exists(file.path(contrib, "PACKAGES")) && all(file.exists(targets))
+  ) {
+    return(repo_dir)
+  }
+
+  dir.create(repo_dir, recursive = TRUE, showWarnings = FALSE)
+  dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
+  dir.create(contrib, recursive = TRUE, showWarnings = FALSE)
+
+  produced <- 0L
+  for (i in seq_along(plan)) {
+    entry <- plan[[i]]$entry
+    version <- plan[[i]]$version
+    key <- plan[[i]]$key
+    cached <- file.path(cache_dir, sprintf("%s.tar.gz", key))
+    target <- targets[[i]]
 
     if (file.exists(cached)) {
       log_info(sprintf(

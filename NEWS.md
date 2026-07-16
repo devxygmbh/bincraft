@@ -1,3 +1,15 @@
+# bincraft 4.4.7
+
+- The local patched-binary repo served to `pak` is now assembled at a stable,
+  content-addressed path under `cache_dir` instead of a fresh `tempfile()` per
+  call. Every `build_binary_package()` resolution in a run passes the same
+  patches/platform/arch/R, so they now resolve to the same `file://` repo URL
+  and `{pkgcache}` reuses a single `_metadata` snapshot. Previously each
+  resolution minted a new repo path, so `{pkgcache}` wrote a fresh ~70 MB
+  `_metadata/patched-<hash>` snapshot that never repeated and never evicted,
+  growing unboundedly during full-platform builds (up to ~165 GB observed).
+  A fully assembled repo is now also reused as-is on subsequent resolutions.
+
 # bincraft 4.4.3
 
 - Registry patches (and their `env` / `configure_args` / `makevars` overrides)

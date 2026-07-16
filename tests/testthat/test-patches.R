@@ -459,6 +459,55 @@ test_that("prepare_patched_repo serves a cached binary and writes an index", {
   expect_length(list.files(cache, pattern = "^glue_1.0.0_.*\\.tar\\.gz$"), 1L)
 })
 
+test_that("prepare_patched_repo reuses a stable content-addressed repo path", {
+  dir <- withr::local_tempdir()
+  jsonlite::write_json(
+    list(list(
+      package = "glue",
+      versions = "*",
+      platforms = list("*"),
+      env = list(A = "1"),
+      reason = "r"
+    )),
+    file.path(dir, "registry.json"),
+    auto_unbox = TRUE
+  )
+  cache <- withr::local_tempdir()
+
+  builds <- 0L
+  local_mocked_bindings(
+    resolve_patch_version = function(entry) "1.0.0",
+    build_patched_binary = function(entry, version, dest_dir) {
+      builds <<- builds + 1L
+      f <- file.path(dest_dir, sprintf("%s_%s.tar.gz", entry$package, version))
+      writeLines("fake binary", f)
+      f
+    }
+  )
+  local_mocked_bindings(
+    write_PACKAGES = function(dir, ...) {
+      writeLines(character(0L), file.path(dir, "PACKAGES"))
+      invisible(0L)
+    },
+    .package = "tools"
+  )
+
+  # No explicit repo_dir: the path is derived from the resolved patch set.
+  first <- prepare_patched_repo(dir, "ubuntu-2604", "amd64", "4.5", cache)
+  second <- prepare_patched_repo(dir, "ubuntu-2604", "amd64", "4.5", cache)
+
+  # Same inputs -> same repo path (so pkgcache reuses one metadata snapshot).
+  expect_identical(first, second)
+  # The stable path lives under cache_dir, not a random tempfile.
+  expect_true(startsWith(first, file.path(cache, "repos")))
+  # The second call hit the fast path and did not rebuild the binary.
+  expect_identical(builds, 1L)
+
+  # A different platform resolves to a different repo path.
+  other <- prepare_patched_repo(dir, "ubuntu-2604", "arm64", "4.5", cache)
+  expect_false(identical(first, other))
+})
+
 test_that("prepare_patched_repo src/contrib layout is resolvable by available.packages", {
   # Build a minimal valid source package tarball
   pkg_tmp <- withr::local_tempdir()
