@@ -103,26 +103,96 @@ process_removed_packages <- function(
 
 #' Classify a single CRAN package for R-minor sensitivity
 #'
-#' Clones the package source to a temp dir and runs
-#' [needs_per_minor_recompile()]. Fails safe to `TRUE` (build per minor) if the
-#' clone or classification errors, so a possibly-ABI-fragile binary is never
-#' served from the cross-minor generic slot by mistake.
-#' @keywords internal
+#' Determines whether a package version must be recompiled per R minor version
+#' via [needs_per_minor_recompile()]. The source is the CRAN source tarball
+#' (`download_cran_source()`), not a GitHub clone, so classification does not
+#' touch GitHub.
+#'
+#' The verdict is a property of the package *source* -- independent of OS, arch
+#' and R minor -- so it is cached in the metadata database keyed on
+#' `(package, version)` plus a signature of the curated ABI lists. A cache hit
+#' skips the download and classification entirely; a full rebuild for a new OS
+#' release therefore reuses existing verdicts and touches CRAN zero times.
+#' Pass the `metadata_db_*` arguments to enable caching; omit them to always
+#' compute (the cache is transparently skipped).
+#'
+#' Fails safe to `TRUE` (build per minor) if the download or classification
+#' errors, so a possibly-ABI-fragile binary is never served from the
+#' cross-minor generic slot by mistake.
+#'
+#' @template param-package_name
+#' @template param-tag
+#' @template param-local_clone_dir
+#' @template param-metadata_db_type
+#' @template param-metadata_db_host
+#' @template param-metadata_db_name
+#' @template param-metadata_db_port
+#' @template param-metadata_db_user
+#' @template param-metadata_db_password
+#' @template param-metadata_db_sslmode
+#' @param metadata_db_cache_table Name of the table holding cached ABI
+#'   classification verdicts. Created on first use.
+#' @return A logical of length 1: `TRUE` if the package must be recompiled per R
+#'   minor version.
+#' @export
 classify_r_minor_sensitive <- function(
   package_name,
   tag,
-  source_org_url = "https://github.com/cran",
-  local_clone_dir = tempdir()
+  local_clone_dir = tempdir(),
+  metadata_db_type = "postgres",
+  metadata_db_host = NULL,
+  metadata_db_name = NULL,
+  metadata_db_port = NULL,
+  metadata_db_user = NULL,
+  metadata_db_password = NULL,
+  metadata_db_sslmode = NULL,
+  metadata_db_cache_table = "abi_classification"
 ) {
+  sig <- abi_classifier_signature()
+
+  cached <- tryCatch(
+    abi_cache_lookup(
+      package_name,
+      tag,
+      sig,
+      metadata_db_type = metadata_db_type,
+      metadata_db_host = metadata_db_host,
+      metadata_db_name = metadata_db_name,
+      metadata_db_port = metadata_db_port,
+      metadata_db_user = metadata_db_user,
+      metadata_db_password = metadata_db_password,
+      metadata_db_sslmode = metadata_db_sslmode,
+      metadata_db_cache_table = metadata_db_cache_table
+    ),
+    error = function(e) NULL
+  )
+  if (!is.null(cached)) {
+    log_info(sprintf(
+      "{.fun classify_r_minor_sensitive}: cache hit for {.pkg %s} {.field %s} (r_minor_sensitive=%s).", # nolint
+      package_name,
+      tag,
+      cached
+    ))
+    return(cached)
+  }
+
   dest <- file.path(
     local_clone_dir,
     sprintf("classify_%s_%s", package_name, tag)
   )
+  dir.create(dest, recursive = TRUE, showWarnings = FALSE)
   on.exit(unlink(dest, recursive = TRUE, force = TRUE), add = TRUE)
-  tryCatch(
+
+  sensitive <- tryCatch(
     {
-      clone_repository(package_name, tag, source_org_url, dest)
-      isTRUE(as.logical(needs_per_minor_recompile(dest)))
+      tarball <- download_cran_source(package_name, tag, dest)
+      if (is.null(tarball)) {
+        stop(
+          sprintf("no CRAN source tarball for %s %s", package_name, tag),
+          call. = FALSE
+        )
+      }
+      isTRUE(as.logical(needs_per_minor_recompile(tarball)))
     },
     error = function(e) {
       log_warn(sprintf(
@@ -134,6 +204,33 @@ classify_r_minor_sensitive <- function(
       TRUE
     }
   )
+
+  # Best-effort cache write; never fail a build because the cache is unreachable.
+  tryCatch(
+    abi_cache_store(
+      package_name,
+      tag,
+      sig,
+      sensitive,
+      metadata_db_type = metadata_db_type,
+      metadata_db_host = metadata_db_host,
+      metadata_db_name = metadata_db_name,
+      metadata_db_port = metadata_db_port,
+      metadata_db_user = metadata_db_user,
+      metadata_db_password = metadata_db_password,
+      metadata_db_sslmode = metadata_db_sslmode,
+      metadata_db_cache_table = metadata_db_cache_table
+    ),
+    error = function(e) {
+      log_debug(sprintf(
+        "{.fun classify_r_minor_sensitive}: cache store failed for {.pkg %s}: %s", # nolint
+        package_name,
+        conditionMessage(e)
+      ))
+    }
+  )
+
+  sensitive
 }
 
 #' @title Process updated and new CRAN packages
@@ -323,7 +420,14 @@ process_cran_updates <- function(
             classify_r_minor_sensitive(
               all_pkgs$name[i],
               all_pkgs$version[i],
-              local_clone_dir = local_clone_dir
+              local_clone_dir = local_clone_dir,
+              metadata_db_type = metadata_db_type,
+              metadata_db_host = metadata_db_host,
+              metadata_db_name = metadata_db_name,
+              metadata_db_port = metadata_db_port,
+              metadata_db_user = metadata_db_user,
+              metadata_db_password = metadata_db_password,
+              metadata_db_sslmode = metadata_db_sslmode
             )
           },
           logical(1L)

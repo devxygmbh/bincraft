@@ -7,14 +7,71 @@
 classify_r_minor_sensitive(
   package_name,
   tag,
-  source_org_url = "https://github.com/cran",
-  local_clone_dir = tempdir()
+  local_clone_dir = tempdir(),
+  metadata_db_type = "postgres",
+  metadata_db_host = NULL,
+  metadata_db_name = NULL,
+  metadata_db_port = NULL,
+  metadata_db_user = NULL,
+  metadata_db_password = NULL,
+  metadata_db_sslmode = NULL,
+  metadata_db_cache_table = "abi_classification"
 )
 }
-\description{
-Clones the package source to a temp dir and runs
-\code{\link[=needs_per_minor_recompile]{needs_per_minor_recompile()}}. Fails safe to \code{TRUE} (build per minor) if the
-clone or classification errors, so a possibly-ABI-fragile binary is never
-served from the cross-minor generic slot by mistake.
+\arguments{
+\item{package_name}{(\link{character})\cr
+Package name}
+
+\item{tag}{(\link{character})\cr
+Tag/version. Tags starting with "R-" are filtered out.}
+
+\item{local_clone_dir}{(\link{character})\cr
+Path to clone git repos into}
+
+\item{metadata_db_type}{(\link{character})\cr
+Type of metadata database}
+
+\item{metadata_db_host}{(\link{character})\cr
+Host value of metadata database}
+
+\item{metadata_db_name}{(\link{character})\cr
+Name of metadata database}
+
+\item{metadata_db_port}{(\link{integer})\cr
+Port of metadata database}
+
+\item{metadata_db_user}{(\link{character})\cr
+User value of metadata database}
+
+\item{metadata_db_password}{(\link{character})\cr
+User password of metadata database}
+
+\item{metadata_db_sslmode}{(\link{character})\cr
+SSL mode for metadata database}
+
+\item{metadata_db_cache_table}{Name of the table holding cached ABI
+classification verdicts. Created on first use.}
 }
-\keyword{internal}
+\value{
+A logical of length 1: \code{TRUE} if the package must be recompiled per R
+minor version.
+}
+\description{
+Determines whether a package version must be recompiled per R minor version
+via \code{\link[=needs_per_minor_recompile]{needs_per_minor_recompile()}}. The source is the CRAN source tarball
+(\code{download_cran_source()}), not a GitHub clone, so classification does not
+touch GitHub.
+}
+\details{
+The verdict is a property of the package \emph{source} -- independent of OS, arch
+and R minor -- so it is cached in the metadata database keyed on
+\code{(package, version)} plus a signature of the curated ABI lists. A cache hit
+skips the download and classification entirely; a full rebuild for a new OS
+release therefore reuses existing verdicts and touches CRAN zero times.
+Pass the \code{metadata_db_*} arguments to enable caching; omit them to always
+compute (the cache is transparently skipped).
+
+Fails safe to \code{TRUE} (build per minor) if the download or classification
+errors, so a possibly-ABI-fragile binary is never served from the
+cross-minor generic slot by mistake.
+}

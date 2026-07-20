@@ -1,3 +1,20 @@
+# bincraft (development version)
+
+- CRAN package versions are now resolved from CRAN's own metadata
+  (`available.packages()` plus `Meta/archive.rds`) instead of the GitHub REST
+  tags API. The old `gh::gh("GET /repos/cran/{pkg}/tags")` call counted against
+  the authenticated user's 5,000 requests/hour REST limit, which the weekly
+  rebuild exhausted (HTTP 403 "API rate limit exceeded for user ID ..."). The
+  GitHub API is still used for genuine non-CRAN forge sources.
+- `classify_r_minor_sensitive()` now downloads the CRAN source tarball
+  (`download_cran_source()`) instead of cloning `github.com/cran`, and caches
+  its verdict in the metadata database (table `abi_classification`, created on
+  first use) keyed on `(package, version)` plus a signature of the curated ABI
+  lists. Because the r-minor-sensitivity verdict is a property of the package
+  source (independent of OS, arch and R minor), a full rebuild for a new OS
+  release reuses cached verdicts and performs no downloads. The function is now
+  exported and takes `metadata_db_*` arguments; pass them to enable caching.
+
 # bincraft 4.4.7
 
 - The local patched-binary repo served to `pak` is now assembled at a stable,

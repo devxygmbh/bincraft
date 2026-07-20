@@ -470,10 +470,34 @@ fetch_tags_via_ls_remote <- function(package_name, source_org_url, tag_limit) {
 #' @template param-tag_limit
 #' @return Character vector of filtered tags
 filter_tags <- function(package_name, tag, source_org_url, tag_limit) {
+  effective_limit <- if (!is.null(tag) && tag == "latest") 1L else tag_limit
+
+  # CRAN packages: resolve versions from CRAN's own metadata, never the GitHub
+  # REST API. This is the authoritative version source for CRAN and avoids the
+  # per-user 5,000 requests/hour REST limit the weekly rebuild used to exhaust.
+  if (is_cran_source(source_org_url)) {
+    tags <- tryCatch(
+      fetch_cran_versions(package_name, effective_limit),
+      error = function(e) character()
+    )
+    if (length(tags) == 0L) {
+      # CRAN metadata missed (e.g. just-removed package): fall back to
+      # git ls-remote, which is git-protocol and not the REST rate limit.
+      tags <- fetch_tags_via_ls_remote(
+        package_name,
+        source_org_url,
+        effective_limit
+      )
+    }
+    tags <- tags[!grepl("^R-", tags)]
+    return(utils::head(tags, effective_limit))
+  }
+
+  # Non-CRAN forge (e.g. bincraft's own Forgejo repo): use the forge HTTP API
+  # with a git ls-remote fallback.
   forge_type <- detect_forge_type(source_org_url)
 
   if (!is.null(tag) && tag == "latest") {
-    # For "latest", try API first, then ls-remote, get just 1 tag
     tags <- fetch_tags_via_api(package_name, source_org_url, 1L, forge_type)
     if (is.null(tags) || length(tags) == 0L) {
       tags <- fetch_tags_via_ls_remote(package_name, source_org_url, 1L)
@@ -481,7 +505,6 @@ filter_tags <- function(package_name, tag, source_org_url, tag_limit) {
     return(tags)
   }
 
-  # Normal case: get tag_limit most recent tags
   tags <- fetch_tags_via_api(
     package_name,
     source_org_url,

@@ -1,10 +1,12 @@
 test_that("classify_r_minor_sensitive returns TRUE for a risky package", {
   skip_if_not_installed("mockery")
+  # abi_classify() accepts an unpacked source dir, so the mocked download can
+  # return a directory instead of a real .tar.gz.
   mockery::stub(
     classify_r_minor_sensitive,
-    "clone_repository",
-    function(pkg, tag, url, dest) {
-      dir.create(dest, recursive = TRUE, showWarnings = FALSE)
+    "download_cran_source",
+    function(package, version, dest_dir, ...) {
+      dir.create(dest_dir, recursive = TRUE, showWarnings = FALSE)
       writeLines(
         c(
           "Package: dummy",
@@ -12,49 +14,51 @@ test_that("classify_r_minor_sensitive returns TRUE for a risky package", {
           "NeedsCompilation: yes",
           "LinkingTo: Rcpp"
         ),
-        file.path(dest, "DESCRIPTION")
+        file.path(dest_dir, "DESCRIPTION")
       )
-      dir.create(file.path(dest, "src"))
-      writeLines("// Rcpp glue", file.path(dest, "src", "x.cpp"))
+      dir.create(file.path(dest_dir, "src"), showWarnings = FALSE)
+      writeLines("// Rcpp glue", file.path(dest_dir, "src", "x.cpp"))
+      dest_dir
     }
   )
-  expect_true(classify_r_minor_sensitive(
-    "dummy",
-    "1.0",
-    "https://github.com/cran"
-  ))
+  expect_true(classify_r_minor_sensitive("dummy", "1.0"))
 })
 
 test_that("classify_r_minor_sensitive returns FALSE for a pure-r package", {
   skip_if_not_installed("mockery")
   mockery::stub(
     classify_r_minor_sensitive,
-    "clone_repository",
-    function(pkg, tag, url, dest) {
-      dir.create(dest, recursive = TRUE, showWarnings = FALSE)
+    "download_cran_source",
+    function(package, version, dest_dir, ...) {
+      dir.create(dest_dir, recursive = TRUE, showWarnings = FALSE)
       writeLines(
         c("Package: dummy", "Version: 1.0", "NeedsCompilation: no"),
-        file.path(dest, "DESCRIPTION")
+        file.path(dest_dir, "DESCRIPTION")
       )
+      dest_dir
     }
   )
-  expect_false(classify_r_minor_sensitive(
-    "dummy",
-    "1.0",
-    "https://github.com/cran"
-  ))
+  expect_false(classify_r_minor_sensitive("dummy", "1.0"))
 })
 
-test_that("classify_r_minor_sensitive fails safe to TRUE on clone error", {
+test_that("classify_r_minor_sensitive fails safe to TRUE on download error", {
   skip_if_not_installed("mockery")
-  mockery::stub(classify_r_minor_sensitive, "clone_repository", function(...) {
-    stop("boom")
-  })
-  expect_true(classify_r_minor_sensitive(
-    "dummy",
-    "1.0",
-    "https://github.com/cran"
-  ))
+  mockery::stub(
+    classify_r_minor_sensitive,
+    "download_cran_source",
+    function(...) stop("boom")
+  )
+  expect_true(classify_r_minor_sensitive("dummy", "1.0"))
+})
+
+test_that("classify_r_minor_sensitive fails safe to TRUE when no tarball found", {
+  skip_if_not_installed("mockery")
+  mockery::stub(
+    classify_r_minor_sensitive,
+    "download_cran_source",
+    function(...) NULL
+  )
+  expect_true(classify_r_minor_sensitive("dummy", "1.0"))
 })
 
 test_that("classifier mode passes per-package is_r_minor_sensitive to build", {
