@@ -29,6 +29,7 @@ reference:
     desc: 'Classify packages by ABI-risk tier to decide per-minor rebuild strategy'
     contents:
       - abi_classify
+      - classify_r_minor_sensitive
       - needs_per_minor_recompile
       - abi_curated_lists
 
