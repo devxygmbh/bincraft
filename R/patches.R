@@ -425,6 +425,36 @@ patched_repo_key <- function(keys) {
 #' and then cached) and writes a `PACKAGES` index over them.
 #'
 #' The repo is assembled at a content-addressed path derived from the resolved
+#' Check that a patched binary tarball is intact and installable.
+#'
+#' Guards against truncated or partial cache entries -- e.g. a weekly build
+#' killed mid-copy -- that would otherwise be served to every dependent build
+#' and fail with `tar: A lone zero block` or a missing shared object. Verifies
+#' the archive lists cleanly and carries the package's `DESCRIPTION`, plus a
+#' shared object whenever it ships a `libs/` directory.
+#' @keywords internal
+valid_patched_binary <- function(path, package) {
+  if (!file.exists(path) || file.size(path) == 0L) {
+    return(FALSE)
+  }
+  files <- tryCatch(
+    utils::untar(path, list = TRUE, tar = "internal"),
+    error = function(e) NULL
+  )
+  if (is.null(files) || length(files) == 0L) {
+    return(FALSE)
+  }
+  files <- sub("^\\./", "", files)
+  if (!any(files == paste0(package, "/DESCRIPTION"))) {
+    return(FALSE)
+  }
+  libs <- files[startsWith(files, paste0(package, "/libs/"))]
+  if (length(libs) > 0L && !any(grepl("\\.(so|dll|dylib)", libs))) {
+    return(FALSE)
+  }
+  TRUE
+}
+
 #' patch set. Because every `build_binary_package()` resolution in a run passes
 #' the same patches/platform/arch/R, they all resolve to the *same* `file://`
 #' repo URL, so `{pkgcache}` reuses one `_metadata` snapshot instead of minting
@@ -499,8 +529,16 @@ prepare_patched_repo <- function(
 
   # Fast path: a fully assembled repo (all binaries plus an index) can be
   # served as-is. This is the common case after the first resolution in a run.
+  # Validate the binaries too, so a repo left with a truncated tarball by an
+  # interrupted run is rebuilt rather than served.
   if (
-    file.exists(file.path(contrib, "PACKAGES")) && all(file.exists(targets))
+    file.exists(file.path(contrib, "PACKAGES")) &&
+      all(file.exists(targets)) &&
+      all(vapply(
+        seq_along(targets),
+        function(i) valid_patched_binary(targets[[i]], plan[[i]]$entry$package),
+        logical(1L)
+      ))
   ) {
     return(repo_dir)
   }
@@ -517,7 +555,18 @@ prepare_patched_repo <- function(
     cached <- file.path(cache_dir, sprintf("%s.tar.gz", key))
     target <- targets[[i]]
 
-    if (file.exists(cached)) {
+    use_cached <- file.exists(cached) &&
+      valid_patched_binary(cached, entry$package)
+    if (file.exists(cached) && !use_cached) {
+      log_warn(sprintf(
+        "Cached patched binary for {.pkg %s} %s is corrupt; rebuilding.",
+        entry$package,
+        version
+      ))
+      unlink(cached)
+    }
+
+    if (use_cached) {
       log_info(sprintf(
         "Using cached patched binary for {.pkg %s} %s.",
         entry$package,
@@ -544,7 +593,26 @@ prepare_patched_repo <- function(
       ) {
         file.copy(built, target, overwrite = TRUE)
       }
-      file.copy(target, cached, overwrite = TRUE)
+      # Cache only a binary that reads back cleanly, and publish it atomically
+      # (write to a temp file on the same filesystem, then rename) so a build
+      # killed mid-copy can never leave a truncated entry that poisons every
+      # dependent build.
+      if (valid_patched_binary(target, entry$package)) {
+        tmp_cached <- tempfile(tmpdir = cache_dir, fileext = ".tar.gz")
+        if (file.copy(target, tmp_cached, overwrite = TRUE)) {
+          if (!file.rename(tmp_cached, cached)) {
+            unlink(tmp_cached)
+          }
+        } else {
+          unlink(tmp_cached)
+        }
+      } else {
+        log_warn(sprintf(
+          "Freshly built patched binary for {.pkg %s} %s is incomplete; not caching.",
+          entry$package,
+          version
+        ))
+      }
     }
     produced <- produced + 1L
   }

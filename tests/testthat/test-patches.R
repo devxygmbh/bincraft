@@ -1,4 +1,20 @@
 # tests/testthat/test-patches.R
+
+# Build a minimal but *valid* binary package tarball (a readable archive
+# carrying a DESCRIPTION) at `path`, so the cache validation in
+# prepare_patched_repo() accepts it. Returns `path`, matching the
+# build_patched_binary() contract.
+write_fake_binary <- function(path, package) {
+  root <- tempfile("fakebin_")
+  dir.create(file.path(root, package), recursive = TRUE)
+  writeLines(
+    paste0("Package: ", package),
+    file.path(root, package, "DESCRIPTION")
+  )
+  withr::with_dir(root, utils::tar(path, package, compression = "gzip"))
+  path
+}
+
 test_that("load_patch_registry parses and normalizes entries", {
   dir <- withr::local_tempdir()
   writeLines("--- a patch ---", file.path(dir, "fix.patch"))
@@ -426,8 +442,7 @@ test_that("prepare_patched_repo serves a cached binary and writes an index", {
     resolve_patch_version = function(entry) "1.0.0",
     build_patched_binary = function(entry, version, dest_dir) {
       f <- file.path(dest_dir, sprintf("%s_%s.tar.gz", entry$package, version))
-      writeLines("fake binary", f)
-      f
+      write_fake_binary(f, entry$package)
     }
   )
   local_mocked_bindings(
@@ -480,8 +495,7 @@ test_that("prepare_patched_repo reuses a stable content-addressed repo path", {
     build_patched_binary = function(entry, version, dest_dir) {
       builds <<- builds + 1L
       f <- file.path(dest_dir, sprintf("%s_%s.tar.gz", entry$package, version))
-      writeLines("fake binary", f)
-      f
+      write_fake_binary(f, entry$package)
     }
   )
   local_mocked_bindings(
@@ -619,4 +633,51 @@ test_that("a patched dependency unblocks a dependent build (e2e)", {
     patches = patches_dir
   )
   expect_true(isTRUE(result) || identical(result, "skipped"))
+})
+
+test_that("valid_patched_binary accepts intact binaries and rejects corrupt ones", {
+  dir <- withr::local_tempdir()
+
+  make_binary <- function(name, with_desc = TRUE, libs = character(0)) {
+    pkgdir <- file.path(dir, name)
+    dir.create(pkgdir, showWarnings = FALSE)
+    if (with_desc) {
+      writeLines(paste0("Package: ", name), file.path(pkgdir, "DESCRIPTION"))
+    }
+    if (length(libs) > 0) {
+      dir.create(file.path(pkgdir, "libs"), showWarnings = FALSE)
+      for (f in libs) writeLines("x", file.path(pkgdir, "libs", f))
+    }
+    tarball <- file.path(dir, paste0(name, "_1.0.tar.gz"))
+    withr::with_dir(
+      dir,
+      utils::tar(basename(tarball), name, compression = "gzip")
+    )
+    tarball
+  }
+
+  # compiled package with a shared object -> valid
+  good <- make_binary("Foo", libs = "Foo.so")
+  expect_true(valid_patched_binary(good, "Foo"))
+
+  # R-only package (no libs dir) -> valid
+  ronly <- make_binary("Baronly")
+  expect_true(valid_patched_binary(ronly, "Baronly"))
+
+  # ships a libs dir but no shared object -> invalid (the ".so not found" case)
+  nolib <- make_binary("Nolib", libs = "README.txt")
+  expect_false(valid_patched_binary(nolib, "Nolib"))
+
+  # missing DESCRIPTION -> invalid
+  nodesc <- make_binary("Nodesc", with_desc = FALSE, libs = "Nodesc.so")
+  expect_false(valid_patched_binary(nodesc, "Nodesc"))
+
+  # truncated tarball -> invalid (the "lone zero block" case)
+  truncated <- file.path(dir, "trunc.tar.gz")
+  raw <- readBin(good, "raw", n = file.size(good))
+  writeBin(raw[seq_len(as.integer(length(raw) / 2))], truncated)
+  expect_false(valid_patched_binary(truncated, "Foo"))
+
+  # missing file -> invalid
+  expect_false(valid_patched_binary(file.path(dir, "nope.tar.gz"), "Foo"))
 })

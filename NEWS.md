@@ -1,5 +1,14 @@
 # bincraft (development version)
 
+- Patched binary caches are now validated before reuse and written atomically.
+  `prepare_patched_repo()` verifies each cached/assembled tarball reads cleanly
+  and carries the package `DESCRIPTION` plus a shared object (when it ships a
+  `libs/` dir) before serving it, and rebuilds instead of reusing a corrupt
+  entry. Fresh binaries are staged to a temp file and renamed into place, so a
+  build killed mid-copy can no longer leave a truncated cache entry that made
+  every dependent build fail with `tar: A lone zero block` or a missing
+  `RcppParallel.so`.
+
 - CRAN package versions are now resolved from CRAN's own metadata
   (`available.packages()` plus `Meta/archive.rds`) instead of the GitHub REST
   tags API. The old `gh::gh("GET /repos/cran/{pkg}/tags")` call counted against
