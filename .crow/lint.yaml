@@ -19,8 +19,11 @@ steps:
       JARL_VERSION: '0.5.0'
     commands:
       - apk add --no-cache -q curl ca-certificates
-      - curl -sLO "https://github.com/etiennebacher/jarl/releases/download/$JARL_VERSION/jarl-installer.sh"
-      - sh ./jarl-installer.sh
+      # Fetch the installer to /tmp, not the workspace: steps share one clone,
+      # so a downloaded jarl-installer.sh would be linted by the editorconfig
+      # step (it is a third-party script and fails those checks).
+      - curl -sL "https://github.com/etiennebacher/jarl/releases/download/$JARL_VERSION/jarl-installer.sh" -o /tmp/jarl-installer.sh
+      - sh /tmp/jarl-installer.sh
       - source $HOME/.local/bin/env
       - jarl check ./R/
 
