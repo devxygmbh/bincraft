@@ -1,5 +1,15 @@
 # bincraft (development version)
 
+- The S3 package index now advertises its binaries via the `Built` field.
+  `upload_package_index()` and `add_to_package_index()` pass a `built` stamp
+  (build R version plus `R.version$platform` triple) to cranlike, which
+  otherwise reads metadata from the CRAN source `DESCRIPTION` and leaves `Built`
+  empty for every entry. Without it, binary-aware clients such as `uvr` treat
+  `cran.rpkgs.com` as source-only and compile every package from source, which
+  fails on Alpine when a system `-dev` library is missing (e.g. `openssl`).
+  `install.packages()` was unaffected because it reads `Built:` from each
+  tarball's own `DESCRIPTION`. Existing indexes need a one-time full rebuild to
+  backfill `Built` on entries already in the database.
 - Patched binary caches are now validated before reuse and written atomically.
   `prepare_patched_repo()` verifies each cached/assembled tarball reads cleanly
   and carries the package `DESCRIPTION` plus a shared object (when it ships a

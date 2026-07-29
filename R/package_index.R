@@ -1,3 +1,31 @@
+#' Construct a `Built` field value for the current build environment
+#'
+#' cranlike derives package metadata from the CRAN *source* `DESCRIPTION`, which
+#' never carries a `Built:` field (R stamps that only when it builds a binary).
+#' Our S3 tarballs *are* binaries, so we pass this stamp to
+#' [cranlike::update_PACKAGES()]/[cranlike::add_PACKAGES()] to advertise them as
+#' such. Binary-aware clients (e.g. `uvr`) key their binary-vs-source decision on
+#' the `Built:` platform triple + R minor; without it they treat the repo as
+#' source-only and compile everything, which needs system `-dev` libraries.
+#'
+#' The triple comes from `R.version$platform` and the version from
+#' [getRversion()], so this must run in the same build environment that produced
+#' the binaries (the surrounding arch/codename logic already assumes this).
+#'
+#' @keywords internal
+built_stamp <- function(
+  platform = R.version$platform,
+  r_version = getRversion(),
+  time = Sys.time()
+) {
+  sprintf(
+    "R %s; %s; %s UTC; unix",
+    r_version,
+    platform,
+    format(as.POSIXlt(time, tz = "UTC"), "%Y-%m-%d %H:%M:%S")
+  )
+}
+
 #' Build the S3 remote contrib dir for a package index
 #'
 #' @param r_minor Optional `"major.minor"` string (e.g. `"4.4"`). When non-NULL
@@ -83,7 +111,7 @@ add_to_package_index <- function(
   )
 
   # list all tarballs for the given package
-  cranlike::add_PACKAGES(file_names, local_bin_dir)
+  cranlike::add_PACKAGES(file_names, local_bin_dir, built = built_stamp())
 
   invisible(TRUE)
 }
@@ -159,8 +187,14 @@ upload_package_index <- function(
     5L
 
   t1 <- Sys.time()
+  built <- built_stamp()
   retry_s3_operation(
-    function() cranlike::update_PACKAGES(sprintf("s3://%s", remote_bin_dir)),
+    function() {
+      cranlike::update_PACKAGES(
+        sprintf("s3://%s", remote_bin_dir),
+        built = built
+      )
+    },
     label = "update PACKAGES"
   )
 
