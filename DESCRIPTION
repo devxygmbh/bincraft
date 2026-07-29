@@ -37,7 +37,7 @@ Suggests:
     bit64,
     mockery,
     RPostgres,
-    RSQLite (<= 3.53.1),
+    RSQLite,
     testthat (>= 3.0.0),
     xml2
 Remotes:
