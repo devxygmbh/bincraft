@@ -15,7 +15,8 @@ steps:
     image: reg.devxy.io/docker.io/thegeeklab/git-sv:3.0.0
     commands:
       - apk add --no-cache -q sed
-      # replace version in DESCRIPTION
+      # bump to the next development version; the tagged commit itself carries
+      # the plain release version, stamped by `just prepare-release` before tagging
       - "sed -i 's/Version: .*/Version: ${CI_COMMIT_TAG#v}.9999/' DESCRIPTION"
       - git sv current-version
       - git sv release-notes -t ${CI_COMMIT_TAG} -o CHANGELOG.md
@@ -30,8 +31,6 @@ steps:
       note: CHANGELOG.md
       api_key:
         from_secret: codefloe_rpkgs_bot_token
-      files:
-        - dist/*.tar.gz
       title: ${CI_COMMIT_TAG}
     when:
       event: tag
