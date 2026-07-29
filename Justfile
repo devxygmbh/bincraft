@@ -41,7 +41,14 @@ prepare-release:
   next=$(git sv next-version)
   echo "preparing v$next"
 
-  sed -i "s/^Version: .*/Version: $next/" DESCRIPTION
+  # write through a temporary file rather than `sed -i`, whose in-place flag
+  # takes a mandatory backup suffix on macOS and none on Linux; `cat` back into
+  # DESCRIPTION keeps its permissions
+  tmp=$(mktemp "${TMPDIR:-/tmp}/DESCRIPTION.XXXXXX")
+  trap 'rm -f "$tmp"' EXIT
+  sed "s/^Version: .*/Version: $next/" DESCRIPTION > "$tmp"
+  cat "$tmp" > DESCRIPTION
+
   git add DESCRIPTION
   if ! git commit -m "chore(release): set version to $next"; then
     # a pre-commit hook may have reformatted files; stage the result and retry
