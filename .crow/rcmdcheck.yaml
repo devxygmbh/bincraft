@@ -1,6 +1,6 @@
 when:
   - event: pull_request
-    path: 'R/**'
+    path: ['R/**', '.crow/*']
   - event: push
     branch: ${CI_REPO_DEFAULT_BRANCH}
     path: 'R/**'
@@ -10,6 +10,9 @@ when:
 depends_on:
   - lint
 
+# labels:
+#   platform: linux/arm64
+
 steps:
   'Check package':
     image: reg.devxy.io/r/r-alpine:4.5-3.23
@@ -18,8 +21,21 @@ steps:
       GITHUB_PAT:
         from_secret: GITHUB_PAT
       RCMDCHECK_NUM_COLORS: 300
+      UVR_INSTALL_SYSREQS: '1'
+      UVR_PROGRESS: always
+      RUST_LOG: 'debug'
     commands:
-      - apk add -q --no-cache libgit2-dev libuv-dev
-      - R -q -e 'install.packages("remotes")'
-      - R -q -e 'install.packages(c("rcmdcheck", remotes::dev_package_deps(dependencies = TRUE)$package), Ncpus = 4)'
-      - R -q -e 'rcmdcheck::rcmdcheck(args = "--no-manual", error_on = "warning")'
+      # - curl -sL https://devxy-r-builds.s3.eu-central-003.backblazeb2.com/uvr-aarch64-alpine-musl -o /usr/local/bin/uvr && chmod +x /usr/local/bin/uvr
+      - curl -fsSL https://raw.githubusercontent.com/nbafrank/uvr/main/install.sh | UVR_INSTALL_DIR=/usr/local/bin sh
+      # - export PATH="/root/.local/bin:$PATH"
+      - uvr init
+      # Point uvr at the image's fully-qualified binary slot, not the bare host.
+      # A bare https://cran.rpkgs.com/ request 302-redirects to CRAN (bunny edge
+      # fallback for unqualified paths), so uvr would build everything from
+      # source. getOption("repos") already carries the right arch/codename slot.
+      - REPO=$(R --no-echo -e 'cat(getOption("repos")[[1]])')
+      - printf '\n[[sources]]\nname = "rpkgs"\nurl = "%s"\n' "$REPO" >> uvr.toml
+      - uvr add rcmdcheck pat-s/cranlike@s3 pat-s/desc@description-from-remote
+      - uvr sync
+      - printf 'rcmdcheck::rcmdcheck(args="--no-manual", error_on="warning")\n' > check.R
+      - uvr run check.R
