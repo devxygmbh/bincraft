@@ -2,7 +2,7 @@
 % Please edit documentation in R/install-deps.R
 \name{install_pkg_sys_deps}
 \alias{install_pkg_sys_deps}
-\title{Install system dependencies for an R package}
+\title{Install R dependencies and their system requirements for a package}
 \usage{
 install_pkg_sys_deps(
   package_name,
@@ -32,26 +32,20 @@ Perform additional cache cleanup before installation}
 
 \item{patches}{Optional path to a patch registry directory containing a
 \code{registry.json} (and any referenced diff files). When set, matching
-packages are pre-built as patched binaries and served to \code{pak} during
-dependency installation. Defaults to \code{NULL} (no patching).}
+packages are pre-built as patched binaries and installed into the build
+library before dependency installation. Defaults to \code{NULL} (no patching).}
 
 \item{arch}{(\link{character})\cr
 Architecture}
 }
 \description{
-This function uses a shared cache approach with safe concurrency controls:
-\itemize{
-\item Preserves shared pak cache to avoid redundant downloads/builds
-\item Uses operation-specific mutexes to prevent cache corruption
-\item Implements retry logic with exponential backoff for transient failures
-\item Cleans up stale lock files automatically
-}
+Clones the package source, then installs its dependency tree and the system
+libraries those dependencies need via \code{uvr} (\code{uvr sync
+--install-system-deps}), so a dependency needing a system library no longer
+fails the build. Transient failures are retried with exponential backoff.
 }
 \details{
-The shared cache approach is preferred over isolation because:
-\itemize{
-\item Avoids redundant package downloads across builds
-\item Reduces storage requirements and build times
-\item Maintains cache benefits while ensuring thread safety
-}
+When patches apply, their pre-built binaries are installed into the build
+library first, so \code{uvr sync} keeps them instead of overwriting them with
+the unpatched CRAN build.
 }

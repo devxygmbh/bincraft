@@ -1,17 +1,15 @@
 # Helper functions are now in install_helpers.R
 
-#' Install system dependencies for an R package
+#' Install R dependencies and their system requirements for a package
 #'
-#' This function uses a shared cache approach with safe concurrency controls:
-#' - Preserves shared pak cache to avoid redundant downloads/builds
-#' - Uses operation-specific mutexes to prevent cache corruption
-#' - Implements retry logic with exponential backoff for transient failures
-#' - Cleans up stale lock files automatically
+#' Clones the package source, then installs its dependency tree and the system
+#' libraries those dependencies need via `uvr` (`uvr sync
+#' --install-system-deps`), so a dependency needing a system library no longer
+#' fails the build. Transient failures are retried with exponential backoff.
 #'
-#' The shared cache approach is preferred over isolation because:
-#' - Avoids redundant package downloads across builds
-#' - Reduces storage requirements and build times
-#' - Maintains cache benefits while ensuring thread safety
+#' When patches apply, their pre-built binaries are installed into the build
+#' library first, so `uvr sync` keeps them instead of overwriting them with the
+#' unpatched CRAN build.
 #'
 #' @template param-package_name
 #' @template param-tag
@@ -40,20 +38,10 @@ install_pkg_sys_deps <- function(
   )
   clone_package_repo(package_name, tag, local_clone_dir_single)
 
-  # Setup environment variables
-  env_vars <- setup_installation_env_vars(platform)
-
   log_info("Installing R package dependencies")
 
-  # Clean up any stale lock files before attempting installation
-  cleanup_stale_locks()
-
-  # Perform additional cleanup if requested
-  if (aggressive_cleanup) {
-    perform_aggressive_cleanup()
-  }
-
-  # Build a local repo of patched binaries (if any apply) and serve it to pak.
+  # Build a local repo of patched binaries (if any apply). They are installed
+  # into the build library before `uvr sync`, which then leaves them untouched.
   r_minor <- paste(
     R.version$major,
     strsplit(R.version$minor, ".", fixed = TRUE)[[1L]][1L],
@@ -67,12 +55,15 @@ install_pkg_sys_deps <- function(
     }
   )
 
-  # Run installation with mutex protection
-  run_pak_install_with_mutex(
-    local_clone_dir_single,
-    env_vars,
-    patched_repo = patched_repo
-  )
+  # Install dependencies + system requirements via uvr, retrying transient
+  # (network/IO) failures.
+  retry_with_backoff(function() {
+    run_uvr_install(
+      clone_dir = local_clone_dir_single,
+      library = .libPaths()[1L],
+      patched_repo = patched_repo
+    )
+  })
 
   log_debug(
     sprintf(

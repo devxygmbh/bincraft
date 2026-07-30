@@ -10,6 +10,15 @@
   `install.packages()` was unaffected because it reads `Built:` from each
   tarball's own `DESCRIPTION`. Existing indexes need a one-time full rebuild to
   backfill `Built` on entries already in the database.
+- Dependencies and their system requirements are now installed with `uvr`
+  instead of pak during `build_binary_package()`.
+  uvr reads `/etc/os-release`, resolves each dependency's system requirements
+  per distro, and installs them with the distro package manager (`apk` / `dnf` /
+  `apt-get`) in the same pass as the R packages, so a build no longer fails when
+  a dependency needs a system library the image does not ship (for example
+  `gert` needing `libgit2`).
+  Patched binaries are installed into the build library first so `uvr sync`
+  keeps them, and pak is no longer a dependency (#83).
 - Patched binary caches are now validated before reuse and written atomically.
   `prepare_patched_repo()` verifies each cached/assembled tarball reads cleanly
   and carries the package `DESCRIPTION` plus a shared object (when it ships a

@@ -86,7 +86,7 @@ find_old_versions <- function(
 
   # Fallback to version history
   versions <- purrr::insistently(
-    ~ rev(pak::pkg_history(package_name_local)$Version),
+    ~ rev(pkgsearch::cran_package_history(package_name_local)$Version),
     rate = retry_config,
     quiet = FALSE
   )()

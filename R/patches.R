@@ -361,7 +361,7 @@ build_patched_binary <- function(entry, version, dest_dir) {
   # (e.g. rstan needs StanHeaders/RcppParallel/RcppEigen/BH/...) never reaches
   # the patch's makevars. Dependency-light packages are a fast no-op.
   tryCatch(
-    pak::local_install_deps(pkg_src, ask = FALSE, upgrade = FALSE),
+    run_uvr_install(clone_dir = pkg_src, library = .libPaths()[1L]),
     error = function(e) {
       log_warn(sprintf(
         "Could not pre-install dependencies for {.pkg %s} %s: %s",

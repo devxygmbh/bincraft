@@ -134,14 +134,14 @@ lookup instead of per-package S3 API calls. Obtain via
 
 \item{patches}{Optional path to a patch registry directory containing a
 \code{registry.json} (and any referenced diff files). When set, matching
-packages are pre-built as patched binaries and served to \code{pak} during
-dependency installation. Defaults to \code{NULL} (no patching).}
+packages are pre-built as patched binaries and installed into the build
+library before dependency installation. Defaults to \code{NULL} (no patching).}
 }
 \description{
 Builds binary packages from a given URL for a specific architecture.
 Git tags are used to determine all possible versions to build.
 
-System dependencies are automatically installed through \pkg{pak}.
+System dependencies are automatically installed through \pkg{uvr}.
 
 The function also automatically archives older versions into an \verb{Archive/}
 directory to keep only the most recent one in the repository root.

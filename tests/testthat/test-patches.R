@@ -314,6 +314,9 @@ test_that("build_patched_binary builds with an empty env (no with_envvar error)"
     "utils::untar",
     function(tarfile, exdir) {
       dir.create(file.path(exdir, "P"), showWarnings = FALSE)
+      # A real CRAN source tree carries a DESCRIPTION; the uvr dependency
+      # pre-install reads it, so the extracted stub needs one too.
+      writeLines("Package: P", file.path(exdir, "P", "DESCRIPTION"))
       0L
     }
   )
@@ -362,30 +365,6 @@ test_that("prepare_patched_repo returns NULL when no entries match", {
       repo_dir = withr::local_tempdir()
     )
   )
-})
-
-test_that("run_pak_install_with_mutex prepends the patched repo to repos", {
-  seen <- NULL
-  local_mocked_bindings(
-    acquire_pak_mutex = function(...) tempfile(),
-    release_pak_mutex = function(...) invisible(NULL),
-    retry_with_backoff = function(func, ...) func()
-  )
-  local_mocked_bindings(
-    local_install_deps = function(...) {
-      seen <<- getOption("repos")
-      invisible(TRUE)
-    },
-    .package = "pak"
-  )
-
-  run_pak_install_with_mutex(
-    tempfile(),
-    list(),
-    patched_repo = "/tmp/patched"
-  )
-
-  expect_true(any(grepl("file:///tmp/patched", seen)))
 })
 
 test_that("handle_system_dependencies forwards patches and arch", {
@@ -646,7 +625,9 @@ test_that("valid_patched_binary accepts intact binaries and rejects corrupt ones
     }
     if (length(libs) > 0) {
       dir.create(file.path(pkgdir, "libs"), showWarnings = FALSE)
-      for (f in libs) writeLines("x", file.path(pkgdir, "libs", f))
+      for (f in libs) {
+        writeLines("x", file.path(pkgdir, "libs", f))
+      }
     }
     tarball <- file.path(dir, paste0(name, "_1.0.tar.gz"))
     withr::with_dir(

@@ -119,8 +119,8 @@ Whether to upload the built packages to the specified remote.}
 
 \item{patches}{Optional path to a patch registry directory containing a
 \code{registry.json} (and any referenced diff files). When set, matching
-packages are pre-built as patched binaries and served to \code{pak} during
-dependency installation. Defaults to \code{NULL} (no patching).}
+packages are pre-built as patched binaries and installed into the build
+library before dependency installation. Defaults to \code{NULL} (no patching).}
 }
 \value{
 Build results

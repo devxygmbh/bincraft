@@ -4,7 +4,7 @@
 #' Builds binary packages from a given URL for a specific architecture.
 #' Git tags are used to determine all possible versions to build.
 #'
-#' System dependencies are automatically installed through \pkg{pak}.
+#' System dependencies are automatically installed through \pkg{uvr}.
 #'
 #' The function also automatically archives older versions into an `Archive/`
 #' directory to keep only the most recent one in the repository root.
@@ -45,7 +45,6 @@
 #'
 #' @importFrom future.apply future_mapply
 #' @importFrom gert git_config_global_set git_clone
-#' @importFrom pak local_install_dev_deps
 #' @importFrom pkgbuild build
 #'
 #' @examples

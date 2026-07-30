@@ -24,8 +24,8 @@ Result of successful function execution
 }
 \description{
 Retries a function with exponential backoff strategy, classifying errors
-to determine if retry is appropriate. Only retries locking, network, and
-subprocess errors, not dependency resolution errors.
+to determine if retry is appropriate. Only retries transient network/IO
+errors, not dependency resolution or compile errors.
 }
 \details{
 Exponential backoff: delay = min(base_delay * 2^(attempt-1), max_delay)
