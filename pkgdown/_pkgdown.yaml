@@ -73,15 +73,12 @@ reference:
   - title: 'Internal Helper Functions'
     desc: 'Internal helper functions used by the main workflow (typically not called directly)'
     contents:
-      - acquire_pak_mutex
       - archive_single_package
       - check_build_skip_conditions
       - check_package_error
       - check_s3_packages
       - check_s3_root_package
-      - classify_error_for_retry
       - clean_duplicated_packages
-      - cleanup_stale_locks
       - clone_package_repo
       - clone_repository
       - determine_packages_to_build
@@ -102,11 +99,7 @@ reference:
       - list_archived_packages
       - move_and_rename_tarball
       - parse_package_tag_pairs
-      - perform_aggressive_cleanup
       - process_tag_filtering
-      - release_pak_mutex
       - remove_from_metadata
       - retry_with_backoff
-      - run_pak_install_with_mutex
-      - setup_installation_env_vars
       - store_build_metadata

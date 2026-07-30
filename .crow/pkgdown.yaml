@@ -23,9 +23,19 @@ steps:
       - apk add -q --no-cache pandoc libgit2-dev libxml2-dev
       - curl -fsSL https://raw.githubusercontent.com/nbafrank/uvr/main/install.sh | UVR_INSTALL_DIR=/usr/local/bin sh
       - uvr init
-      - uvr sync
+      # Point uvr at the image's fully-qualified binary slot, not the bare host.
+      # A bare https://cran.rpkgs.com/ request 302-redirects to CRAN (bunny edge
+      # fallback for unqualified paths), so uvr would build everything from
+      # source. getOption("repos") already carries the right arch/codename slot.
+      - REPO=$(R --no-echo -e 'cat(getOption("repos")[[1]])')
+      - printf '\n[[sources]]\nname = "rpkgs"\nurl = "%s"\n' "$REPO" >> uvr.toml
+      # `uvr add` writes the lockfile and installs; `uvr sync` needs that
+      # lockfile, so it has to run after `uvr add`, not before.
       - uvr add pkgdown pat-s/cranlike@s3 pat-s/desc@description-from-remote
-      - uvr run -e 'pkgdown::build_site()'
+      - uvr sync
+      # `uvr run` takes a script path; it has no `-e` flag.
+      - printf 'pkgdown::build_site()\n' > build-site.R
+      - uvr run build-site.R
       # docs/ is in gitignore
       - mv docs/ /tmp/public
       - mv .git /tmp/.git
