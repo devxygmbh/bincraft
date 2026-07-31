@@ -343,6 +343,33 @@ test_that("build_patched_binary builds with an empty env (no with_envvar error)"
   expect_identical(res, file.path(dest, "P_1.0.tar.gz"))
 })
 
+test_that("build_patched_binary reports an unusable source tarball as such", {
+  skip_if_not_installed("mockery")
+  mockery::stub(
+    build_patched_binary,
+    "download_cran_source",
+    function(...) "truncated.tar.gz"
+  )
+  # What a truncated download looks like: `tar` writes "Skipping to next
+  # header" to stderr and exits non-zero, leaving no extracted tree behind.
+  mockery::stub(build_patched_binary, "utils::untar", function(...) 2L)
+  expect_message(
+    res <- build_patched_binary(
+      list(
+        package = "P",
+        env = list(),
+        configure_args = character(0L),
+        makevars = list(),
+        patch_path = "some.patch"
+      ),
+      "1.0",
+      withr::local_tempdir()
+    ),
+    "Could not unpack the CRAN source"
+  )
+  expect_null(res)
+})
+
 test_that("prepare_patched_repo returns NULL when no entries match", {
   dir <- withr::local_tempdir()
   jsonlite::write_json(

@@ -316,8 +316,25 @@ build_patched_binary <- function(entry, version, dest_dir) {
     return(NULL)
   }
 
-  utils::untar(src_tarball, exdir = workdir)
+  # A truncated or otherwise unreadable download leaves `tar` complaining on
+  # stderr ("Skipping to next header") while `untar()` itself returns quietly,
+  # so an unchecked call degrades into the *next* failure: `git apply` cannot
+  # find the tree and the run reports "patch did not apply cleanly", which
+  # sends anyone reading the log after the wrong thing. Name the real failure.
+  untar_status <- tryCatch(
+    sprintf("status %s", utils::untar(src_tarball, exdir = workdir)),
+    error = function(e) conditionMessage(e)
+  )
   pkg_src <- file.path(workdir, entry$package)
+  if (!identical(untar_status, "status 0") || !dir.exists(pkg_src)) {
+    log_warn(sprintf(
+      "Could not unpack the CRAN source for {.pkg %s} %s (untar: %s); skipping patched build.",
+      entry$package,
+      version,
+      untar_status
+    ))
+    return(NULL)
+  }
 
   if (!is.null(entry$patch_path)) {
     if (!apply_source_patch(entry$patch_path, pkg_src)) {
