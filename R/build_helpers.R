@@ -287,6 +287,76 @@ process_tag_filtering <- function(
   }
 }
 
+#' Package version named by a git tag
+#'
+#' A tag is a release identity: whatever `v5.0.0` names has to be built and
+#' published as version `5.0.0`. Strips an optional leading `v` and returns
+#' `NA` for refs that name no version R would accept in a `DESCRIPTION`
+#' `Version` field: branch names, commit SHAs, and pre-release tags such as
+#' `v2.0.0-rc1`, whose suffix is not an integer.
+#'
+#' @template param-tag
+#' @return Character vector of versions, `NA` where the tag names none.
+tag_version <- function(tag) {
+  version <- sub("^v", "", as.character(tag))
+  # R accepts at least two non-negative integers separated by "." or "-".
+  ifelse(
+    grepl("^[0-9]+([.-][0-9]+)+$", version),
+    version,
+    NA_character_
+  )
+}
+
+#' Version used in artifact names for a git tag
+#'
+#' [tag_version()] with the tag itself as the fallback, for the paths that
+#' need a name for every ref rather than only for version tags.
+#'
+#' @template param-tag
+#' @return Character vector of versions.
+artifact_version <- function(tag) {
+  version <- tag_version(tag)
+  ifelse(is.na(version), as.character(tag), version)
+}
+
+#' Stamp a version into a cloned DESCRIPTION
+#'
+#' Rewrites the `Version` field of `clone_dir/DESCRIPTION` in place and
+#' returns the value it replaced. Returns `NA` and leaves the clone untouched
+#' when there is no `DESCRIPTION` or it carries no `Version` field; the build
+#' fails on its own with a better message than a silently invented version
+#' would produce.
+#'
+#' @param clone_dir ([character])\cr
+#'  Directory holding the cloned package sources.
+#' @param version ([character])\cr
+#'  Version to write into the `Version` field.
+#' @return The replaced version, or `NA` when nothing was rewritten.
+stamp_description_version <- function(clone_dir, version) {
+  desc_path <- file.path(clone_dir, "DESCRIPTION")
+  if (length(version) != 1L || is.na(version) || !file.exists(desc_path)) {
+    return(invisible(NA_character_))
+  }
+
+  # DCF fields start in column 0 and continuation lines are indented, so a
+  # line-anchored match cannot hit the middle of another field's value.
+  lines <- readLines(desc_path, warn = FALSE)
+  idx <- grep("^Version:", lines)
+  if (length(idx) == 0L) {
+    return(invisible(NA_character_))
+  }
+
+  idx <- idx[1L]
+  old <- trimws(sub("^Version:", "", lines[idx]))
+  if (identical(old, version)) {
+    return(invisible(old))
+  }
+
+  lines[idx] <- sprintf("Version: %s", version)
+  writeLines(lines, desc_path)
+  invisible(old)
+}
+
 #' Move and rename built tarball files
 #'
 #' Renames the built package tarball from the system-specific filename

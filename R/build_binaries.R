@@ -996,7 +996,13 @@ check_s3_packages <- function(
       tag_limit
     )
 
-    pkgs_to_build <- sprintf("%s_%s.tar.gz", package_name, tags_filtered)
+    # Artifacts are named by version, not by ref: v5.0.0 is stored as
+    # <pkg>_5.0.0.tar.gz, so compare against that or the check never matches.
+    pkgs_to_build <- sprintf(
+      "%s_%s.tar.gz",
+      package_name,
+      artifact_version(tags_filtered)
+    )
 
     if (all(pkgs_to_build %in% s3_package_cache)) {
       log_info(
@@ -1102,7 +1108,11 @@ check_s3_packages <- function(
     s3_region
   )
 
-  pkgs_to_build <- sprintf("%s_%s.tar.gz", package_name, tags_filtered)
+  pkgs_to_build <- sprintf(
+    "%s_%s.tar.gz",
+    package_name,
+    artifact_version(tags_filtered)
+  )
 
   if (all(pkgs_to_build %in% all_pkgs_s3)) {
     log_info(
@@ -1327,6 +1337,13 @@ build_single_tag <- function(
     )
   )
 
+  # `tag` doubles as the package version in every filename, skip check and
+  # metadata row below, but only the clone wants the ref verbatim: `v5.0.0`
+  # names version 5.0.0. Split the two apart once, here.
+  ref <- tag
+  version <- tag_version(ref)
+  tag <- artifact_version(ref)
+
   local_clone_dir_single <- file.path(
     local_clone_dir,
     sprintf("%s_%s", package_name, tag)
@@ -1361,12 +1378,30 @@ build_single_tag <- function(
     return("skipped")
   }
 
-  clone_repository(package_name, tag, source_org_url, local_clone_dir_single)
+  clone_repository(package_name, ref, source_org_url, local_clone_dir_single)
+
+  # `pkgbuild::build()` names the binary from DESCRIPTION while every path
+  # below is built from the tag, so a clone whose DESCRIPTION still carries a
+  # development version produces a tarball no later step can find, and the
+  # build reports an unspecific failure. Stamp the version the tag names.
+  replaced <- stamp_description_version(local_clone_dir_single, version)
+  if (!is.na(replaced) && !identical(replaced, version)) {
+    log_info(
+      sprintf(
+        "{.fun build_single_tag}: DESCRIPTION {.field Version} %s stamped to %s from git tag %s.",
+        replaced,
+        version,
+        ref
+      )
+    )
+  }
 
   if (install_system_dependencies) {
+    # `ref`, not `tag`: this one takes a git ref, which it clones a second
+    # time (see `clone_package_repo()`) to resolve system requirements.
     install_deps_result <- handle_system_dependencies(
       package_name,
-      tag,
+      ref,
       platform,
       local_clone_dir_single,
       arch,
