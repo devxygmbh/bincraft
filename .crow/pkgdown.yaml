@@ -1,7 +1,9 @@
 when:
+  - event: pull_request
+    path: ['R/**', 'man/**', 'pkgdown/**', '.crow/pkgdown.yaml']
   - event: push
     branch: ${CI_REPO_DEFAULT_BRANCH}
-    path: ['R/**', 'pkgdown/**', '.crow/pkgdown.yaml']
+    path: ['R/**', 'man/**', 'pkgdown/**', '.crow/pkgdown.yaml']
   - event: manual
   - event: tag
 
@@ -34,6 +36,13 @@ steps:
       - uvr add pkgdown pat-s/cranlike@s3 pat-s/desc@description-from-remote
       - uvr sync
       # `uvr run` takes a script path; it has no `-e` flag.
+      # `build_site()` runs `pkgdown_sitrep()`, which only *reports* problems
+      # ("Reference metadata not ok") and carries on, so a topic missing from
+      # pkgdown/_pkgdown.yaml never fails CI. Run the sitrep up front for the
+      # full list of problems, then `check_pkgdown()`, which aborts on the first
+      # one; the build proceeds only once the metadata is consistent.
+      - printf 'pkgdown::pkgdown_sitrep()\npkgdown::check_pkgdown()\n' > check-site.R
+      - uvr run check-site.R
       - printf 'pkgdown::build_site()\n' > build-site.R
       - uvr run build-site.R
       # docs/ is in gitignore

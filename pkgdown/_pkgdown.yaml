@@ -74,6 +74,7 @@ reference:
     desc: 'Internal helper functions used by the main workflow (typically not called directly)'
     contents:
       - archive_single_package
+      - artifact_version
       - check_build_skip_conditions
       - check_package_error
       - check_s3_packages
@@ -102,4 +103,6 @@ reference:
       - process_tag_filtering
       - remove_from_metadata
       - retry_with_backoff
+      - stamp_description_version
       - store_build_metadata
+      - tag_version
