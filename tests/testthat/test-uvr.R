@@ -118,6 +118,39 @@ test_that("run_uvr_install pre-installs patched binaries before syncing", {
   expect_true(startsWith(order[[2]], "lock"))
 })
 
+test_that("write_r_version_pin records the running R exactly as uvr queries it", {
+  dir <- withr::local_tempdir()
+  path <- write_r_version_pin(dir)
+  expect_equal(path, file.path(dir, ".r-version"))
+  expect_equal(
+    readLines(path),
+    paste(R.version$major, R.version$minor, sep = ".")
+  )
+})
+
+test_that("run_uvr_install pins the R version before locking", {
+  clone <- withr::local_tempdir()
+  writeLines(
+    c("Package: demo", "Imports: cli"),
+    file.path(clone, "DESCRIPTION")
+  )
+  pinned_at_call <- logical()
+  mockery::stub(run_uvr_install, "run_uvr", function(args, ...) {
+    pinned_at_call[[length(pinned_at_call) + 1L]] <<- file.exists(
+      file.path(clone, ".r-version")
+    )
+    invisible("ok")
+  })
+  run_uvr_install(clone, library = "/build/lib")
+  # The pin must exist for `uvr lock` too: the lockfile records per-R-minor
+  # binary URLs and the Bioconductor release.
+  expect_true(all(pinned_at_call))
+  expect_equal(
+    readLines(file.path(clone, ".r-version")),
+    paste(R.version$major, R.version$minor, sep = ".")
+  )
+})
+
 test_that("run_uvr_install skips patched pre-install when no repo is given", {
   clone <- withr::local_tempdir()
   writeLines(

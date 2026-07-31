@@ -100,6 +100,33 @@ write_uvr_manifest <- function(clone_dir, deps = NULL) {
   invisible(toml_path)
 }
 
+#' Pin the R version uvr must target to the R running the build
+#'
+#' uvr resolves the R it targets on its own: `.r-version` first, then the
+#' `uvr.toml` `r_version` constraint, then the newest R it can find (managed
+#' installs before system R). In an image carrying more than one R -- for
+#' example a `/opt/R/current` symlink already moved to a newer release than the
+#' R that started the build -- "newest wins" selects an R other than the
+#' session's. `uvr lock` then resolves per-R-minor binary URLs for the wrong
+#' minor and `uvr sync` refuses to install anything at all: "Refusing to
+#' install: uvr is running inside R 4.5 but the project pin/lockfile resolves to
+#' R 4.6". Writing an exact pin binds uvr to the session driving the build.
+#'
+#' The pin is assembled the way uvr itself queries a version
+#' (`R.version$major` + `R.version$minor`), so it matches the R uvr discovers
+#' via `R_HOME` character for character; a non-matching pin is a hard uvr error
+#' rather than a silent build against the wrong R.
+#'
+#' @param clone_dir Directory to write `.r-version` into; uvr reads it from the
+#'   working directory of the `lock` and `sync` runs.
+#' @return Invisibly, the path to the written `.r-version`.
+#' @keywords internal
+write_r_version_pin <- function(clone_dir) {
+  path <- file.path(clone_dir, ".r-version")
+  writeLines(paste(R.version$major, R.version$minor, sep = "."), path)
+  invisible(path)
+}
+
 #' Run a uvr subcommand, capturing output and raising on failure
 #'
 #' @param args Character vector of arguments passed to `uvr`.
@@ -172,10 +199,11 @@ install_patched_into_library <- function(patched_repo, library) {
 #' Install a package's dependency tree and system requirements via uvr
 #'
 #' Pre-installs any patched binaries, generates a `uvr.toml` from the package's
-#' `DESCRIPTION`, resolves a lockfile with `uvr lock`, and installs dependencies
-#' plus their system requirements with `uvr sync --install-system-deps` into the
-#' active build library. On a non-TTY (CI / build container) uvr installs the
-#' system packages without prompting.
+#' `DESCRIPTION`, pins the R version with [write_r_version_pin()], resolves a
+#' lockfile with `uvr lock`, and installs dependencies plus their system
+#' requirements with `uvr sync --install-system-deps` into the active build
+#' library. On a non-TTY (CI / build container) uvr installs the system packages
+#' without prompting.
 #'
 #' @param clone_dir Directory containing the target package source (with its
 #'   `DESCRIPTION`).
@@ -193,6 +221,7 @@ run_uvr_install <- function(
     install_patched_into_library(patched_repo, library)
   }
   write_uvr_manifest(clone_dir)
+  write_r_version_pin(clone_dir)
   run_uvr("lock", clone_dir)
   run_uvr(
     c("sync", "--install-system-deps", "--library", library),

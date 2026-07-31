@@ -1,5 +1,10 @@
 # bincraft (development version)
 
+- `uvr` is now pinned to the R version that runs the build.
+  `run_uvr_install()` writes a `.r-version` file into the package clone before `uvr lock`, so both `lock` and `sync` target the session's R.
+  Previously bincraft told uvr nothing about the R version, and uvr picked the newest R it could find (managed installs first, then system R).
+  On an image carrying a second, newer R, for example a `/opt/R/current` symlink already moved to 4.6 while the build runs in 4.5, uvr resolved the lockfile for the wrong R minor and `uvr sync` then refused to install anything: "Refusing to install: uvr is running inside R 4.5 but the project pin/lockfile resolves to R 4.6".
+  That aborted every dependency install on the affected images.
 - The S3 package index now advertises its binaries via the `Built` field.
   `upload_package_index()` and `add_to_package_index()` pass a `built` stamp
   (build R version plus `R.version$platform` triple) to cranlike, which
