@@ -1,5 +1,9 @@
 # bincraft (development version)
 
+- Dependency names are now written as quoted keys in the generated `uvr.toml`.
+  R package names may contain dots, and a bare `data.table = "*"` is a _dotted_ TOML key: it parses as package `data` with a sub-key `table` rather than as `data.table`.
+  Where the parent name is itself a dependency, for example `rpart` alongside `rpart.plot`, the parse fails outright with "dotted key `rpart` attempted to extend non-table type (string)".
+  Either way `uvr lock` aborted and the build failed with "Error in installing dependencies for package ...", so every package depending on a dotted name was unbuildable.
 - `uvr` is now pinned to the R version that runs the build.
   `run_uvr_install()` writes a `.r-version` file into the package clone before `uvr lock`, so both `lock` and `sync` target the session's R.
   Previously bincraft told uvr nothing about the R version, and uvr picked the newest R it could find (managed installs first, then system R).

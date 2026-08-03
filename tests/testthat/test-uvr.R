@@ -36,9 +36,24 @@ test_that("write_uvr_manifest emits valid [project]/[dependencies] TOML", {
   expect_true(any(grepl("^\\[project\\]", toml)))
   expect_true(any(grepl('^name = "demo"', toml)))
   expect_true(any(grepl("^\\[dependencies\\]", toml)))
-  expect_true(any(grepl('^cli = "\\*"', toml)))
-  expect_true(any(grepl('^Rcpp = "\\*"', toml)))
-  expect_true(any(grepl('^RcppArmadillo = "\\*"', toml)))
+  expect_true(any(grepl('^"cli" = "\\*"', toml)))
+  expect_true(any(grepl('^"Rcpp" = "\\*"', toml)))
+  expect_true(any(grepl('^"RcppArmadillo" = "\\*"', toml)))
+})
+
+test_that("write_uvr_manifest quotes dependency names containing dots", {
+  dir <- withr::local_tempdir()
+  writeLines(
+    c("Package: demo", "Imports: data.table, rpart, rpart.plot"),
+    file.path(dir, "DESCRIPTION")
+  )
+  toml <- readLines(write_uvr_manifest(dir))
+  # Bare `data.table = "*"` is a dotted TOML key (package `data`, sub-key
+  # `table`), and `rpart.plot` after `rpart` fails the parse outright.
+  expect_true(any(grepl('^"data\\.table" = "\\*"', toml)))
+  expect_true(any(grepl('^"rpart" = "\\*"', toml)))
+  expect_true(any(grepl('^"rpart\\.plot" = "\\*"', toml)))
+  expect_false(any(grepl('^[[:alnum:]._]+ = "\\*"', toml)))
 })
 
 test_that("uvr_bin errors with an actionable message when uvr is absent", {

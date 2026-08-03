@@ -71,6 +71,13 @@ parse_description_deps <- function(desc_path) {
 
 #' Write a minimal uvr.toml derived from a package's DESCRIPTION
 #'
+#' Dependency names are emitted as quoted TOML keys. R package names may
+#' contain dots, and a bare `data.table = "*"` is a *dotted* key: TOML reads it
+#' as package `data` with a sub-key `table`, which uvr rejects. Where the parent
+#' name is itself a dependency (`rpart` alongside `rpart.plot`) the parse fails
+#' outright with "dotted key attempted to extend non-table type". Quoting is
+#' valid for dotless names too, so it is applied unconditionally.
+#'
 #' @param clone_dir Directory containing the package `DESCRIPTION`; the
 #'   `uvr.toml` is written here.
 #' @param deps Optional pre-computed dependency vector; defaults to
@@ -93,7 +100,7 @@ write_uvr_manifest <- function(clone_dir, deps = NULL) {
     sprintf('name = "%s"', pkg),
     "",
     "[dependencies]",
-    vapply(deps, function(d) sprintf('%s = "*"', d), character(1L))
+    vapply(deps, function(d) sprintf('"%s" = "*"', d), character(1L))
   )
   toml_path <- file.path(clone_dir, "uvr.toml")
   writeLines(lines, toml_path)
