@@ -23,6 +23,44 @@ test_that("built_stamp reproduces R's Built field format", {
   )
 })
 
+test_that("built_stamp rejects an unusable platform instead of stamping it", {
+  # A stamp is written verbatim into every entry of a slot's PACKAGES index, and
+  # uvr decides binary-vs-source by matching that triple. Stamping `NA` there
+  # silently turns a whole slot source-only, so an unusable platform must fail
+  # the index write rather than reach the index.
+  expect_error(
+    built_stamp(platform = NA, r_version = "4.5.0"),
+    "platform"
+  )
+  expect_error(
+    built_stamp(platform = NA_character_, r_version = "4.5.0"),
+    "platform"
+  )
+  expect_error(
+    built_stamp(platform = NULL, r_version = "4.5.0"),
+    "platform"
+  )
+  expect_error(
+    built_stamp(platform = "", r_version = "4.5.0"),
+    "platform"
+  )
+  expect_error(
+    built_stamp(platform = c("a", "b"), r_version = "4.5.0"),
+    "platform"
+  )
+})
+
+test_that("built_stamp rejects an unusable R version", {
+  expect_error(
+    built_stamp(platform = "x86_64-pc-linux-musl", r_version = NA),
+    "r_version"
+  )
+  expect_error(
+    built_stamp(platform = "x86_64-pc-linux-musl", r_version = ""),
+    "r_version"
+  )
+})
+
 test_that("built_stamp always formats the time in UTC", {
   # A non-UTC input time must still be rendered as its UTC wall-clock value so
   # the stamp is reproducible regardless of the build host's timezone.

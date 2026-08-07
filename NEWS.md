@@ -1,5 +1,9 @@
 # bincraft (development version)
 
+- `built_stamp()` now refuses an unusable platform or R version instead of stamping it.
+  The stamp is written verbatim into every entry of a slot's `PACKAGES` index and `uvr` decides binary-vs-source by matching the triple it carries, so a missing value does not degrade gracefully: it stamped the literal `NA`, no client matched it, and the whole slot silently reverted to source-only.
+  This is how `arm64/alpine321` (22,930 entries, `Built: R 4.4.0; NA`) and `arm64/alpine322` (24,696 entries, `Built: R 4.5.0; NA`) were written during the one-time re-index on 2026-07-31; both slots need another full re-index to recover.
+  Failing the index write is the cheaper outcome, so an absent, `NA`, empty or non-scalar `platform`/`r_version` is now an error.
 - Dependency names are now written as quoted keys in the generated `uvr.toml`.
   R package names may contain dots, and a bare `data.table = "*"` is a _dotted_ TOML key: it parses as package `data` with a sub-key `table` rather than as `data.table`.
   Where the parent name is itself a dependency, for example `rpart` alongside `rpart.plot`, the parse fails outright with "dotted key `rpart` attempted to extend non-table type (string)".

@@ -18,12 +18,43 @@ built_stamp <- function(
   r_version = getRversion(),
   time = Sys.time()
 ) {
+  check_stamp_field(platform, "platform")
+  check_stamp_field(r_version, "r_version")
+
   sprintf(
     "R %s; %s; %s UTC; unix",
     r_version,
     platform,
     format(as.POSIXlt(time, tz = "UTC"), "%Y-%m-%d %H:%M:%S")
   )
+}
+
+#' Reject a `Built` component that must not reach the index
+#'
+#' The stamp is written verbatim into *every* entry of a slot's `PACKAGES`
+#' index, and `uvr` decides binary-vs-source by matching the triple it carries.
+#' A missing value therefore does not degrade gracefully: it stamps the literal
+#' `"NA"`, no client matches it, and the whole slot silently reverts to
+#' source-only until the next full re-index. Failing the index write is the far
+#' cheaper outcome, so refuse anything that is not a single non-empty value.
+#'
+#' @keywords internal
+#' @noRd
+check_stamp_field <- function(value, name) {
+  usable <- length(value) == 1L &&
+    !is.na(value) &&
+    nzchar(trimws(as.character(value)))
+  if (!usable) {
+    stop(
+      sprintf(
+        "{.function built_stamp}: `%s` must be a single non-empty value, got '%s'. Refusing to stamp an unusable `Built` field into the index.",
+        name,
+        paste(format(value), collapse = ", ")
+      ),
+      call. = FALSE
+    )
+  }
+  invisible(TRUE)
 }
 
 #' Build the S3 remote contrib dir for a package index
