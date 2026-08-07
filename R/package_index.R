@@ -76,6 +76,129 @@ package_index_remote_dir <- function(
   }
 }
 
+#' Merge the generic slot's records into a per-minor index
+#'
+#' A per-minor slot holds only the ABI-sensitive packages, so on its own it is
+#' not a usable repository: a client pointed at it loses every other package.
+#' The index therefore has to carry both slots.
+#'
+#' Which directory a tarball comes from is decided inside the index, not by the
+#' request path: `available.packages()` keeps the `contriburl` it *asked for*,
+#' not the one a redirect served it, and folds a record's `Path` field into the
+#' `Repository` column. Per-minor records get `Path = <r_minor>` so their
+#' tarballs resolve into `…/src/contrib/<r_minor>/`; generic records get no
+#' `Path` and resolve into `…/src/contrib/`. Nothing is copied or duplicated.
+#'
+#' A package built for this minor shadows the generic one entirely, including
+#' its older versions, so a client never sees two provenances for one package.
+#'
+#' @param minor_records,flat_records Character matrices of index records, as
+#'   stored in a slot's `PACKAGES.rds`.
+#' @param r_minor `"major.minor"` string, e.g. `"4.5"`.
+#'
+#' @return A character matrix of both slots' records, with a `Path` column.
+#' @keywords internal
+#' @noRd
+union_index_records <- function(minor_records, flat_records, r_minor) {
+  usable_minor <- length(r_minor) == 1L &&
+    !is.na(r_minor) &&
+    grepl("^[0-9]+\\.[0-9]+$", r_minor)
+  if (!usable_minor) {
+    stop(
+      sprintf(
+        "{.function union_index_records}: `r_minor` must be a single \"major.minor\" string, got '%s'.",
+        paste(format(r_minor), collapse = ", ")
+      ),
+      call. = FALSE
+    )
+  }
+
+  if (nrow(flat_records) == 0L) {
+    stop(
+      "{.function union_index_records}: the generic index is empty. Refusing to publish a per-minor index that would hide every package the generic slot carries.",
+      call. = FALSE
+    )
+  }
+
+  columns <- union(
+    union(colnames(flat_records), colnames(minor_records)),
+    "Path"
+  )
+
+  align <- function(records) {
+    out <- matrix(
+      NA_character_,
+      nrow(records),
+      length(columns),
+      dimnames = list(NULL, columns)
+    )
+    if (nrow(records) > 0L) {
+      out[, colnames(records)] <- records
+    }
+    out
+  }
+
+  minor <- align(minor_records)
+  flat <- align(flat_records)
+
+  if (nrow(minor) > 0L) {
+    minor[, "Path"] <- r_minor
+  }
+
+  shadowed <- flat[, "Package"] %in% minor[, "Package"]
+  rbind(minor, flat[!shadowed, , drop = FALSE])
+}
+
+#' Rewrite a per-minor slot's index files as a union with the generic slot
+#'
+#' Operates on the `PACKAGES*` files [cranlike::update_PACKAGES()] just wrote
+#' locally, before they are uploaded, so a failure here leaves the slot's
+#' published index untouched.
+#'
+#' All three files are rewritten together: clients disagree about which one to
+#' fetch (`available.packages()` prefers `PACKAGES.rds`, `uvr` reads the text),
+#' and a slot whose index files disagree serves a different repository
+#' depending on the client.
+#'
+#' @param dir Directory holding the freshly written `PACKAGES*` files.
+#' @param flat_records Character matrix of the generic slot's records.
+#' @param r_minor `"major.minor"` string, e.g. `"4.5"`.
+#'
+#' @return The number of records written, invisibly.
+#' @keywords internal
+#' @noRd
+write_union_index <- function(dir, flat_records, r_minor) {
+  minor_records <- readRDS(file.path(dir, "PACKAGES.rds"))
+  union_records <- union_index_records(minor_records, flat_records, r_minor)
+
+  write.dcf(union_records, file.path(dir, "PACKAGES"))
+
+  gz <- gzfile(file.path(dir, "PACKAGES.gz"), open = "wb")
+  on.exit(close(gz), add = TRUE)
+  write.dcf(union_records, gz)
+
+  # cranlike writes the rds xz-compressed; match it so the file it replaces and
+  # the file we write are interchangeable.
+  saveRDS(union_records, file.path(dir, "PACKAGES.rds"), compress = "xz")
+
+  invisible(nrow(union_records))
+}
+
+#' Read a slot's published index
+#'
+#' @param remote_dir S3 directory of the slot, as built by
+#'   [package_index_remote_dir()].
+#'
+#' @return A character matrix of index records.
+#' @keywords internal
+#' @noRd
+read_remote_index <- function(remote_dir) {
+  local_copy <- tempfile(fileext = ".rds")
+  on.exit(unlink(local_copy), add = TRUE)
+  s3fs::s3_file_download(file.path(remote_dir, "PACKAGES.rds"), local_copy)
+  readRDS(local_copy)
+}
+
 #' Add package to repository index
 #' @template param-package_name
 #' @template param-codename
@@ -228,6 +351,25 @@ upload_package_index <- function(
     },
     label = "update PACKAGES"
   )
+
+  # A per-minor slot carries only the ABI-sensitive packages, so its index is
+  # republished as a union with the generic slot before it is uploaded. This is
+  # deliberately fatal: leaving the previously published union in place is far
+  # better than replacing it with an index that hides most of the repository.
+  if (!is.null(r_minor)) {
+    union_size <- write_union_index(
+      ".",
+      flat_records = read_remote_index(
+        package_index_remote_dir(s3_bucket, arch, codename)
+      ),
+      r_minor = r_minor
+    )
+    log_success(sprintf(
+      "Merged the generic slot into the {.field %s} index: %s records.",
+      r_minor,
+      union_size
+    ))
+  }
 
   # write Meta/archive.rds for remotes::install_version
   log_success(

@@ -1,5 +1,10 @@
 # bincraft (development version)
 
+- A per-minor `PACKAGES*` index is now republished as a union with the generic slot.
+  A per-minor slot carries only the ABI-sensitive packages, and `contrib.url()` can only ever address `<repos>/src/contrib`, so those packages were unreachable from `install.packages()`: on `amd64/alpine324` 2,886 packages, `curl` among them, existed only in the per-minor slot and were absent from the index base R reads.
+  `upload_package_index()` now merges the generic slot's records into the per-minor index before uploading it, tagging the per-minor records with `Path: <r_minor>` so their tarballs still resolve into `…/src/contrib/<r_minor>/` while the generic ones resolve into `…/src/contrib/`.
+  Nothing is copied or duplicated, and a package built for this minor shadows the generic one entirely.
+  An unreadable or empty generic index is an error rather than a partial publish, because replacing a published union with a per-minor-only index would hide most of the repository from every client on that minor.
 - `built_stamp()` now refuses an unusable platform or R version instead of stamping it.
   The stamp is written verbatim into every entry of a slot's `PACKAGES` index and `uvr` decides binary-vs-source by matching the triple it carries, so a missing value does not degrade gracefully: it stamped the literal `NA`, no client matched it, and the whole slot silently reverted to source-only.
   This is how `arm64/alpine321` (22,930 entries, `Built: R 4.4.0; NA`) and `arm64/alpine322` (24,696 entries, `Built: R 4.5.0; NA`) were written during the one-time re-index on 2026-07-31; both slots need another full re-index to recover.
