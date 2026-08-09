@@ -182,3 +182,45 @@ test_that("remote_object_md5 reports an unreadable object as unknown", {
 
   expect_true(is.na(remote_object_md5("s3://b/k")))
 })
+
+test_that("remote_object_state distinguishes absent, source and binary", {
+  skip_if_not_installed("mockery")
+
+  mockery::stub(remote_object_state, "s3fs::s3_file_exists", FALSE)
+  expect_identical(remote_object_state("s3://b/k", "curl", "7.1.0"), "absent")
+})
+
+test_that("remote_object_state calls a matching MD5 a source", {
+  skip_if_not_installed("mockery")
+
+  mockery::stub(remote_object_state, "s3fs::s3_file_exists", TRUE)
+  mockery::stub(
+    remote_object_state,
+    "remote_object_md5",
+    "8af2ccbf5d85dc18866f45f1f26f348d"
+  )
+  mockery::stub(remote_object_state, "is_cran_source_tarball", TRUE)
+
+  expect_identical(remote_object_state("s3://b/k", "curl", "7.1.0"), "source")
+})
+
+test_that("remote_object_state calls a differing MD5 a binary", {
+  skip_if_not_installed("mockery")
+
+  mockery::stub(remote_object_state, "s3fs::s3_file_exists", TRUE)
+  mockery::stub(remote_object_state, "remote_object_md5", "a-real-build")
+  mockery::stub(remote_object_state, "is_cran_source_tarball", FALSE)
+
+  expect_identical(remote_object_state("s3://b/k", "curl", "7.1.0"), "binary")
+})
+
+test_that("remote_object_state calls an unknown MD5 a binary", {
+  # Never let an unreadable ETag or an unreachable CRAN schedule a rebuild of
+  # the whole repository.
+  skip_if_not_installed("mockery")
+
+  mockery::stub(remote_object_state, "s3fs::s3_file_exists", TRUE)
+  mockery::stub(remote_object_state, "remote_object_md5", NA_character_)
+
+  expect_identical(remote_object_state("s3://b/k", "curl", "7.1.0"), "binary")
+})

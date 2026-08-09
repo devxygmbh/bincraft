@@ -1586,20 +1586,23 @@ check_build_skip_conditions <- function(
       refresh = TRUE
     )
 
-    if (
-      !force &&
-        (s3fs::s3_file_exists(sprintf(
-          file.path("%s", "%s"),
-          remote_bin_path,
-          tarball_name
-        )) ||
-          s3fs::s3_file_exists(sprintf(
-            file.path("%s", "Archive", "%s", "%s"),
-            remote_bin_path,
-            package_name,
-            tarball_name
-          )))
-    ) {
+    # "Something is published here" is not "a binary is published here": a
+    # failed build leaves the CRAN source under the binary's name, and skipping
+    # on that is what kept a rebuild from ever rebuilding it.
+    published <- c(
+      remote_object_state(
+        file.path(remote_bin_path, tarball_name),
+        package_name,
+        tag
+      ),
+      remote_object_state(
+        file.path(remote_bin_path, "Archive", package_name, tarball_name),
+        package_name,
+        tag
+      )
+    )
+
+    if (!force && any(published == "binary")) {
       log_info(
         sprintf(
           "Package {.pkg %s} with tag {.field %s} already exists in S3 and {.code force = FALSE}. Skipping build.",

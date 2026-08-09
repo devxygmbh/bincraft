@@ -72,7 +72,6 @@ upload_single_binary <- function(
       minor_version,
       tarball_name
     )
-    file_exists <- s3fs::s3_file_exists(remote_tarball_path)
     archive_path <- file.path(
       remote_bin_path,
       minor_version,
@@ -80,27 +79,40 @@ upload_single_binary <- function(
       package_name,
       tarball_name
     )
-    archive_exists <- s3fs::s3_file_exists(archive_path)
   } else {
     remote_tarball_path <- file.path(remote_bin_path, tarball_name)
-    file_exists <- s3fs::s3_file_exists(remote_tarball_path)
     archive_path <- file.path(
       remote_bin_path,
       "Archive",
       package_name,
       tarball_name
     )
-    archive_exists <- s3fs::s3_file_exists(archive_path)
   }
-  file_exists <- file_exists | archive_exists
+
+  # A source fallback occupies the binary's key, so "the key is taken" would
+  # refuse to publish the very binary that replaces it. Only a published binary
+  # blocks the upload; a source has to be overwritten.
+  root_state <- remote_object_state(remote_tarball_path, package_name, tag)
+  archive_state <- remote_object_state(archive_path, package_name, tag)
+  binary_exists <- any(c(root_state, archive_state) == "binary")
+  replacing_source <- identical(root_state, "source")
 
   # don't parallelise
   future::plan("sequential")
 
-  should_upload <- !file_exists || force
+  should_upload <- !binary_exists || force
 
   if (should_upload) {
-    if (file_exists && force) {
+    if (replacing_source) {
+      log_info(
+        sprintf(
+          "{.fun upload_single_binary}: Replacing the CRAN source published for {.pkg %s} {.field %s} at {.path %s} with the binary.",
+          package_name,
+          tag,
+          remote_tarball_path
+        )
+      )
+    } else if (binary_exists && force) {
       log_info(
         sprintf(
           "{.fun upload_single_binary}: Force uploading package {.pkg %s} {.field %s} to {.path %s} because {.code force = TRUE} was set.",
@@ -125,7 +137,9 @@ upload_single_binary <- function(
       remote_tarball_path
     )
 
-    if (file_exists && force) {
+    # Overwrite whenever something already occupies the key: a forced re-upload
+    # of a binary, or the source fallback this binary replaces.
+    if (replacing_source || (binary_exists && force)) {
       upload_args$max_batch <- parse_bytes("300MB")
       upload_args$overwrite <- TRUE
     }

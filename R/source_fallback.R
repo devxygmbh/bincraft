@@ -119,6 +119,39 @@ clear_built_for_sources <- function(records, md5_table = cran_source_md5()) {
   records
 }
 
+#' What is actually published at a remote path?
+#'
+#' Every gate in the build path used to ask "does an object exist here", and a
+#' package whose build failed has its CRAN source published under exactly the
+#' binary's name. Those gates need three answers, not two: an object that is a
+#' source fallback must not block a build, and must be *replaced* rather than
+#' left in place when the rebuild succeeds.
+#'
+#' @param path `s3://` path.
+#' @param package,version The package and version the path should hold.
+#'
+#' @return One of `"absent"`, `"source"` or `"binary"`. `"binary"` is the answer
+#'   whenever the object exists but cannot be shown to be CRAN's source, so an
+#'   unreadable ETag or an unreachable CRAN can never mass-schedule rebuilds.
+#' @keywords internal
+#' @noRd
+remote_object_state <- function(path, package, version) {
+  if (!s3fs::s3_file_exists(path)) {
+    return("absent")
+  }
+
+  md5 <- remote_object_md5(path)
+  if (is.na(md5)) {
+    return("binary")
+  }
+
+  if (isTRUE(is_cran_source_tarball(package, version, md5))) {
+    "source"
+  } else {
+    "binary"
+  }
+}
+
 #' MD5 of a remote object, from its ETag
 #'
 #' @param path `s3://` path.

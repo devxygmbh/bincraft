@@ -1,41 +1,38 @@
 # `mockery::stub()` rebinds the function in the *calling* frame, so each test
 # calls check_s3_root_package() directly: routing through a helper would resolve
 # the unstubbed original and hit S3 for real.
+#
+# The stub target is `remote_object_state()`, which is the boundary this
+# function now reasons about. What that helper does with an ETag is covered in
+# test-source_fallback.R, against a realistic s3fs response.
 
-test_that("check_s3_root_package reports an absent object as absent", {
-  skip_if_not_installed("mockery")
-
-  mockery::stub(check_s3_root_package, "s3fs::s3_file_exists", FALSE)
-
-  expect_false(check_s3_root_package(
+root_args <- function(sensitive = FALSE) {
+  list(
     "bucket/amd64/alpine324/latest/src/contrib",
     "curl",
     "7.1.0",
-    FALSE,
+    sensitive,
     "fake",
     "fake",
     "https://fake.endpoint.com",
     "us-east-1"
-  ))
+  )
+}
+
+test_that("check_s3_root_package reports an absent object as absent", {
+  skip_if_not_installed("mockery")
+
+  mockery::stub(check_s3_root_package, "remote_object_state", "absent")
+
+  expect_false(do.call(check_s3_root_package, root_args()))
 })
 
 test_that("check_s3_root_package reports a real binary as present", {
   skip_if_not_installed("mockery")
 
-  mockery::stub(check_s3_root_package, "s3fs::s3_file_exists", TRUE)
-  mockery::stub(check_s3_root_package, "remote_object_md5", "a-real-build")
-  mockery::stub(check_s3_root_package, "is_cran_source_tarball", FALSE)
+  mockery::stub(check_s3_root_package, "remote_object_state", "binary")
 
-  expect_true(check_s3_root_package(
-    "bucket/amd64/alpine324/latest/src/contrib",
-    "curl",
-    "7.1.0",
-    FALSE,
-    "fake",
-    "fake",
-    "https://fake.endpoint.com",
-    "us-east-1"
-  ))
+  expect_true(do.call(check_s3_root_package, root_args()))
 })
 
 test_that("check_s3_root_package reports a CRAN source fallback as absent", {
@@ -45,44 +42,9 @@ test_that("check_s3_root_package reports a CRAN source fallback as absent", {
   # exists to fix.
   skip_if_not_installed("mockery")
 
-  mockery::stub(check_s3_root_package, "s3fs::s3_file_exists", TRUE)
-  mockery::stub(
-    check_s3_root_package,
-    "remote_object_md5",
-    "8af2ccbf5d85dc18866f45f1f26f348d"
-  )
-  mockery::stub(check_s3_root_package, "is_cran_source_tarball", TRUE)
+  mockery::stub(check_s3_root_package, "remote_object_state", "source")
 
-  expect_false(check_s3_root_package(
-    "bucket/amd64/alpine324/latest/src/contrib",
-    "curl",
-    "7.1.0",
-    FALSE,
-    "fake",
-    "fake",
-    "https://fake.endpoint.com",
-    "us-east-1"
-  ))
-})
-
-test_that("check_s3_root_package keeps an unknown MD5 as present", {
-  # A multipart ETag or an unreachable CRAN must not make every package look
-  # missing, which would trigger a full rebuild of the repository.
-  skip_if_not_installed("mockery")
-
-  mockery::stub(check_s3_root_package, "s3fs::s3_file_exists", TRUE)
-  mockery::stub(check_s3_root_package, "remote_object_md5", NA_character_)
-
-  expect_true(check_s3_root_package(
-    "bucket/amd64/alpine324/latest/src/contrib",
-    "curl",
-    "7.1.0",
-    FALSE,
-    "fake",
-    "fake",
-    "https://fake.endpoint.com",
-    "us-east-1"
-  ))
+  expect_false(do.call(check_s3_root_package, root_args()))
 })
 
 test_that("check_s3_root_package looks in the per-minor slot when sensitive", {
@@ -91,23 +53,14 @@ test_that("check_s3_root_package looks in the per-minor slot when sensitive", {
   seen <- NULL
   mockery::stub(
     check_s3_root_package,
-    "s3fs::s3_file_exists",
-    function(path) {
+    "remote_object_state",
+    function(path, ...) {
       seen <<- path
-      FALSE
+      "absent"
     }
   )
   mockery::stub(check_s3_root_package, "get_minor_version", "4.5")
 
-  expect_false(check_s3_root_package(
-    "bucket/amd64/alpine324/latest/src/contrib",
-    "curl",
-    "7.1.0",
-    TRUE,
-    "fake",
-    "fake",
-    "https://fake.endpoint.com",
-    "us-east-1"
-  ))
+  expect_false(do.call(check_s3_root_package, root_args(sensitive = TRUE)))
   expect_match(seen, "/4\\.5/curl_7\\.1\\.0\\.tar\\.gz$")
 })

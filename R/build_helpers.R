@@ -219,25 +219,17 @@ check_s3_root_package <- function(
     file.path(remote_bin_path, tarball)
   }
 
-  if (!s3fs::s3_file_exists(remote_path)) {
-    return(FALSE)
-  }
+  state <- remote_object_state(remote_path, package_name, last_version)
 
-  md5 <- remote_object_md5(remote_path)
-  if (is.na(md5)) {
-    return(TRUE)
-  }
-
-  if (isTRUE(is_cran_source_tarball(package_name, last_version, md5))) {
+  if (identical(state, "source")) {
     log_info(sprintf(
       "{.fun check_s3_root_package}: {.pkg %s} {.field %s} is the CRAN source, not a binary. Treating it as absent so the build runs.",
       package_name,
       last_version
     ))
-    return(FALSE)
   }
 
-  TRUE
+  identical(state, "binary")
 }
 
 #' Get all packages from S3 for comparison

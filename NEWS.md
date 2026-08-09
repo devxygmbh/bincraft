@@ -1,5 +1,9 @@
 # bincraft (development version)
 
+- The two remaining existence gates now tell a source fallback from a binary.
+  Fixing `check_s3_root_package()` let a rebuild get as far as the build step, where a second gate in `build_single_tag()` skipped it again with "already exists in S3 and `force = FALSE`", and a third in `upload_single_binary()` would then have refused to publish the binary because the source occupied its key.
+  All three now share one helper, `remote_object_state()`, which answers `"absent"`, `"source"` or `"binary"` rather than a bare yes/no, and a source fallback is overwritten rather than left in place.
+  Unknown stays "binary" throughout, so an unreadable ETag or an unreachable CRAN still cannot schedule a rebuild of the repository.
 - The source-fallback detection now actually reads the object's MD5.
   `remote_object_md5()` looked for an `ETag` column, but `s3fs::s3_file_info()` snake-cases the `head_object` response and renames `e_tag` to `etag`.
   Reading a missing column yields `NULL` rather than an error, so every object came back as "MD5 unknown", every caller took the conservative "assume it is a binary" branch, and the checks added in 5.1.1 and 5.1.2 were inert.
