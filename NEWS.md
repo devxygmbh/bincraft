@@ -1,5 +1,11 @@
 # bincraft (development version)
 
+- The pre-build skip now also tells a source fallback from a binary.
+  `check_s3_root_package()` decides whether a build runs at all, and it tested only that _something_ occupied the key.
+  A package whose build failed has its CRAN source published under exactly that name, so a rebuild skipped every one of them with "All packages to be built already exist in the remote bucket" -- precisely the set a rebuild exists to fix.
+  Observed on `arm64/alpine324`, where a 13,647-package rebuild skipped every package it was given.
+  The previous release fixed the same blind spot in `check_for_binary()`, which decides whether to _publish_ a fallback, but not this one, which decides whether to _build_.
+  An object whose MD5 matches CRAN's published `MD5sum` is now reported as absent, and an MD5 that cannot be established still counts as a binary so an outage cannot trigger a full rebuild.
 - A package that failed to build is no longer mistaken for a binary.
   When a build fails, `handle_post_build_actions()` publishes the CRAN _source_ tarball in its place so the package stays installable, but `check_for_binary()` only tested that an object existed at the path.
   The fallback therefore became permanent: the build was never retried, and the missing-binaries audit never reported it, because the object was there.

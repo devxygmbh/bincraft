@@ -182,7 +182,21 @@ get_system_architecture_info <- function(binary_output_path) {
 #' @template param-s3-secret-access-key
 #' @template param-s3_endpoint
 #' @template param-s3_region
-#' @return Logical indicating if package exists
+#' @return Logical indicating if a *binary* exists at the root path.
+#'
+#' @details
+#' This is what decides whether a build runs at all, so it has to mean "a binary
+#' is published", not "something occupies that key". A package whose build
+#' failed has its CRAN *source* published under exactly that name by
+#' [handle_post_build_actions()], and an existence-only test reports it as done:
+#' the rebuild then skips every such package with "All packages to be built
+#' already exist in the remote bucket", which is precisely the set a rebuild
+#' exists to fix.
+#'
+#' An object whose MD5 matches CRAN's published `MD5sum` is therefore reported
+#' as absent. When the MD5 cannot be established -- a multipart ETag, or CRAN
+#' unreachable -- the object counts as a binary, so neither can make every
+#' package look missing and trigger a full rebuild.
 check_s3_root_package <- function(
   remote_bin_path,
   package_name,
@@ -198,19 +212,32 @@ check_s3_root_package <- function(
     is_r_minor_sensitive <- FALSE
   }
 
-  if (is_r_minor_sensitive) {
-    minor_version <- get_minor_version()
-    s3fs::s3_file_exists(file.path(
-      remote_bin_path,
-      minor_version,
-      sprintf("%s_%s.tar.gz", package_name, last_version)
-    ))
+  tarball <- sprintf("%s_%s.tar.gz", package_name, last_version)
+  remote_path <- if (is_r_minor_sensitive) {
+    file.path(remote_bin_path, get_minor_version(), tarball)
   } else {
-    s3fs::s3_file_exists(file.path(
-      remote_bin_path,
-      sprintf("%s_%s.tar.gz", package_name, last_version)
-    ))
+    file.path(remote_bin_path, tarball)
   }
+
+  if (!s3fs::s3_file_exists(remote_path)) {
+    return(FALSE)
+  }
+
+  md5 <- remote_object_md5(remote_path)
+  if (is.na(md5)) {
+    return(TRUE)
+  }
+
+  if (isTRUE(is_cran_source_tarball(package_name, last_version, md5))) {
+    log_info(sprintf(
+      "{.fun check_s3_root_package}: {.pkg %s} {.field %s} is the CRAN source, not a binary. Treating it as absent so the build runs.",
+      package_name,
+      last_version
+    ))
+    return(FALSE)
+  }
+
+  TRUE
 }
 
 #' Get all packages from S3 for comparison
