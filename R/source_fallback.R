@@ -129,7 +129,19 @@ clear_built_for_sources <- function(records, md5_table = cran_source_md5()) {
 #' @noRd
 remote_object_md5 <- function(path) {
   info <- tryCatch(s3fs::s3_file_info(path), error = function(e) NULL)
-  etag <- if (is.null(info)) NULL else info[["ETag"]]
+
+  # s3fs snake-cases the head_object response and renames `e_tag` to `etag`,
+  # so the column is not the `ETag` that S3 itself returns. Reading the wrong
+  # name yields NULL rather than an error, which silently turns every object
+  # into "cannot tell, assume binary" -- accept either spelling.
+  etag <- NULL
+  for (column in c("etag", "e_tag", "ETag")) {
+    if (!is.null(info) && column %in% names(info)) {
+      etag <- info[[column]]
+      break
+    }
+  }
+
   if (length(etag) == 0L || is.na(etag[[1L]])) {
     return(NA_character_)
   }

@@ -128,3 +128,57 @@ test_that("an empty CRAN table clears nothing", {
 
   expect_false(is.na(out[1L, "Built"]))
 })
+
+test_that("remote_object_md5 reads the column s3fs actually returns", {
+  # s3fs snake-cases head_object's response and renames `e_tag` to `etag`, so
+  # reading `ETag` yields NULL rather than an error. That turned every object
+  # into "cannot tell, assume binary" and made the whole check inert.
+  skip_if_not_installed("mockery")
+
+  info <- data.frame(
+    bucket_name = "b",
+    key = "k",
+    etag = "\"ea8127d953ca6a2f118ea49441772af6\"",
+    stringsAsFactors = FALSE
+  )
+  mockery::stub(remote_object_md5, "s3fs::s3_file_info", info)
+
+  expect_identical(
+    remote_object_md5("s3://b/k"),
+    "ea8127d953ca6a2f118ea49441772af6"
+  )
+})
+
+test_that("remote_object_md5 still reads an ETag column", {
+  skip_if_not_installed("mockery")
+
+  info <- data.frame(
+    ETag = "\"ea8127d953ca6a2f118ea49441772af6\"",
+    stringsAsFactors = FALSE
+  )
+  mockery::stub(remote_object_md5, "s3fs::s3_file_info", info)
+
+  expect_identical(
+    remote_object_md5("s3://b/k"),
+    "ea8127d953ca6a2f118ea49441772af6"
+  )
+})
+
+test_that("remote_object_md5 reports a multipart ETag as unknown", {
+  skip_if_not_installed("mockery")
+
+  info <- data.frame(etag = "\"abc123-7\"", stringsAsFactors = FALSE)
+  mockery::stub(remote_object_md5, "s3fs::s3_file_info", info)
+
+  expect_true(is.na(remote_object_md5("s3://b/k")))
+})
+
+test_that("remote_object_md5 reports an unreadable object as unknown", {
+  skip_if_not_installed("mockery")
+
+  mockery::stub(remote_object_md5, "s3fs::s3_file_info", function(...) {
+    stop("no credentials")
+  })
+
+  expect_true(is.na(remote_object_md5("s3://b/k")))
+})

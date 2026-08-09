@@ -1,5 +1,10 @@
 # bincraft (development version)
 
+- The source-fallback detection now actually reads the object's MD5.
+  `remote_object_md5()` looked for an `ETag` column, but `s3fs::s3_file_info()` snake-cases the `head_object` response and renames `e_tag` to `etag`.
+  Reading a missing column yields `NULL` rather than an error, so every object came back as "MD5 unknown", every caller took the conservative "assume it is a binary" branch, and the checks added in 5.1.1 and 5.1.2 were inert.
+  A 13,389-package rebuild of `amd64/alpine324` running 5.1.2 still skipped every package with "All packages to be built already exist in the remote bucket".
+  Both spellings are now accepted, and the regression is covered by tests that feed `remote_object_md5()` a realistic `s3fs` return value instead of stubbing it out.
 - The pre-build skip now also tells a source fallback from a binary.
   `check_s3_root_package()` decides whether a build runs at all, and it tested only that _something_ occupied the key.
   A package whose build failed has its CRAN source published under exactly that name, so a rebuild skipped every one of them with "All packages to be built already exist in the remote bucket" -- precisely the set a rebuild exists to fix.
