@@ -149,7 +149,7 @@ union_index_records <- function(minor_records, flat_records, r_minor) {
   rbind(minor, flat[!shadowed, , drop = FALSE])
 }
 
-#' Rewrite a per-minor slot's index files as a union with the generic slot
+#' Rewrite a slot's index files from a set of records
 #'
 #' Operates on the `PACKAGES*` files [cranlike::update_PACKAGES()] just wrote
 #' locally, before they are uploaded, so a failure here leaves the slot's
@@ -161,27 +161,23 @@ union_index_records <- function(minor_records, flat_records, r_minor) {
 #' depending on the client.
 #'
 #' @param dir Directory holding the freshly written `PACKAGES*` files.
-#' @param flat_records Character matrix of the generic slot's records.
-#' @param r_minor `"major.minor"` string, e.g. `"4.5"`.
+#' @param records Character matrix of index records to write.
 #'
 #' @return The number of records written, invisibly.
 #' @keywords internal
 #' @noRd
-write_union_index <- function(dir, flat_records, r_minor) {
-  minor_records <- readRDS(file.path(dir, "PACKAGES.rds"))
-  union_records <- union_index_records(minor_records, flat_records, r_minor)
-
-  write.dcf(union_records, file.path(dir, "PACKAGES"))
+write_index_files <- function(dir, records) {
+  write.dcf(records, file.path(dir, "PACKAGES"))
 
   gz <- gzfile(file.path(dir, "PACKAGES.gz"), open = "wb")
   on.exit(close(gz), add = TRUE)
-  write.dcf(union_records, gz)
+  write.dcf(records, gz)
 
   # cranlike writes the rds xz-compressed; match it so the file it replaces and
   # the file we write are interchangeable.
-  saveRDS(union_records, file.path(dir, "PACKAGES.rds"), compress = "xz")
+  saveRDS(records, file.path(dir, "PACKAGES.rds"), compress = "xz")
 
-  invisible(nrow(union_records))
+  invisible(nrow(records))
 }
 
 #' Read a slot's published index
@@ -352,13 +348,17 @@ upload_package_index <- function(
     label = "update PACKAGES"
   )
 
+  # Post-process the index cranlike just wrote, before it is uploaded, so a
+  # failure here leaves the published index untouched.
+  records <- readRDS("PACKAGES.rds")
+
   # A per-minor slot carries only the ABI-sensitive packages, so its index is
-  # republished as a union with the generic slot before it is uploaded. This is
-  # deliberately fatal: leaving the previously published union in place is far
-  # better than replacing it with an index that hides most of the repository.
+  # republished as a union with the generic slot. This is deliberately fatal:
+  # leaving the previously published union in place is far better than replacing
+  # it with an index that hides most of the repository.
   if (!is.null(r_minor)) {
-    union_size <- write_union_index(
-      ".",
+    records <- union_index_records(
+      records,
       flat_records = read_remote_index(
         package_index_remote_dir(s3_bucket, arch, codename)
       ),
@@ -367,9 +367,25 @@ upload_package_index <- function(
     log_success(sprintf(
       "Merged the generic slot into the {.field %s} index: %s records.",
       r_minor,
-      union_size
+      nrow(records)
     ))
   }
+
+  # The stamp above is applied to the whole slot, so it also lands on the
+  # packages whose build failed and were published as their CRAN source. Clear
+  # it there: advertising a source tarball as a binary makes `uvr` install it
+  # without the system `-dev` libraries a source build needs.
+  before <- sum(!is.na(records[, "Built"]))
+  records <- clear_built_for_sources(records)
+  cleared <- before - sum(!is.na(records[, "Built"]))
+  if (cleared > 0L) {
+    log_info(sprintf(
+      "Cleared the {.field Built} stamp on %s CRAN-source records (failed builds served as source).",
+      cleared
+    ))
+  }
+
+  write_index_files(".", records)
 
   # write Meta/archive.rds for remotes::install_version
   log_success(

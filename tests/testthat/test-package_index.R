@@ -171,23 +171,22 @@ test_that("union_index_records rejects an unusable r_minor", {
   expect_error(union_index_records(minor, flat, c("4.5", "4.6")), "r_minor")
 })
 
-test_that("write_union_index rewrites all three index files in step", {
+test_that("write_index_files rewrites all three index files in step", {
   dir <- tempfile()
   dir.create(dir)
   on.exit(unlink(dir, recursive = TRUE), add = TRUE)
 
-  saveRDS(
-    records(c(Package = "curl", Version = "7.1.0", File = "curl_7.1.0.tar.gz")),
-    file.path(dir, "PACKAGES.rds")
-  )
-
-  n <- write_union_index(
-    dir,
+  union <- union_index_records(
+    minor_records = records(
+      c(Package = "curl", Version = "7.1.0", File = "curl_7.1.0.tar.gz")
+    ),
     flat_records = records(
       c(Package = "jsonlite", Version = "2.0.0", File = "jsonlite_2.0.0.tar.gz")
     ),
     r_minor = "4.5"
   )
+
+  n <- write_index_files(dir, union)
 
   expect_identical(n, 2L)
 

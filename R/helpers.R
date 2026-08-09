@@ -84,7 +84,28 @@ set_bin_path <- function(local_output_dir_root, codename) {
   )
 }
 
+#' The `major.minor` of the running R
+#'
+#' @keywords internal
+#' @noRd
+current_r_minor <- function() {
+  paste(
+    R.version$major,
+    strsplit(R.version$minor, ".", fixed = TRUE)[[1L]][1L],
+    sep = "."
+  )
+}
+
 #' Checks whether a binary for the latest package version exists
+#'
+#' "A binary exists" is not the same as "the object exists". A package that
+#' failed to build has its CRAN *source* published in the same place by
+#' [handle_post_build_actions()], and treating that as a binary is what makes
+#' the fallback permanent: the build is never retried and the missing-binaries
+#' audit never reports it. The object's MD5 is compared against CRAN's to tell
+#' the two apart. When the MD5 cannot be established the object counts as a
+#' binary, so an unreadable ETag or an unreachable CRAN cannot trigger an
+#' endless rebuild loop.
 #' @template param-package_name
 #' @template param-s3_endpoint
 #' @template param-s3_region
@@ -136,12 +157,43 @@ check_for_binary <- function(
     ]]$commit$message,
     "version "
   )[[1L]][2L]
-  s3fs::s3_file_exists(sprintf(
-    "s3://%s/%s_%s.tar.gz",
-    remote_bin_path,
-    package_name,
-    os_version
-  ))
+  # An r-minor-sensitive build lives in the per-minor slot, and that is where
+  # the source fallback writes it too, so the flat path would never find it.
+  remote_path <- if (isTRUE(is_r_minor_sensitive)) {
+    sprintf(
+      "s3://%s/%s/%s_%s.tar.gz",
+      remote_bin_path,
+      current_r_minor(),
+      package_name,
+      os_version
+    )
+  } else {
+    sprintf(
+      "s3://%s/%s_%s.tar.gz",
+      remote_bin_path,
+      package_name,
+      os_version
+    )
+  }
+
+  if (!s3fs::s3_file_exists(remote_path)) {
+    return(FALSE)
+  }
+
+  md5 <- remote_object_md5(remote_path)
+  if (is.na(md5)) {
+    return(TRUE)
+  }
+
+  is_source <- is_cran_source_tarball(package_name, os_version, md5)
+  if (isTRUE(is_source)) {
+    log_info(sprintf(
+      "{.fun check_for_binary}: {.pkg %s} {.field %s} is the CRAN source, not a binary. Reporting it as missing so the build is retried.",
+      package_name,
+      os_version
+    ))
+  }
+  !isTRUE(is_source)
 }
 
 #' @importFrom purrr rate_backoff

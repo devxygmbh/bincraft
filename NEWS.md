@@ -1,5 +1,17 @@
 # bincraft (development version)
 
+- A package that failed to build is no longer mistaken for a binary.
+  When a build fails, `handle_post_build_actions()` publishes the CRAN _source_ tarball in its place so the package stays installable, but `check_for_binary()` only tested that an object existed at the path.
+  The fallback therefore became permanent: the build was never retried, and the missing-binaries audit never reported it, because the object was there.
+  On `amd64/alpine324` that left 13,547 of 24,134 comparable objects (56%) as CRAN sources, all published during the June 2026 bootstrap; `amd64/noble` sits at 4.6% for comparison.
+  `check_for_binary()` now compares the object's MD5 against CRAN's published `MD5sum`, which costs no downloads, and reports a source fallback as missing.
+  When the MD5 cannot be established (a multipart ETag, or CRAN unreachable) the object still counts as a binary, so neither can trigger an endless rebuild.
+- `check_for_binary()` now honours `is_r_minor_sensitive`.
+  It looked in the generic slot even for per-minor packages, while the source fallback wrote them to the per-minor slot, so it never found an existing per-minor build.
+- The `Built` stamp is no longer written onto packages served as their CRAN source.
+  The stamp is applied to a whole slot at once, so it landed on the source fallbacks too and advertised them as binaries: `uvr` then installs one without the system `-dev` libraries a source build needs, and paquetier files it under a platform it was never built for.
+  `upload_package_index()` now clears `Built` on records whose MD5 matches CRAN's.
+  Archived versions are left alone, since CRAN's index carries only current releases.
 - A per-minor `PACKAGES*` index is now republished as a union with the generic slot.
   A per-minor slot carries only the ABI-sensitive packages, and `contrib.url()` can only ever address `<repos>/src/contrib`, so those packages were unreachable from `install.packages()`: on `amd64/alpine324` 2,886 packages, `curl` among them, existed only in the per-minor slot and were absent from the index base R reads.
   `upload_package_index()` now merges the generic slot's records into the per-minor index before uploading it, tagging the per-minor records with `Path: <r_minor>` so their tarballs still resolve into `…/src/contrib/<r_minor>/` while the generic ones resolve into `…/src/contrib/`.
