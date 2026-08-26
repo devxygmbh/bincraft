@@ -12,7 +12,7 @@ depends_on:
 
 steps:
   changelog:
-    image: reg.devxy.io/docker.io/thegeeklab/git-sv:3.0.1
+    image: reg.devxy.io/docker.io/thegeeklab/git-sv:3.0.2
     commands:
       - apk add --no-cache -q sed
       # bump to the next development version; the tagged commit itself carries
