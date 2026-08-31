@@ -36,15 +36,25 @@ check_package_error <- function(con, table_name, pair, platform, arch) {
     return(FALSE)
   }
 
+  # Scoped to the R minor this build is running under. A failure is a fact
+  # about one interpreter, not about the platform: a package that cannot build
+  # under 4.5 may build perfectly under 4.6, and often does - the per-minor
+  # slots exist precisely because these builds differ.
+  #
+  # Without the scope every non-primary pass inherits the primary's failures
+  # and skips them, so the per-minor slots can never be filled by rebuilding.
+  # One resolute run skipped 6988 of 7064 attempts this way and built nothing.
+  r_minor <- get_minor_version()
   result <- purrr::insistently(
     ~ DBI::dbGetQuery(
       con,
       paste0(
         "SELECT error_occurred FROM ",
         table_name,
-        " WHERE name = $1 AND tag = $2 AND platform = $3 AND arch = $4"
+        " WHERE name = $1 AND tag = $2 AND platform = $3 AND arch = $4",
+        " AND substring(r_version from '^[0-9]+[.][0-9]+') = $5"
       ),
-      params = list(pair$pkg, pair$tag, platform, arch)
+      params = list(pair$pkg, pair$tag, platform, arch, r_minor)
     ),
     rate = retry_config,
     quiet = FALSE
