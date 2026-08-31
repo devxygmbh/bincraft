@@ -187,6 +187,44 @@ test_that("a per-minor binary still shadows a generic binary of the same minor",
   expect_identical(unname(union[union[, "Package"] == "curl", "Path"]), "4.5")
 })
 
+test_that("clearing source stamps before the union is what lets the union see them", {
+  # Regression: upload_package_index() used to clear the Built stamp *after*
+  # merging, so every source fallback still looked like a binary at merge time
+  # and the union kept steering clients to sources. The stamp is applied to the
+  # whole slot up front, so a fallback carries one until it is cleared, and the
+  # union reads Built to decide whether a per-minor record may hide a generic
+  # binary. Order the two the wrong way round and the demotion silently no-ops.
+  md5 <- c("curl_7.1.0" = "cran-source-md5")
+
+  # A per-minor record that is really CRAN's source tarball, still stamped.
+  minor <- records(c(
+    Package = "curl",
+    Version = "7.1.0",
+    MD5sum = "cran-source-md5",
+    Built = "R 4.5.3; x86_64-pc-linux-gnu; 2026-08-01 00:00:00 UTC; unix"
+  ))
+  flat <- records(c(
+    Package = "curl",
+    Version = "7.1.0",
+    MD5sum = "a-real-binary",
+    Built = "R 4.5.3; x86_64-pc-linux-gnu; 2026-07-26 11:54:49 UTC; unix"
+  ))
+
+  # Wrong order: union first, so the fallback still looks like a binary.
+  wrong <- union_index_records(minor, flat, r_minor = "4.5")
+  wrong <- clear_built_for_sources(wrong, md5_table = md5)
+  expect_identical(unname(wrong[wrong[, "Package"] == "curl", "Path"]), "4.5")
+
+  # Right order: clear first, so the union sees a source and keeps the binary.
+  right <- clear_built_for_sources(minor, md5_table = md5)
+  right <- union_index_records(right, flat, r_minor = "4.5")
+  expect_true(is.na(right[right[, "Package"] == "curl", "Path"]))
+  expect_identical(
+    unname(right[right[, "Package"] == "curl", "MD5sum"]),
+    "a-real-binary"
+  )
+})
+
 test_that("union_index_records keeps every column of both inputs", {
   union <- union_index_records(
     minor_records = records(c(Package = "curl", Built = "R 4.5.3")),

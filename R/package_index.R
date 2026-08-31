@@ -389,6 +389,27 @@ upload_package_index <- function(
   # failure here leaves the published index untouched.
   records <- readRDS("PACKAGES.rds")
 
+  # Clear the stamp before the union, not after. `built_stamp()` is applied to
+  # the whole slot, so it also lands on packages whose build failed and were
+  # published as their CRAN source. Advertising a source tarball as a binary
+  # makes `uvr` install it without the system `-dev` libraries a source build
+  # needs.
+  #
+  # The ordering matters beyond that: `union_index_records()` decides whether a
+  # per-minor record may hide a generic binary by asking whether it is a binary
+  # at all, and it reads `Built` to answer. Clearing afterwards would leave
+  # every source fallback looking like a binary at merge time, and the union
+  # would keep steering clients to sources.
+  before <- sum(!is.na(records[, "Built"]))
+  records <- clear_built_for_sources(records)
+  cleared <- before - sum(!is.na(records[, "Built"]))
+  if (cleared > 0L) {
+    log_info(sprintf(
+      "Cleared the {.field Built} stamp on %s CRAN-source records (failed builds served as source).",
+      cleared
+    ))
+  }
+
   # A per-minor slot carries only the ABI-sensitive packages, so its index is
   # republished as a union with the generic slot. This is deliberately fatal:
   # leaving the previously published union in place is far better than replacing
@@ -405,20 +426,6 @@ upload_package_index <- function(
       "Merged the generic slot into the {.field %s} index: %s records.",
       r_minor,
       nrow(records)
-    ))
-  }
-
-  # The stamp above is applied to the whole slot, so it also lands on the
-  # packages whose build failed and were published as their CRAN source. Clear
-  # it there: advertising a source tarball as a binary makes `uvr` install it
-  # without the system `-dev` libraries a source build needs.
-  before <- sum(!is.na(records[, "Built"]))
-  records <- clear_built_for_sources(records)
-  cleared <- before - sum(!is.na(records[, "Built"]))
-  if (cleared > 0L) {
-    log_info(sprintf(
-      "Cleared the {.field Built} stamp on %s CRAN-source records (failed builds served as source).",
-      cleared
     ))
   }
 
