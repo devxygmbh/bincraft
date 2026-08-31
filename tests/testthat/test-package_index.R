@@ -124,6 +124,69 @@ test_that("union_index_records lets the per-minor build shadow the generic one",
   expect_identical(sort(unique(union[, "Package"])), c("curl", "jsonlite"))
 })
 
+test_that("a per-minor source fallback does not hide a generic binary of the same minor", {
+  # The per-minor build fell back to source, but the generic slot holds a
+  # binary built under this very minor. Same ABI, already compiled: steering
+  # the client to the source would be slower for no correctness gain.
+  union <- union_index_records(
+    minor_records = records(c(Package = "curl", Version = "7.1.0")),
+    flat_records = records(c(
+      Package = "curl",
+      Version = "7.1.0",
+      Built = "R 4.5.3; x86_64-pc-linux-gnu; 2026-07-26 11:54:49 UTC; unix"
+    )),
+    r_minor = "4.5"
+  )
+
+  expect_identical(nrow(union), 1L)
+  expect_true(is.na(union[union[, "Package"] == "curl", "Path"]))
+  expect_match(
+    unname(union[union[, "Package"] == "curl", "Built"]),
+    "^R 4\\.5\\.3"
+  )
+})
+
+test_that("a per-minor source fallback still shadows a generic binary of another minor", {
+  # Here the generic binary was built under 4.4 while the client is on 4.5. For
+  # an ABI-risky package that is the load-time failure the per-minor slot exists
+  # to prevent, so the source fallback must win.
+  union <- union_index_records(
+    minor_records = records(c(Package = "curl", Version = "7.1.0")),
+    flat_records = records(c(
+      Package = "curl",
+      Version = "7.1.0",
+      Built = "R 4.4.3; x86_64-pc-linux-gnu; 2026-07-26 11:54:49 UTC; unix"
+    )),
+    r_minor = "4.5"
+  )
+
+  expect_identical(nrow(union), 1L)
+  expect_identical(unname(union[union[, "Package"] == "curl", "Path"]), "4.5")
+})
+
+test_that("a per-minor binary still shadows a generic binary of the same minor", {
+  union <- union_index_records(
+    minor_records = records(c(
+      Package = "curl",
+      Version = "7.1.0",
+      Built = "R 4.5.3; x86_64-pc-linux-gnu; 2026-08-01 00:00:00 UTC; unix"
+    )),
+    flat_records = records(c(
+      Package = "curl",
+      Version = "6.2.3",
+      Built = "R 4.5.3; x86_64-pc-linux-gnu; 2026-07-26 11:54:49 UTC; unix"
+    )),
+    r_minor = "4.5"
+  )
+
+  expect_identical(nrow(union), 1L)
+  expect_identical(
+    unname(union[union[, "Package"] == "curl", "Version"]),
+    "7.1.0"
+  )
+  expect_identical(unname(union[union[, "Package"] == "curl", "Path"]), "4.5")
+})
+
 test_that("union_index_records keeps every column of both inputs", {
   union <- union_index_records(
     minor_records = records(c(Package = "curl", Built = "R 4.5.3")),

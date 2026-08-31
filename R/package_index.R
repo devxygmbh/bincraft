@@ -145,6 +145,43 @@ union_index_records <- function(minor_records, flat_records, r_minor) {
     minor[, "Path"] <- r_minor
   }
 
+  # A per-minor entry only earns the right to hide the generic one when it is
+  # actually a binary. When the per-minor build fell back to source but the
+  # generic slot holds a binary built under this very minor, that binary is the
+  # better artifact by every measure: same ABI, no compile on the client.
+  # Steering to the source there would make a working install slower for no
+  # correctness gain.
+  #
+  # This deliberately does not apply when the generic binary was built under a
+  # *different* minor. For an ABI-risky package that is the load-time failure
+  # the per-minor slots exist to prevent, so the source fallback stays.
+  # `Built` is absent from both inputs when neither slot carries a binary, so
+  # read it defensively rather than widening the output schema.
+  built_of <- function(records) {
+    if ("Built" %in% colnames(records)) {
+      records[, "Built"]
+    } else {
+      rep(NA_character_, nrow(records))
+    }
+  }
+
+  minor_built <- built_of(minor)
+  flat_built <- built_of(flat)
+
+  minor_is_source <- is.na(minor_built) | !nzchar(minor_built)
+  flat_matches_minor <- !is.na(flat_built) &
+    nzchar(flat_built) &
+    sub("^R ([0-9]+\\.[0-9]+).*$", "\\1", flat_built) == r_minor
+
+  demoted <- minor[minor_is_source, "Package", drop = TRUE]
+  promoted <- flat[, "Package"] %in% demoted & flat_matches_minor
+
+  minor <- minor[
+    !(minor[, "Package"] %in% flat[promoted, "Package"]),
+    ,
+    drop = FALSE
+  ]
+
   shadowed <- flat[, "Package"] %in% minor[, "Package"]
   rbind(minor, flat[!shadowed, , drop = FALSE])
 }
