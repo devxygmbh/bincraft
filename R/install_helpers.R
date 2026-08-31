@@ -77,16 +77,25 @@ clone_package_repo <- function(package_name, tag, local_clone_dir_single) {
   )
 
   if (!dir.exists(local_clone_dir_single)) {
-    system2(
-      "git",
-      args = c(
-        "clone",
-        "-q",
-        sprintf("--branch=%s", tail(tag, 1L)),
-        sprintf("https://github.com/cran/%s", package_name[1L]),
-        local_clone_dir_single
+    repo_url <- sprintf("https://github.com/cran/%s", package_name[1L])
+    status <- git_no_prompt(c(
+      "clone",
+      "-q",
+      sprintf("--branch=%s", tail(tag, 1L)),
+      repo_url,
+      local_clone_dir_single
+    ))
+    if (!identical(as.integer(status), 0L)) {
+      stop(
+        sprintf(
+          "Could not clone %s at tag '%s' (git exited %s). The cran mirror lags CRAN, so a recently published package or version is often not there yet.",
+          repo_url,
+          tail(tag, 1L),
+          status
+        ),
+        call. = FALSE
       )
-    )
+    }
   }
 }
 

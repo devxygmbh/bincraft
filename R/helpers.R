@@ -96,6 +96,41 @@ current_r_minor <- function() {
   )
 }
 
+#' Run git without ever asking for credentials
+#'
+#' A clone of a repository GitHub does not have returns 404, and git responds
+#' by asking for a username - a private repository would need one. On a runner
+#' that surfaces as
+#'
+#' ```
+#' fatal: could not read Username for 'https://github.com': terminal prompts disabled
+#' ```
+#'
+#' which reads like a permissions problem and is nothing of the kind. Prompts
+#' are disabled explicitly here rather than relying on the ambient environment,
+#' so the failure is deterministic, and the exit status is returned so callers
+#' can say what actually went wrong instead of carrying on without a clone.
+#'
+#' @param args Arguments passed to `git`.
+#' @param ... Passed to [system2()].
+#'
+#' @return Whatever [system2()] returns: the exit status, or the captured
+#'   output when `stdout` is requested.
+#' @keywords internal
+#' @noRd
+git_no_prompt <- function(args, ...) {
+  system2(
+    "git",
+    args = args,
+    env = c(
+      "GIT_TERMINAL_PROMPT=0",
+      "GIT_ASKPASS=echo",
+      "GCM_INTERACTIVE=never"
+    ),
+    ...
+  )
+}
+
 #' Version most recently published on the `cran` GitHub mirror
 #'
 #' The mirror commits once per CRAN release with `version <x.y.z>` as the

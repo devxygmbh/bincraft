@@ -433,9 +433,8 @@ fetch_tags_via_api <- function(
 fetch_tags_via_ls_remote <- function(package_name, source_org_url, tag_limit) {
   repo_url <- sprintf("%s/%s", source_org_url, package_name)
   output <- tryCatch(
-    system2(
-      "git",
-      args = c("ls-remote", "--tags", "--sort=-version:refname", repo_url),
+    git_no_prompt(
+      c("ls-remote", "--tags", "--sort=-version:refname", repo_url),
       stdout = TRUE,
       stderr = FALSE
     ),
@@ -1639,16 +1638,25 @@ clone_repository <- function(
 
   gert::git_config_global_set("advice.detachedHead", "false")
 
-  system2(
-    "git",
-    args = c(
-      "clone",
-      "-q",
-      sprintf("--branch=%s", tag),
-      file.path(source_org_url, package_name),
-      local_clone_dir_single
+  clone_url <- file.path(source_org_url, package_name)
+  clone_status <- git_no_prompt(c(
+    "clone",
+    "-q",
+    sprintf("--branch=%s", tag),
+    clone_url,
+    local_clone_dir_single
+  ))
+  if (!identical(as.integer(clone_status), 0L)) {
+    stop(
+      sprintf(
+        "Could not clone %s at tag '%s' (git exited %s). The cran mirror lags CRAN, so a recently published package or version is often not there yet.",
+        clone_url,
+        tag,
+        clone_status
+      ),
+      call. = FALSE
     )
-  )
+  }
 }
 
 #' Handle system dependency installation
