@@ -35,3 +35,11 @@ R_NewEnv
 R_BindingIsLocked
 R_LockBinding
 R_MakeActiveBinding
+
+# Added 2026-08-31 after a live break: rlang 1.3.0 built under R 4.4.3 failed to
+# load in R 4.6.1 with `undefined symbol: SETLENGTH`. R 4.6 no longer exports
+# it. rlang itself was already covered by abi_risky_linking_deps.txt, so the
+# value here is the packages that reach for SETLENGTH without linking to a
+# risky dependency: those were classified safe-compiled and shipped from the
+# generic slot, where a single build serves every R minor.
+SETLENGTH

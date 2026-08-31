@@ -258,6 +258,28 @@ test_that("needs_per_minor_recompile: risky (symbol) returns TRUE with reason", 
   expect_identical(attr(result, "hits"), "R_mkClosure")
 })
 
+test_that("a package reaching for SETLENGTH is risky", {
+  # R 4.6 stopped exporting SETLENGTH. rlang 1.3.0 built under R 4.4.3 failed to
+  # load there with `undefined symbol: SETLENGTH`; a package using it without
+  # linking to a risky dependency would otherwise be classified safe-compiled
+  # and served from the generic slot, where one build serves every R minor.
+  pkg <- withr::local_tempdir()
+  dir.create(file.path(pkg, "src"))
+  writeLines(
+    c("Package: setlengthy", "Version: 1.0", "NeedsCompilation: yes"),
+    file.path(pkg, "DESCRIPTION")
+  )
+  writeLines(
+    c("#include <Rinternals.h>", "void f(SEXP x) { SETLENGTH(x, 1); }"),
+    file.path(pkg, "src", "f.c")
+  )
+
+  result <- needs_per_minor_recompile(pkg)
+  expect_true(as.logical(result))
+  expect_identical(attr(result, "tier"), "risky")
+  expect_true("SETLENGTH" %in% attr(result, "hits"))
+})
+
 test_that("getters expose the curated lists", {
   symbols <- abi_volatile_symbols()
   expect_type(symbols, "character")
