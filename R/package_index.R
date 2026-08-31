@@ -99,7 +99,12 @@ package_index_remote_dir <- function(
 #' @return A character matrix of both slots' records, with a `Path` column.
 #' @keywords internal
 #' @noRd
-union_index_records <- function(minor_records, flat_records, r_minor) {
+union_index_records <- function(
+  minor_records,
+  flat_records,
+  r_minor,
+  risky_packages = character()
+) {
   usable_minor <- length(r_minor) == 1L &&
     !is.na(r_minor) &&
     grepl("^[0-9]+\\.[0-9]+$", r_minor)
@@ -155,8 +160,8 @@ union_index_records <- function(minor_records, flat_records, r_minor) {
   # This deliberately does not apply when the generic binary was built under a
   # *different* minor. For an ABI-risky package that is the load-time failure
   # the per-minor slots exist to prevent, so the source fallback stays.
-  # `Built` is absent from both inputs when neither slot carries a binary, so
-  # read it defensively rather than widening the output schema.
+  # `Built` is absent from every input when no slot carries a binary, so read
+  # it defensively rather than widening the output schema.
   built_of <- function(records) {
     if ("Built" %in% colnames(records)) {
       records[, "Built"]
@@ -183,7 +188,40 @@ union_index_records <- function(minor_records, flat_records, r_minor) {
   ]
 
   shadowed <- flat[, "Package"] %in% minor[, "Package"]
-  rbind(minor, flat[!shadowed, , drop = FALSE])
+  carried <- flat[!shadowed, , drop = FALSE]
+
+  # A generic record carried into a per-minor index is only safe when the
+  # package tolerates any R minor. For one known to be ABI-risky, a binary
+  # built under a different minor is the failure this whole slot exists to
+  # prevent: it installs, then dies at load with an undefined symbol.
+  #
+  # Absence from `minor_records` cannot distinguish "not risky, generic binary
+  # is fine" from "risky but never built for this minor" - they look identical
+  # here, and need opposite treatment. `risky_packages` supplies that, and an
+  # empty vector leaves behaviour unchanged.
+  #
+  # Such a record is dropped rather than rewritten: there is no per-minor
+  # object to point at, and a package reported as unavailable is a far better
+  # failure than one that loads a mismatched binary.
+  if (nrow(carried) > 0L && length(risky_packages) > 0L) {
+    carried_built <- built_of(carried)
+    carried_minor <- sub("^R ([0-9]+\\.[0-9]+).*$", "\\1", carried_built)
+    unsafe <- carried[, "Package"] %in%
+      risky_packages &
+      !is.na(carried_built) &
+      nzchar(carried_built) &
+      carried_minor != r_minor
+    if (any(unsafe)) {
+      log_info(sprintf(
+        "Dropped %s ABI-risky package(s) from the {.field %s} index: built under another R minor and never built for this one.",
+        sum(unsafe),
+        r_minor
+      ))
+      carried <- carried[!unsafe, , drop = FALSE]
+    }
+  }
+
+  rbind(minor, carried)
 }
 
 #' Rewrite a slot's index files from a set of records
@@ -225,6 +263,53 @@ write_index_files <- function(dir, records) {
 #' @return A character matrix of index records.
 #' @keywords internal
 #' @noRd
+#' Packages built into any per-minor slot of a repository
+#'
+#' A package only lands in a per-minor slot because the ABI classifier called
+#' it risky, so its presence in *any* of them is proof for *all* of them. That
+#' is the signal `union_index_records()` needs to tell "not risky" from "risky
+#' but never built for this minor", which are indistinguishable from a single
+#' minor's records.
+#'
+#' Reads object names, not indexes: what is actually built is the question, and
+#' a sibling index may be mid-republish.
+#'
+#' @param s3_bucket,arch,codename Identify the repository.
+#' @param minors `"major.minor"` strings to inspect.
+#'
+#' @return Character vector of package names, possibly empty. An unreadable
+#'   slot contributes nothing rather than erroring: a missing signal must
+#'   degrade to today's behaviour, never to dropping packages.
+#' @keywords internal
+#' @noRd
+risky_packages_across_minors <- function(s3_bucket, arch, codename, minors) {
+  found <- lapply(minors, function(minor) {
+    dir <- package_index_remote_dir(s3_bucket, arch, codename, r_minor = minor)
+    files <- tryCatch(
+      s3fs::s3_dir_ls(dir, type = "file"),
+      error = function(e) character()
+    )
+    tarballs <- grep("\\.tar\\.gz$", basename(files), value = TRUE)
+    sub("_.*$", "", tarballs)
+  })
+  unique(unlist(found, use.names = FALSE))
+}
+
+#' R minors installed in this image, as `"major.minor"` strings
+#'
+#' The build images install exactly the supported window (latest plus the two
+#' previous), so the directories under `/opt/R` are that window without needing
+#' it restated anywhere.
+#'
+#' @return Character vector, possibly empty off-image.
+#' @keywords internal
+#' @noRd
+installed_r_minors <- function(root = "/opt/R") {
+  dirs <- list.dirs(root, full.names = FALSE, recursive = FALSE)
+  versions <- grep("^[0-9]+\\.[0-9]+\\.[0-9]+$", dirs, value = TRUE)
+  unique(sub("^([0-9]+\\.[0-9]+).*$", "\\1", versions))
+}
+
 read_remote_index <- function(remote_dir) {
   local_copy <- tempfile(fileext = ".rds")
   on.exit(unlink(local_copy), add = TRUE)
@@ -420,7 +505,13 @@ upload_package_index <- function(
       flat_records = read_remote_index(
         package_index_remote_dir(s3_bucket, arch, codename)
       ),
-      r_minor = r_minor
+      r_minor = r_minor,
+      risky_packages = risky_packages_across_minors(
+        s3_bucket,
+        arch,
+        codename,
+        minors = setdiff(installed_r_minors(), r_minor)
+      )
     )
     log_success(sprintf(
       "Merged the generic slot into the {.field %s} index: %s records.",

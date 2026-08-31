@@ -225,6 +225,66 @@ test_that("clearing source stamps before the union is what lets the union see th
   )
 })
 
+test_that("a risky package is dropped rather than served from another minor", {
+  # rlang on amd64/resolute: built for 4.4 and 4.5, never for 4.6, so the 4.6
+  # union carried the generic 4.5.3 binary through. It installs and then dies
+  # with `undefined symbol: SETLENGTH`. Absent a 4.6 object to point at, the
+  # honest answer is that the package is unavailable.
+  union <- union_index_records(
+    minor_records = records(c(Package = "curl", Version = "7.1.0")),
+    flat_records = records(
+      c(
+        Package = "rlang",
+        Version = "1.3.0",
+        Built = "R 4.5.3; x86_64-pc-linux-gnu; 2026-07-26 11:54:49 UTC; unix"
+      ),
+      c(
+        Package = "jsonlite",
+        Version = "2.0.0",
+        Built = "R 4.5.3; x86_64-pc-linux-gnu; 2026-07-26 11:54:49 UTC; unix"
+      )
+    ),
+    r_minor = "4.6",
+    risky_packages = "rlang"
+  )
+
+  expect_false("rlang" %in% union[, "Package"])
+  # jsonlite is not risky, so a generic binary of any minor is fine for it.
+  expect_true("jsonlite" %in% union[, "Package"])
+})
+
+test_that("a risky package built for this very minor is kept", {
+  union <- union_index_records(
+    minor_records = records(c(Package = "curl", Version = "7.1.0")),
+    flat_records = records(c(
+      Package = "rlang",
+      Version = "1.3.0",
+      Built = "R 4.6.0; x86_64-pc-linux-gnu; 2026-07-26 11:54:49 UTC; unix"
+    )),
+    r_minor = "4.6",
+    risky_packages = "rlang"
+  )
+
+  expect_true("rlang" %in% union[, "Package"])
+})
+
+test_that("an empty risky set leaves behaviour unchanged", {
+  # A slot listing that failed must degrade to today's behaviour, never to
+  # dropping packages wholesale.
+  args <- list(
+    minor_records = records(c(Package = "curl", Version = "7.1.0")),
+    flat_records = records(c(
+      Package = "rlang",
+      Version = "1.3.0",
+      Built = "R 4.5.3; x86_64-pc-linux-gnu; 2026-07-26 11:54:49 UTC; unix"
+    )),
+    r_minor = "4.6"
+  )
+
+  union <- do.call(union_index_records, args)
+  expect_true("rlang" %in% union[, "Package"])
+})
+
 test_that("union_index_records keeps every column of both inputs", {
   union <- union_index_records(
     minor_records = records(c(Package = "curl", Built = "R 4.5.3")),
