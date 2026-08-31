@@ -220,16 +220,16 @@ upload_source_tarball <- function(
 
   codename <- set_codename(codename)
   remote_bin_path <- set_bin_path(local_output_dir_root = s3_bucket, codename)
-  version <- strsplit(
-    purrr::insistently(
-      ~ gh::gh(sprintf("GET /repos/cran/%s/commits", package_name)),
-      rate = retry_config,
-      quiet = FALSE
-    )()[[
-      1L
-    ]]$commit$message,
-    "version "
-  )[[1L]][2]
+  version <- cran_mirror_version(package_name)
+  if (is.na(version)) {
+    stop(
+      sprintf(
+        "The cran mirror has no repository for '%s', so its published version cannot be read.",
+        package_name
+      ),
+      call. = FALSE
+    )
+  }
 
   tmpfile <- tempfile()
   # this can fail, e.g. if there was a new package published and shortly

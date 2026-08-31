@@ -96,6 +96,45 @@ current_r_minor <- function() {
   )
 }
 
+#' Version most recently published on the `cran` GitHub mirror
+#'
+#' The mirror commits once per CRAN release with `version <x.y.z>` as the
+#' message, which is how the published version is read back.
+#'
+#' A 404 means the mirror has no repository for the package at all. That is
+#' permanent - the mirror lags CRAN, so a package that has just appeared is
+#' simply not there yet - and retrying it cannot succeed. Retried through
+#' `retry_config` it costs ten attempts on a backoff capped at 60s, about five
+#' minutes, and then aborts whatever job asked. `AsyPeer 0.0.1` took out an
+#' entire build that way hours after being published.
+#'
+#' Transient failures are still retried.
+#'
+#' @param package_name Package to look up.
+#' @param rate Retry policy for transient failures.
+#'
+#' @return The published version, or `NA_character_` when the mirror does not
+#'   carry the package.
+#' @keywords internal
+#' @noRd
+cran_mirror_version <- function(package_name, rate = retry_config) {
+  commits <- purrr::insistently(
+    function() {
+      tryCatch(
+        gh::gh(sprintf("GET /repos/cran/%s/commits", package_name)),
+        http_error_404 = function(e) NULL
+      )
+    },
+    rate = rate,
+    quiet = FALSE
+  )()
+
+  if (is.null(commits) || length(commits) == 0L) {
+    return(NA_character_)
+  }
+  strsplit(commits[[1L]]$commit$message, "version ")[[1L]][2L]
+}
+
 #' Checks whether a binary for the latest package version exists
 #'
 #' "A binary exists" is not the same as "the object exists". A package that
@@ -147,16 +186,18 @@ check_for_binary <- function(
   )
   codename <- set_codename(codename)
   remote_bin_path <- set_bin_path(local_output_dir_root = s3_bucket, codename)
-  os_version <- strsplit(
-    purrr::insistently(
-      ~ gh::gh(sprintf("GET /repos/cran/%s/commits", package_name)),
-      rate = retry_config,
-      quiet = FALSE
-    )()[[
-      1L
-    ]]$commit$message,
-    "version "
-  )[[1L]][2L]
+  os_version <- cran_mirror_version(package_name)
+  if (is.na(os_version)) {
+    # No repository on the mirror means no version to check against, and the
+    # documented convention here is that an undeterminable answer counts as a
+    # binary: that keeps an unreachable upstream from driving an endless
+    # rebuild loop, and it keeps one unmirrored package from aborting a shard.
+    log_info(sprintf(
+      "{.fun check_for_binary}: the cran mirror has no repository for {.pkg %s}. Treating it as already built.",
+      package_name
+    ))
+    return(TRUE)
+  }
   # An r-minor-sensitive build lives in the per-minor slot, and that is where
   # the source fallback writes it too, so the flat path would never find it.
   remote_path <- if (isTRUE(is_r_minor_sensitive)) {
