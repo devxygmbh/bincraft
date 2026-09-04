@@ -61,6 +61,44 @@ upload_single_binary <- function(
     refresh = TRUE
   )
 
+  # The caller's verdict is a source-level guess made before this binary
+  # existed. Now that it does, the question is decidable: a package fails at
+  # dyn.load() under an R minor exactly when its shared objects reference a
+  # symbol that minor does not export.
+  #
+  # The guess is wrong in both directions. `LinkingTo: Rcpp` alone flagged 93%
+  # of compiled packages on amd64/resolute, while the curated symbol list missed
+  # SET_FORMALS, SET_CLOENV, SET_TRUELENGTH and the ALTREP accessors, so
+  # packages using those were written to the flat slot and served across minors.
+  # That is how base64enc reached R 4.6 clients.
+  #
+  # Only an actual inspection overrides the caller. Without `nm`, without an
+  # /opt/R tree to diff, or on any parse failure the verdict is `inspected =
+  # FALSE` and the caller's decision stands unchanged.
+  verdict <- tarball_abi_verdict(local_tarball_path)
+  if (
+    isTRUE(verdict$inspected) &&
+      !identical(verdict$sensitive, is_r_minor_sensitive)
+  ) {
+    log_info(sprintf(
+      "{.fun upload_single_binary}: {.pkg %s} {.field %s}: symbol inspection says r_minor_sensitive=%s, caller said %s.%s",
+      package_name,
+      tag,
+      verdict$sensitive,
+      is_r_minor_sensitive,
+      if (length(verdict$symbols) > 0L) {
+        sprintf(
+          " Volatile symbols referenced: %s (absent from R %s).",
+          toString(utils::head(verdict$symbols, 5L)),
+          toString(verdict$unsupported)
+        )
+      } else {
+        " No volatile symbols referenced."
+      }
+    ))
+    is_r_minor_sensitive <- verdict$sensitive
+  }
+
   if (is_r_minor_sensitive) {
     minor_version <- paste(
       R.version$major,
