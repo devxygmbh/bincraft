@@ -76,7 +76,10 @@ upload_single_binary <- function(
   # /opt/R tree to diff, or on any parse failure the verdict is `inspected =
   # FALSE` and the caller's decision stands unchanged.
   verdict <- tarball_abi_verdict(local_tarball_path)
-  if (isTRUE(verdict$inspected) && !identical(verdict$sensitive, is_r_minor_sensitive)) {
+  if (
+    isTRUE(verdict$inspected) &&
+      !identical(verdict$sensitive, is_r_minor_sensitive)
+  ) {
     log_info(sprintf(
       "{.fun upload_single_binary}: {.pkg %s} {.field %s}: symbol inspection says r_minor_sensitive=%s, caller said %s.%s",
       package_name,
