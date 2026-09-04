@@ -179,7 +179,7 @@ shared_object_abi_verdict <- function(
   referenced <- sort(intersect(needed, volatile))
   unsupported <- names(sets)[vapply(
     sets,
-    function(exported) any(!(referenced %in% exported)),
+    function(exported) !all(referenced %in% exported),
     logical(1L)
   )]
   list(
