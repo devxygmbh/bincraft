@@ -369,3 +369,51 @@ test_that("write_index_files rewrites all three index files in step", {
     "4.5"
   )
 })
+
+test_that("a package known risky only from the cache is still dropped", {
+  # base64enc predates the per-minor scheme: it has no per-minor tarball, so
+  # `risky_packages_across_minors()` cannot see it, and having no new CRAN
+  # version it never re-entered the build list to be classified. Its 4.4-built
+  # binary was therefore carried into the 4.6 index and died at dyn.load() on
+  # SETLENGTH. The classifier cache is the second source that knows better.
+  union <- union_index_records(
+    minor_records = records(c(Package = "curl", Version = "7.1.0")),
+    flat_records = records(c(
+      Package = "base64enc",
+      Version = "0.1-6",
+      Built = "R 4.4.3; x86_64-pc-linux-gnu; 2026-02-05 10:15:40 UTC; unix"
+    )),
+    r_minor = "4.6",
+    # what union(tarball_scan = character(0), cache = "base64enc") yields
+    risky_packages = "base64enc"
+  )
+
+  expect_false("base64enc" %in% union[, "Package"])
+})
+
+test_that("an empty cache leaves the tarball-derived risky set unchanged", {
+  # abi_cache_risky_packages() fails soft, so an unreachable cache must not
+  # widen or narrow what the scan already decided.
+  flat <- records(
+    c(
+      Package = "rlang",
+      Version = "1.3.0",
+      Built = "R 4.5.3; x86_64-pc-linux-gnu; 2026-07-26 11:54:49 UTC; unix"
+    ),
+    c(
+      Package = "jsonlite",
+      Version = "2.0.0",
+      Built = "R 4.5.3; x86_64-pc-linux-gnu; 2026-07-26 11:54:49 UTC; unix"
+    )
+  )
+  from_scan_only <- union_index_records(
+    minor_records = records(c(Package = "curl", Version = "7.1.0")),
+    flat_records = flat,
+    r_minor = "4.6",
+    risky_packages = union("rlang", character(0))
+  )
+
+  expect_false("rlang" %in% from_scan_only[, "Package"])
+  expect_true("jsonlite" %in% from_scan_only[, "Package"])
+})
+

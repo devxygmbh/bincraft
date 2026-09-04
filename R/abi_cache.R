@@ -181,3 +181,80 @@ abi_cache_store <- function(
   )
   invisible(TRUE)
 }
+
+#' Packages the classifier has judged ABI-risky, from the cache
+#'
+#' `risky_packages_across_minors()` can only see packages that already have a
+#' per-minor tarball, which makes the risky set circular: a package counts as
+#' risky only once it has been built per-minor, and one that never entered the
+#' build list is never classified, never built per-minor, and so never counts.
+#' Its flat binary is then carried into every per-minor index, which is how a
+#' 4.4-built `base64enc` reached R 4.6 clients and died at `dyn.load()` on
+#' `SETLENGTH`.
+#'
+#' The verdict is a property of the source, independent of OS, arch and R minor,
+#' so a verdict cached by any slot's build applies to every slot.
+#'
+#' Fails soft: with no cache configured, no `RPostgres`, or any query error this
+#' returns `character(0)`, leaving the caller with the tarball-derived set it
+#' had before.
+#'
+#' @param classifier_sig Cache key from [abi_classifier_signature()]. Verdicts
+#'   stored under a different signature are ignored, so editing the curated
+#'   lists does not resurrect stale answers.
+#' @inheritParams abi_cache_lookup
+#' @return Character vector of package names, possibly empty.
+#' @keywords internal
+#' @noRd
+abi_cache_risky_packages <- function(
+  classifier_sig = abi_classifier_signature(),
+  metadata_db_type = "postgres",
+  metadata_db_host = "r-binaries.devxy.io",
+  metadata_db_name = "build_metadata",
+  metadata_db_port = 15432L,
+  metadata_db_user = "rpkgs",
+  metadata_db_password = Sys.getenv("PGPASS"),
+  metadata_db_sslmode = "require",
+  metadata_db_cache_table = "abi_classification"
+) {
+  con <- tryCatch(
+    abi_cache_connect(
+      metadata_db_type,
+      metadata_db_host,
+      metadata_db_name,
+      metadata_db_port,
+      metadata_db_user,
+      metadata_db_password,
+      metadata_db_sslmode
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(con)) {
+    return(character(0))
+  }
+  on.exit(try(DBI::dbDisconnect(con), silent = TRUE), add = TRUE)
+
+  tryCatch(
+    {
+      ensure_abi_cache_table(con, metadata_db_cache_table)
+      tbl <- DBI::dbQuoteIdentifier(con, metadata_db_cache_table)
+      rows <- DBI::dbGetQuery(
+        con,
+        paste0(
+          "SELECT DISTINCT package FROM ",
+          tbl,
+          " WHERE r_minor_sensitive AND classifier_sig = $1"
+        ),
+        params = list(classifier_sig)
+      )
+      unique(as.character(rows$package))
+    },
+    error = function(e) {
+      log_info(sprintf(
+        "{.fun abi_cache_risky_packages}: cache unavailable (%s); using the tarball-derived risky set only.",
+        conditionMessage(e)
+      ))
+      character(0)
+    }
+  )
+}

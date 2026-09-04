@@ -48,3 +48,22 @@ test_that("abi_cache_connect returns NULL for a non-postgres db type", {
     )
   )
 })
+
+test_that("abi_cache_risky_packages fails soft when no cache is configured", {
+  # The index build calls this on every per-minor write. An unreachable or
+  # unconfigured cache must degrade to the tarball-derived set, never error out
+  # and never take the whole index write down with it.
+  expect_identical(
+    abi_cache_risky_packages(metadata_db_type = "none"),
+    character(0)
+  )
+  expect_identical(
+    abi_cache_risky_packages(metadata_db_host = NULL),
+    character(0)
+  )
+  expect_identical(
+    abi_cache_risky_packages(metadata_db_name = NULL),
+    character(0)
+  )
+})
+

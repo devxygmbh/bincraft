@@ -506,11 +506,20 @@ upload_package_index <- function(
         package_index_remote_dir(s3_bucket, arch, codename)
       ),
       r_minor = r_minor,
-      risky_packages = risky_packages_across_minors(
-        s3_bucket,
-        arch,
-        codename,
-        minors = setdiff(installed_r_minors(), r_minor)
+      # Two sources, because neither is sufficient alone. The tarball scan
+      # sees packages built per-minor on this slot; the classifier cache sees
+      # packages judged risky by any slot's build, including ones that predate
+      # the per-minor scheme and so have no per-minor tarball to be found by.
+      # Relying on the scan alone made the risky set circular and let a
+      # 4.4-built base64enc reach R 4.6 clients.
+      risky_packages = union(
+        risky_packages_across_minors(
+          s3_bucket,
+          arch,
+          codename,
+          minors = setdiff(installed_r_minors(), r_minor)
+        ),
+        abi_cache_risky_packages()
       )
     )
     log_success(sprintf(
