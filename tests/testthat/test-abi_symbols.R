@@ -1,4 +1,7 @@
 test_that("nm output is reduced to bare symbol names", {
+  # Ordering is radix, so it does not shift with the locale: an en_US collation
+  # sorts `__cxa_finalize` first and a C one last, which failed in CI while
+  # passing locally.
   # `nm -D` prints "<address> <type> <name>", with the address blank for
   # undefined symbols, and versioned names carry an @GLIBC suffix.
   lines <- c(
@@ -11,7 +14,7 @@ test_that("nm output is reduced to bare symbol names", {
   )
   expect_identical(
     parse_nm_output(lines),
-    c("__cxa_finalize", "R_getVar", "Rf_allocVector", "SETLENGTH")
+    c("R_getVar", "Rf_allocVector", "SETLENGTH", "__cxa_finalize")
   )
 })
 
@@ -61,7 +64,10 @@ test_that("the verdict names the minors that cannot load the binary", {
   # base64enc's shape: it references SETLENGTH, which 4.4 and 4.5 export and 4.6
   # does not, so it is sensitive and 4.6 is the minor that cannot take it.
   skip_if_not(nzchar(Sys.which("nm")), "nm is unavailable")
-  skip_if_not(nzchar(Sys.which("cc")) || nzchar(Sys.which("gcc")), "no C compiler")
+  skip_if_not(
+    nzchar(Sys.which("cc")) || nzchar(Sys.which("gcc")),
+    "no C compiler"
+  )
 
   dir <- tempfile()
   dir.create(dir)
@@ -69,8 +75,12 @@ test_that("the verdict names the minors that cannot load the binary", {
   writeLines("void SETLENGTH(void); void f(void) { SETLENGTH(); }", src)
   so <- file.path(dir, "x.so")
   cc <- if (nzchar(Sys.which("cc"))) "cc" else "gcc"
-  ok <- system2(cc, c("-shared", "-fPIC", "-o", shQuote(so), shQuote(src)),
-                stdout = FALSE, stderr = FALSE)
+  ok <- system2(
+    cc,
+    c("-shared", "-fPIC", "-o", shQuote(so), shQuote(src)),
+    stdout = FALSE,
+    stderr = FALSE
+  )
   skip_if_not(identical(ok, 0L) && file.exists(so), "could not build a fixture")
 
   sets <- list(
@@ -87,7 +97,10 @@ test_that("the verdict names the minors that cannot load the binary", {
 
 test_that("a binary touching only stable symbols is not sensitive", {
   skip_if_not(nzchar(Sys.which("nm")), "nm is unavailable")
-  skip_if_not(nzchar(Sys.which("cc")) || nzchar(Sys.which("gcc")), "no C compiler")
+  skip_if_not(
+    nzchar(Sys.which("cc")) || nzchar(Sys.which("gcc")),
+    "no C compiler"
+  )
 
   dir <- tempfile()
   dir.create(dir)
@@ -95,8 +108,12 @@ test_that("a binary touching only stable symbols is not sensitive", {
   writeLines("void Rf_error(void); void g(void) { Rf_error(); }", src)
   so <- file.path(dir, "y.so")
   cc <- if (nzchar(Sys.which("cc"))) "cc" else "gcc"
-  ok <- system2(cc, c("-shared", "-fPIC", "-o", shQuote(so), shQuote(src)),
-                stdout = FALSE, stderr = FALSE)
+  ok <- system2(
+    cc,
+    c("-shared", "-fPIC", "-o", shQuote(so), shQuote(src)),
+    stdout = FALSE,
+    stderr = FALSE
+  )
   skip_if_not(identical(ok, 0L) && file.exists(so), "could not build a fixture")
 
   # This is the case the LinkingTo heuristic gets wrong: compiled, but touching

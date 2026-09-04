@@ -63,7 +63,10 @@ parse_nm_output <- function(lines) {
   lines <- lines[nzchar(trimws(lines))]
   names <- sub("^.*\\s(\\S+)$", "\\1", lines)
   names <- sub("@.*$", "", names)
-  sort(unique(names[nzchar(names)]))
+  # `sort()` is locale-dependent, and these names mix underscores and case,
+  # so the order differs between a developer's locale and CI. Radix is always
+  # C-locale byte order.
+  sort(unique(names[nzchar(names)]), method = "radix")
 }
 
 #' Symbols exported by an R installation
@@ -132,7 +135,7 @@ cross_minor_volatile_symbols <- function(sets = installed_r_symbol_sets()) {
   }
   everywhere <- Reduce(intersect, sets)
   anywhere <- Reduce(union, sets)
-  sort(setdiff(anywhere, everywhere))
+  sort(setdiff(anywhere, everywhere), method = "radix")
 }
 
 #' The R minors a built package can be loaded under
@@ -176,7 +179,7 @@ shared_object_abi_verdict <- function(
     needed <- union(needed, syms)
   }
   volatile <- cross_minor_volatile_symbols(sets)
-  referenced <- sort(intersect(needed, volatile))
+  referenced <- sort(intersect(needed, volatile), method = "radix")
   unsupported <- names(sets)[vapply(
     sets,
     function(exported) !all(referenced %in% exported),
