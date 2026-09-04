@@ -12,6 +12,18 @@
 #' [getRversion()], so this must run in the same build environment that produced
 #' the binaries (the surrounding arch/codename logic already assumes this).
 #'
+#' It is a slot-wide stamp, not a per-package fact, and must never be read as
+#' one. cranlike parses each S3 object's DESCRIPTION from the CRAN *source*
+#' mirror, which carries no `Built` field, so a single value is applied to every
+#' record in the index. A slot accumulates objects across primary-R changes, so
+#' the stamp only describes the R that last re-indexed it: every flat record on
+#' amd64/resolute read `R 4.5` while base64enc, fastmatch, lazyeval, iotools and
+#' jsonlite were all built under 4.4.
+#'
+#' Its purpose is narrow: `uvr` decides binary-vs-source by matching the triple,
+#' and a record with no `Built` is treated as source. Do not use it to decide
+#' whether a binary is ABI-compatible with a given R minor.
+#'
 #' @keywords internal
 built_stamp <- function(
   platform = R.version$platform,
@@ -203,17 +215,29 @@ union_index_records <- function(
   # Such a record is dropped rather than rewritten: there is no per-minor
   # object to point at, and a package reported as unavailable is a far better
   # failure than one that loads a mismatched binary.
+  #
+  # The minor is deliberately NOT read from `Built` to decide this. That field
+  # is a slot-wide stamp written by `built_stamp()` from the *indexing* R, not
+  # a per-package fact: cranlike reads each DESCRIPTION from the CRAN source
+  # mirror, which carries no `Built`, so one value is applied to every record.
+  # Every flat record on amd64/resolute claimed `R 4.5` while the objects were
+  # built under 4.4, base64enc among them. Keeping a risky record because its
+  # stamp happens to match the target minor is therefore an inference from data
+  # that cannot support it.
+  #
+  # So a risky package is carried only when it is genuinely absent from the
+  # risky set, never on the strength of the stamp. A risky package that really
+  # was built for this minor has an object in the per-minor slot, which makes it
+  # `shadowed` above and it is kept for that reason instead.
   if (nrow(carried) > 0L && length(risky_packages) > 0L) {
     carried_built <- built_of(carried)
-    carried_minor <- sub("^R ([0-9]+\\.[0-9]+).*$", "\\1", carried_built)
     unsafe <- carried[, "Package"] %in%
       risky_packages &
       !is.na(carried_built) &
-      nzchar(carried_built) &
-      carried_minor != r_minor
+      nzchar(carried_built)
     if (any(unsafe)) {
       log_info(sprintf(
-        "Dropped %s ABI-risky package(s) from the {.field %s} index: built under another R minor and never built for this one.",
+        "Dropped %s ABI-risky package(s) from the {.field %s} index: no binary built for this R minor.",
         sum(unsafe),
         r_minor
       ))

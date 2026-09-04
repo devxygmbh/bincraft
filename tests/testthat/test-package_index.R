@@ -253,19 +253,47 @@ test_that("a risky package is dropped rather than served from another minor", {
   expect_true("jsonlite" %in% union[, "Package"])
 })
 
-test_that("a risky package built for this very minor is kept", {
+test_that("a risky package with a real per-minor build is kept", {
+  # Kept because an object exists in the per-minor slot, which shadows the flat
+  # record. This used to be decided by the flat record's `Built` stamp instead,
+  # which cannot support the inference: the stamp is written slot-wide from the
+  # indexing R, so every flat record on amd64/resolute claimed `R 4.5` while the
+  # objects were built under 4.4.
   union <- union_index_records(
-    minor_records = records(c(Package = "curl", Version = "7.1.0")),
-    flat_records = records(c(
+    minor_records = records(c(
       Package = "rlang",
       Version = "1.3.0",
       Built = "R 4.6.0; x86_64-pc-linux-gnu; 2026-07-26 11:54:49 UTC; unix"
+    )),
+    flat_records = records(c(
+      Package = "rlang",
+      Version = "1.3.0",
+      Built = "R 4.5.3; x86_64-pc-linux-gnu; 2026-07-26 11:54:49 UTC; unix"
     )),
     r_minor = "4.6",
     risky_packages = "rlang"
   )
 
   expect_true("rlang" %in% union[, "Package"])
+  expect_equal(sum(union[, "Package"] == "rlang"), 1L)
+})
+
+test_that("a risky package is dropped even when its stamp matches the minor", {
+  # The stamp is not per-package truth, so a match proves nothing. base64enc's
+  # flat record claimed `R 4.5` while the object was built under 4.4; trusting
+  # that would have kept a mismatched binary in the 4.5 index.
+  union <- union_index_records(
+    minor_records = records(c(Package = "curl", Version = "7.1.0")),
+    flat_records = records(c(
+      Package = "base64enc",
+      Version = "0.1-6",
+      Built = "R 4.6.0; x86_64-pc-linux-gnu; 2026-07-26 11:54:49 UTC; unix"
+    )),
+    r_minor = "4.6",
+    risky_packages = "base64enc"
+  )
+
+  expect_false("base64enc" %in% union[, "Package"])
 })
 
 test_that("an empty risky set leaves behaviour unchanged", {
