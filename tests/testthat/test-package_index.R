@@ -445,3 +445,59 @@ test_that("an empty cache leaves the tarball-derived risky set unchanged", {
   expect_true("jsonlite" %in% from_scan_only[, "Package"])
 })
 
+
+test_that("a risky package with a flat object proven safe is kept", {
+  # The regression this fixes: with the classifier calling 93% of compiled
+  # packages risky, dropping on the package alone removed ~2000 records per
+  # per-minor index. base64enc built under 4.6 references nothing that varies
+  # across 4.4-4.6, so that object serves every minor and must not be dropped.
+  union <- union_index_records(
+    minor_records = records(c(Package = "curl", Version = "7.1.0")),
+    flat_records = records(c(
+      Package = "base64enc",
+      Version = "0.1-6",
+      Built = "R 4.6.0; x86_64-pc-linux-gnu; 2026-09-04 10:27:29 UTC; unix"
+    )),
+    r_minor = "4.4",
+    risky_packages = "base64enc",
+    safe_flat_objects = "base64enc_0.1-6"
+  )
+
+  expect_true("base64enc" %in% union[, "Package"])
+})
+
+test_that("a proven-safe record of another version does not spare this one", {
+  # The record is per object, so it is keyed by version. An older verdict must
+  # not vouch for a rebuilt package.
+  union <- union_index_records(
+    minor_records = records(c(Package = "curl", Version = "7.1.0")),
+    flat_records = records(c(
+      Package = "base64enc",
+      Version = "0.1-6",
+      Built = "R 4.4.3; x86_64-pc-linux-gnu; 2026-02-05 10:15:40 UTC; unix"
+    )),
+    r_minor = "4.6",
+    risky_packages = "base64enc",
+    safe_flat_objects = "base64enc_0.1-5"
+  )
+
+  expect_false("base64enc" %in% union[, "Package"])
+})
+
+test_that("with no recorded verdicts the conservative drop still applies", {
+  # Unknown must not mean "assume portable": an empty safe set has to behave
+  # exactly as before this change.
+  union <- union_index_records(
+    minor_records = records(c(Package = "curl", Version = "7.1.0")),
+    flat_records = records(c(
+      Package = "base64enc",
+      Version = "0.1-6",
+      Built = "R 4.4.3; x86_64-pc-linux-gnu; 2026-02-05 10:15:40 UTC; unix"
+    )),
+    r_minor = "4.6",
+    risky_packages = "base64enc",
+    safe_flat_objects = character()
+  )
+
+  expect_false("base64enc" %in% union[, "Package"])
+})

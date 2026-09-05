@@ -115,7 +115,8 @@ union_index_records <- function(
   minor_records,
   flat_records,
   r_minor,
-  risky_packages = character()
+  risky_packages = character(),
+  safe_flat_objects = character()
 ) {
   usable_minor <- length(r_minor) == 1L &&
     !is.na(r_minor) &&
@@ -231,8 +232,23 @@ union_index_records <- function(
   # `shadowed` above and it is kept for that reason instead.
   if (nrow(carried) > 0L && length(risky_packages) > 0L) {
     carried_built <- built_of(carried)
+    # `risky_packages` names a package that needs a per-minor build under at
+    # least one minor. Safety is a property of the object: base64enc built under
+    # 4.6 references nothing that varies across 4.4-4.6, so that one object
+    # serves every minor, while the same package built under 4.4 does not.
+    #
+    # Dropping on the package alone removed ~2000 records per per-minor index,
+    # all resolving to source for clients the routing serves correctly. Objects
+    # recorded safe by `upload_single_binary()` are kept; an object with no
+    # record stays dropped, because unknown must not mean "assume portable".
+    carried_object <- sprintf(
+      "%s_%s",
+      carried[, "Package"],
+      carried[, "Version"]
+    )
     unsafe <- carried[, "Package"] %in%
       risky_packages &
+      !(carried_object %in% safe_flat_objects) &
       !is.na(carried_built) &
       nzchar(carried_built)
     if (any(unsafe)) {
@@ -544,7 +560,8 @@ upload_package_index <- function(
           minors = setdiff(installed_r_minors(), r_minor)
         ),
         abi_cache_risky_packages()
-      )
+      ),
+      safe_flat_objects = flat_safety_safe_set(codename, arch)
     )
     log_success(sprintf(
       "Merged the generic slot into the {.field %s} index: %s records.",

@@ -52,6 +52,30 @@ detect_linux_codename <- function() {
 #' @template param-codename
 #' @template param-local_output_dir_root
 #' @export
+#' The repository's name for this machine's architecture
+#'
+#' `set_bin_path()` and `upload_package_index()` each derived this inline. It is
+#' also needed to key per-object records, so it lives in one place.
+#'
+#' @return `"amd64"`, `"arm64"`, or `NA_character_` on an unrecognised machine.
+#' @keywords internal
+#' @noRd
+detect_arch <- function(machine = Sys.info()[["machine"]]) {
+  if (
+    grepl("arm64", machine, fixed = TRUE) ||
+      grepl("aarch64", machine, fixed = TRUE)
+  ) {
+    "arm64"
+  } else if (
+    grepl("amd64", machine, fixed = TRUE) ||
+      grepl("x86_64", machine, fixed = TRUE)
+  ) {
+    "amd64"
+  } else {
+    NA_character_
+  }
+}
+
 set_bin_path <- function(local_output_dir_root, codename) {
   local_arch <- Sys.info()[["machine"]]
   if (

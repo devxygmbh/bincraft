@@ -99,6 +99,22 @@ upload_single_binary <- function(
     is_r_minor_sensitive <- verdict$sensitive
   }
 
+  # Write the verdict down when the object is going to the flat slot. The index
+  # build cannot inspect 20k tarballs, so without a record it must assume every
+  # risky package's flat record is unsafe and drop it, which costs roughly 2000
+  # packages per per-minor index. A recorded `safe` lets it keep exactly the
+  # ones that provably load anywhere.
+  if (isTRUE(verdict$inspected) && !is_r_minor_sensitive) {
+    flat_safety_store(
+      package_name,
+      tag,
+      codename,
+      detect_arch(),
+      safe = TRUE,
+      unsupported = verdict$unsupported
+    )
+  }
+
   if (is_r_minor_sensitive) {
     minor_version <- paste(
       R.version$major,
