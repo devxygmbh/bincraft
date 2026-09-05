@@ -1,0 +1,206 @@
+# bincraft
+
+{bincraft} provides the ability to build R package binaries for Linux.
+It is the core engine of the [rpkgs.com](https://rpkgs.com) project.
+
+## Highlights ✨️
+
+- Auto-resolve package and system dependencies during installation
+- Archive multiple versions of a package into a CRAN-like archive
+  structure
+- Support storing packages in S3 instead of on disk
+- Process CRAN repository updates
+- Support building binaries for Ubuntu, RHEL and Alpine Linux
+- Allows building packages for specific R minor versions
+  (`is_r_minor_sensitive = TRUE`)
+- ABI-risk classifier ([design
+  doc](https://bincraft.doc.rpkgs.com/tools/abi-classifier.md)) tells
+  the build pipeline whether a package needs per-R-minor recompiles,
+  building-once-then-replicating, or no compile at all
+- Creation of custom/personal repositories
+
+Besides building binaries, the package optionally allows to store the
+build metadata (duration, version, name, errors, etc.) in a (Postgres)
+database.
+
+> \[!NOTE\] The package functions must be run within the desired
+> distribution for which binaries should be built for. See
+> [rpkgs/build-cran-binaries/docker](https://codefloe.com/rpkgs/build-cran-binaries/src/branch/main/docker)
+> for containerfiles which have been built for this purpose.
+
+See the [pkgdown documentation](https://bincraft.doc.rpkgs.com) for more
+details.
+
+# Package index
+
+## Main Workflow Functions
+
+High-level functions for the main binary building workflow
+
+- [`process_cran_updates()`](https://bincraft.doc.rpkgs.com/reference/process_cran_updates.md)
+  : Process updated and new CRAN packages
+- [`build_binary_package()`](https://bincraft.doc.rpkgs.com/reference/build_binary_package.md)
+  : Build R binary packages
+
+## CRAN Package Discovery
+
+Functions to discover package changes from CRAN
+
+- [`get_new_cran_packages()`](https://bincraft.doc.rpkgs.com/reference/get_new_cran_packages.md)
+  : Get new CRAN packages
+- [`get_updated_cran_packages()`](https://bincraft.doc.rpkgs.com/reference/get_updated_cran_packages.md)
+  : Get updated CRAN packages
+- [`get_removed_cran_packages()`](https://bincraft.doc.rpkgs.com/reference/get_removed_cran_packages.md)
+  : Get removed CRAN packages
+- [`get_r_minor_sensitive_packages()`](https://bincraft.doc.rpkgs.com/reference/get_r_minor_sensitive_packages.md)
+  : Returns R minor sensitive R packages
+
+## ABI Classification
+
+Classify packages by ABI-risk tier to decide per-minor rebuild strategy
+
+- [`abi_classify()`](https://bincraft.doc.rpkgs.com/reference/abi_classify.md)
+  : Classify an R source package by its ABI-risk tier
+- [`classify_r_minor_sensitive()`](https://bincraft.doc.rpkgs.com/reference/classify_r_minor_sensitive.md)
+  : Classify a single CRAN package for R-minor sensitivity
+- [`needs_per_minor_recompile()`](https://bincraft.doc.rpkgs.com/reference/needs_per_minor_recompile.md)
+  : Does this package need to be recompiled per R minor version?
+- [`abi_volatile_symbols()`](https://bincraft.doc.rpkgs.com/reference/abi_curated_lists.md)
+  [`abi_risky_linking_deps()`](https://bincraft.doc.rpkgs.com/reference/abi_curated_lists.md)
+  : ABI-risky curated lists
+
+## Archive Management
+
+Functions for archiving old package versions
+
+- [`archive_package()`](https://bincraft.doc.rpkgs.com/reference/archive_package.md)
+  : Archive packages in CRAN-like repositories
+- [`process_unarchived_pkgs()`](https://bincraft.doc.rpkgs.com/reference/process_unarchived_pkgs.md)
+  : Returns packages that need to be archived (have multiple versions)
+- [`write_archive_rds()`](https://bincraft.doc.rpkgs.com/reference/write_archive_rds.md)
+  : Create Meta/archive.rds for {remotes} package
+
+## Upload & Storage
+
+Functions for uploading packages and managing S3 storage
+
+- [`upload_single_binary()`](https://bincraft.doc.rpkgs.com/reference/upload_single_binary.md)
+  : Upload binary to S3
+- [`upload_source_tarball()`](https://bincraft.doc.rpkgs.com/reference/upload_source_tarball.md)
+  : Uploads source tarballs to S3
+- [`upload_package_index()`](https://bincraft.doc.rpkgs.com/reference/upload_package_index.md)
+  : Upload package index files to S3
+
+## Repository Index Management
+
+Functions for creating and managing CRAN-like repository indices
+
+- [`add_to_package_index()`](https://bincraft.doc.rpkgs.com/reference/add_to_package_index.md)
+  : Add package to repository index
+
+## Metadata & Database
+
+Functions for managing build metadata and database operations
+
+- [`list_metadata_tables()`](https://bincraft.doc.rpkgs.com/reference/list_metadata_tables.md)
+  : List existing database tables
+- [`query_metadata_table()`](https://bincraft.doc.rpkgs.com/reference/query_metadata_table.md)
+  : Query a specific table in the Postgres database containing the
+  metadata
+- [`query_packages_without_historic_versions()`](https://bincraft.doc.rpkgs.com/reference/query_packages_without_historic_versions.md)
+  : Returns packages that do not have any historic versions stored in S3
+- [`get_missing_pkgs_db()`](https://bincraft.doc.rpkgs.com/reference/get_missing_pkgs_db.md)
+  : Returns all packages names of CRAN packages not present in the
+  linked database
+
+## Utilities & Helpers
+
+Utility functions for configuration and checks
+
+- [`check_for_binary()`](https://bincraft.doc.rpkgs.com/reference/check_for_binary.md)
+  : Checks whether a binary for the latest package version exists
+- [`set_bin_path()`](https://bincraft.doc.rpkgs.com/reference/set_bin_path.md)
+  : Set path for binary package outputs
+- [`set_codename()`](https://bincraft.doc.rpkgs.com/reference/set_codename.md)
+  : Set codename for Linux distribution
+- [`init_repo()`](https://bincraft.doc.rpkgs.com/reference/init_repo.md)
+  : Initialize a new R repository
+- [`build_single_tag()`](https://bincraft.doc.rpkgs.com/reference/build_single_tag.md)
+  : Build binary for a single tag
+- [`install_pkg_sys_deps()`](https://bincraft.doc.rpkgs.com/reference/install_pkg_sys_deps.md)
+  : Install R dependencies and their system requirements for a package
+
+## Internal Helper Functions
+
+Internal helper functions used by the main workflow (typically not
+called directly)
+
+- [`archive_single_package()`](https://bincraft.doc.rpkgs.com/reference/archive_single_package.md)
+  : Archive a single package
+- [`artifact_version()`](https://bincraft.doc.rpkgs.com/reference/artifact_version.md)
+  : Version used in artifact names for a git tag
+- [`check_build_skip_conditions()`](https://bincraft.doc.rpkgs.com/reference/check_build_skip_conditions.md)
+  : Check if build should be skipped
+- [`check_package_error()`](https://bincraft.doc.rpkgs.com/reference/check_package_error.md)
+  : Check if a package has previous build errors
+- [`check_s3_packages()`](https://bincraft.doc.rpkgs.com/reference/check_s3_packages.md)
+  : Check S3 for existing packages
+- [`check_s3_root_package()`](https://bincraft.doc.rpkgs.com/reference/check_s3_root_package.md)
+  : Check if root package exists in S3 for check_s3_packages
+- [`clean_duplicated_packages()`](https://bincraft.doc.rpkgs.com/reference/clean_duplicated_packages.md)
+  : Clean duplicated package files
+- [`clone_package_repo()`](https://bincraft.doc.rpkgs.com/reference/clone_package_repo.md)
+  : Clone package repository
+- [`clone_repository()`](https://bincraft.doc.rpkgs.com/reference/clone_repository.md)
+  : Clone package repository
+- [`determine_packages_to_build()`](https://bincraft.doc.rpkgs.com/reference/determine_packages_to_build.md)
+  : Determine which packages need to be built
+- [`execute_package_build()`](https://bincraft.doc.rpkgs.com/reference/execute_package_build.md)
+  : Execute the actual package build
+- [`execute_package_builds()`](https://bincraft.doc.rpkgs.com/reference/execute_package_builds.md)
+  : Execute package builds with parallel processing
+- [`filter_packages_with_errors()`](https://bincraft.doc.rpkgs.com/reference/filter_packages_with_errors.md)
+  : Filter packages with previous build errors
+- [`filter_tags()`](https://bincraft.doc.rpkgs.com/reference/filter_tags.md)
+  : Filter git tags for package versions
+- [`find_old_versions()`](https://bincraft.doc.rpkgs.com/reference/find_old_versions.md)
+  : Find old package versions to archive
+- [`get_all_s3_packages()`](https://bincraft.doc.rpkgs.com/reference/get_all_s3_packages.md)
+  : Get all packages from S3 for comparison
+- [`get_archive_path()`](https://bincraft.doc.rpkgs.com/reference/get_archive_path.md)
+  : Get archive destination path
+- [`get_minor_version()`](https://bincraft.doc.rpkgs.com/reference/get_minor_version.md)
+  : Get R minor version string
+- [`get_remote_search_path()`](https://bincraft.doc.rpkgs.com/reference/get_remote_search_path.md)
+  : Archive helper functions for package archiving operations Get remote
+  search path for package archives
+- [`get_system_architecture_info()`](https://bincraft.doc.rpkgs.com/reference/get_system_architecture_info.md)
+  : Get system architecture information
+- [`handle_build_output_files()`](https://bincraft.doc.rpkgs.com/reference/handle_build_output_files.md)
+  : Handle build output files and cleanup
+- [`handle_post_build_actions()`](https://bincraft.doc.rpkgs.com/reference/handle_post_build_actions.md)
+  : Handle post-build actions
+- [`handle_system_dependencies()`](https://bincraft.doc.rpkgs.com/reference/handle_system_dependencies.md)
+  : Handle system dependency installation
+- [`initialize_build_environment()`](https://bincraft.doc.rpkgs.com/reference/initialize_build_environment.md)
+  : Initialize build environment and setup paths
+- [`list_archived_packages()`](https://bincraft.doc.rpkgs.com/reference/list_archived_packages.md)
+  : Check if root package exists in S3
+- [`move_and_rename_tarball()`](https://bincraft.doc.rpkgs.com/reference/move_and_rename_tarball.md)
+  : Move and rename built tarball files
+- [`parse_package_tag_pairs()`](https://bincraft.doc.rpkgs.com/reference/parse_package_tag_pairs.md)
+  : Build helper functions for package building operations Parse package
+  tag pairs from difference strings
+- [`process_tag_filtering()`](https://bincraft.doc.rpkgs.com/reference/process_tag_filtering.md)
+  : Process tag filtering for check_s3_packages
+- [`remove_from_metadata()`](https://bincraft.doc.rpkgs.com/reference/remove_from_metadata.md)
+  : Remove package from metadata table
+- [`retry_with_backoff()`](https://bincraft.doc.rpkgs.com/reference/retry_with_backoff.md)
+  : Retry a function with exponential backoff
+- [`stamp_description_version()`](https://bincraft.doc.rpkgs.com/reference/stamp_description_version.md)
+  : Stamp a version into a cloned DESCRIPTION
+- [`store_build_metadata()`](https://bincraft.doc.rpkgs.com/reference/store_build_metadata.md)
+  : Store build metadata of single binary builds
+- [`tag_version()`](https://bincraft.doc.rpkgs.com/reference/tag_version.md)
+  : Package version named by a git tag
+
