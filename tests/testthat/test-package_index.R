@@ -501,3 +501,43 @@ test_that("with no recorded verdicts the conservative drop still applies", {
 
   expect_false("base64enc" %in% union[, "Package"])
 })
+
+test_that("an object recorded unsafe is dropped even if its package is not risky", {
+  # Rcpp's shape. The source heuristic does not flag Rcpp, so `risky_packages`
+  # is empty for it, and its 4.5-built flat binary was carried into every 4.4
+  # index and died at dyn.load() there -- while the backfill had already
+  # recorded that object as unable to load under 4.4.
+  union <- union_index_records(
+    minor_records = records(c(Package = "curl", Version = "7.1.0")),
+    flat_records = records(c(
+      Package = "Rcpp",
+      Version = "1.1.2",
+      Built = "R 4.5.3; x86_64-pc-linux-musl; 2026-07-31 12:47:24 UTC; unix"
+    )),
+    r_minor = "4.4",
+    risky_packages = character(),
+    unsafe_flat_objects = "Rcpp_1.1.2"
+  )
+
+  expect_false("Rcpp" %in% union[, "Package"])
+})
+
+test_that("an object unsafe for another minor is kept for this one", {
+  # The record carries which minors cannot load it, so a binary that only fails
+  # under 4.4 must still serve 4.6. Dropping it everywhere would cost coverage
+  # for no reason.
+  union <- union_index_records(
+    minor_records = records(c(Package = "curl", Version = "7.1.0")),
+    flat_records = records(c(
+      Package = "Rcpp",
+      Version = "1.1.2",
+      Built = "R 4.5.3; x86_64-pc-linux-musl; 2026-07-31 12:47:24 UTC; unix"
+    )),
+    r_minor = "4.6",
+    risky_packages = character(),
+    # the caller passes only the objects unsafe for the minor being written
+    unsafe_flat_objects = character()
+  )
+
+  expect_true("Rcpp" %in% union[, "Package"])
+})

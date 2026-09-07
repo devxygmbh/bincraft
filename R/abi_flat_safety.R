@@ -181,3 +181,90 @@ flat_safety_safe_set <- function(
     }
   )
 }
+
+#' Flat-slot objects recorded as unable to load under one R minor
+#'
+#' The safe set spares records; this one condemns them, and it is the stronger
+#' signal because it does not depend on the package being flagged risky first.
+#'
+#' `union_index_records()` used to consider dropping only records whose package
+#' appears in `risky_packages`, a set derived from source heuristics. Rcpp is not
+#' in it, so its flat binary -- built under 4.5 and referencing symbols 4.4 never
+#' had -- was carried into the 4.4 index of every slot and failed at dyn.load()
+#' for those clients, even though the backfill had recorded the object as unsafe.
+#'
+#' @param r_minor Only objects that cannot load under this minor are returned.
+#' @return Character vector of `"<package>_<version>"`, possibly empty.
+#' @keywords internal
+#' @noRd
+flat_safety_unsafe_set <- function(
+  codename,
+  arch,
+  r_minor,
+  metadata_db_type = "postgres",
+  metadata_db_host = "r-binaries.devxy.io",
+  metadata_db_name = "build_metadata",
+  metadata_db_port = 15432L,
+  metadata_db_user = "rpkgs",
+  metadata_db_password = Sys.getenv("PGPASS"),
+  metadata_db_sslmode = "require",
+  metadata_db_table = "abi_flat_safety"
+) {
+  con <- tryCatch(
+    abi_cache_connect(
+      metadata_db_type,
+      metadata_db_host,
+      metadata_db_name,
+      metadata_db_port,
+      metadata_db_user,
+      metadata_db_password,
+      metadata_db_sslmode
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(con)) {
+    return(character(0))
+  }
+  on.exit(try(DBI::dbDisconnect(con), silent = TRUE), add = TRUE)
+
+  tryCatch(
+    {
+      ensure_flat_safety_table(con, metadata_db_table)
+      tbl <- DBI::dbQuoteIdentifier(con, metadata_db_table)
+      rows <- DBI::dbGetQuery(
+        con,
+        paste0(
+          "SELECT package, version, unsupported FROM ",
+          tbl,
+          " WHERE NOT safe AND codename = $1 AND arch = $2"
+        ),
+        params = list(codename, arch)
+      )
+      if (nrow(rows) == 0L) {
+        return(character(0))
+      }
+      # `unsupported` is a comma-separated list of the minors that cannot load
+      # the object. An empty value means unsafe without a recorded reason, which
+      # is treated as unsafe everywhere rather than nowhere.
+      applies <- vapply(
+        rows$unsupported,
+        function(u) {
+          if (is.na(u) || !nzchar(u)) {
+            return(TRUE)
+          }
+          r_minor %in% trimws(strsplit(u, ",", fixed = TRUE)[[1L]])
+        },
+        logical(1L),
+        USE.NAMES = FALSE
+      )
+      unique(sprintf("%s_%s", rows$package[applies], rows$version[applies]))
+    },
+    error = function(e) {
+      log_info(sprintf(
+        "{.fun flat_safety_unsafe_set}: unavailable (%s); relying on the risky-package heuristic alone.",
+        conditionMessage(e)
+      ))
+      character(0)
+    }
+  )
+}

@@ -116,7 +116,8 @@ union_index_records <- function(
   flat_records,
   r_minor,
   risky_packages = character(),
-  safe_flat_objects = character()
+  safe_flat_objects = character(),
+  unsafe_flat_objects = character()
 ) {
   usable_minor <- length(r_minor) == 1L &&
     !is.na(r_minor) &&
@@ -230,7 +231,10 @@ union_index_records <- function(
   # risky set, never on the strength of the stamp. A risky package that really
   # was built for this minor has an object in the per-minor slot, which makes it
   # `shadowed` above and it is kept for that reason instead.
-  if (nrow(carried) > 0L && length(risky_packages) > 0L) {
+  if (
+    nrow(carried) > 0L &&
+      (length(risky_packages) > 0L || length(unsafe_flat_objects) > 0L)
+  ) {
     carried_built <- built_of(carried)
     # `risky_packages` names a package that needs a per-minor build under at
     # least one minor. Safety is a property of the object: base64enc built under
@@ -246,9 +250,17 @@ union_index_records <- function(
       carried[, "Package"],
       carried[, "Version"]
     )
-    unsafe <- carried[, "Package"] %in%
+    # Two independent reasons to drop, and the recorded one comes first because
+    # it does not depend on the package being flagged risky. `risky_packages` is
+    # derived from source heuristics and misses Rcpp, so Rcpp's flat binary --
+    # built under 4.5, referencing symbols 4.4 never had -- was carried into
+    # every 4.4 index and failed at dyn.load() there, while the backfill had
+    # already recorded that very object as unable to load under 4.4.
+    condemned <- carried_object %in% unsafe_flat_objects
+    heuristic <- carried[, "Package"] %in%
       risky_packages &
-      !(carried_object %in% safe_flat_objects) &
+      !(carried_object %in% safe_flat_objects)
+    unsafe <- (condemned | heuristic) &
       !is.na(carried_built) &
       nzchar(carried_built)
     if (any(unsafe)) {
@@ -561,7 +573,8 @@ upload_package_index <- function(
         ),
         abi_cache_risky_packages()
       ),
-      safe_flat_objects = flat_safety_safe_set(codename, arch)
+      safe_flat_objects = flat_safety_safe_set(codename, arch),
+      unsafe_flat_objects = flat_safety_unsafe_set(codename, arch, r_minor)
     )
     log_success(sprintf(
       "Merged the generic slot into the {.field %s} index: %s records.",
