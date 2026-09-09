@@ -213,9 +213,18 @@ tarball_abi_verdict <- function(tarball, sets = installed_r_symbol_sets()) {
   dir.create(dest, recursive = TRUE, showWarnings = FALSE)
   on.exit(unlink(dest, recursive = TRUE, force = TRUE), add = TRUE)
 
+  # `untar()` reports a failing external `tar` as a *warning* carrying its exit
+  # code, not an error, and still returns whatever it managed to list. A
+  # truncated download therefore yields a partial member list rather than a
+  # failure. Catch the warning as well, or the next test sees no `libs/*.so` in
+  # that partial list and returns the verdict for a package with no compiled
+  # code at all: inspected, portable, safe. An ABI-unsafe binary would then be
+  # recorded safe, kept in the flat slot and carried into every per-minor index
+  # -- the exact failure this classifier exists to prevent.
   members <- tryCatch(
     utils::untar(tarball, list = TRUE),
-    error = function(e) NULL
+    error = function(e) NULL,
+    warning = function(w) NULL
   )
   if (is.null(members)) {
     return(unknown)
@@ -229,7 +238,8 @@ tarball_abi_verdict <- function(tarball, sets = installed_r_symbol_sets()) {
       utils::untar(tarball, files = so, exdir = dest)
       file.path(dest, so)
     },
-    error = function(e) NULL
+    error = function(e) NULL,
+    warning = function(w) NULL
   )
   if (is.null(extracted) || !all(file.exists(extracted))) {
     return(unknown)

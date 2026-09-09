@@ -128,3 +128,33 @@ test_that("a binary touching only stable symbols is not sensitive", {
   expect_false(v$sensitive)
   expect_identical(v$symbols, character(0))
 })
+
+test_that("tarball_abi_verdict refuses to judge a truncated archive", {
+  # A truncated download makes the external `tar` exit non-zero, which
+  # `untar()` reports as a warning while still returning a partial listing. If
+  # that listing is trusted, a compiled package whose `libs/*.so` fell off the
+  # end looks like a package with no compiled code: inspected and portable. The
+  # unsafe binary would then be recorded safe and carried into every per-minor
+  # index. Two of these were observed in the rhel8 backfill, reported as
+  # `0 skipped`.
+  dir <- withr::local_tempdir()
+  pkg <- file.path(dir, "pkg", "libs")
+  dir.create(pkg, recursive = TRUE)
+  writeBin(as.raw(rep(0L, 4096)), file.path(pkg, "pkg.so"))
+  tarball <- file.path(dir, "pkg.tar.gz")
+  withr::with_dir(dir, utils::tar(tarball, "pkg", compression = "gzip"))
+
+  intact <- readBin(tarball, "raw", file.size(tarball))
+  truncated <- file.path(dir, "truncated.tar.gz")
+  writeBin(intact[seq_len(as.integer(length(intact) * 0.4))], truncated)
+
+  # Two minors, so `shared_object_abi_verdict()` gets past its own
+  # not-enough-Rs guard and the assertion is about the truncation alone.
+  sets <- list("4.4" = c("Rf_eval", "SETLENGTH"), "4.6" = "Rf_eval")
+
+  # The intact archive is judged, so the fixture really does carry a `libs/*.so`
+  # and a failure below cannot be blamed on the tarball being uninteresting.
+  expect_true(isTRUE(tarball_abi_verdict(tarball, sets = sets)$inspected))
+
+  expect_false(isTRUE(tarball_abi_verdict(truncated, sets = sets)$inspected))
+})
