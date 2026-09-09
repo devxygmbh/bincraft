@@ -230,10 +230,51 @@ run_uvr_install <- function(
   write_uvr_manifest(clone_dir)
   write_r_version_pin(clone_dir)
   run_uvr("lock", clone_dir)
-  run_uvr(
-    c("sync", "--install-system-deps", "--library", library),
-    clone_dir,
-    env = c(UVR_INSTALL_SYSREQS = "1")
-  )
+  sync_with_cache_retry(clone_dir, library)
   invisible(TRUE)
+}
+
+#' `uvr sync`, retried once without its cache
+#'
+#' uvr caches downloaded archives, and `build_binary_package()` runs many times
+#' inside one container against a shared cache. A single truncated or otherwise
+#' bad download of a popular dependency therefore breaks every later package
+#' that needs it, for the rest of that slot's run:
+#'
+#'   ERROR  Failed to install arules
+#'   Archive for 'arules' is not a built binary package (no Meta/package.rds
+#'    - a source tarball served as binary, or a truncated download).
+#'   Retry with 'uvr sync --ignore-cache'
+#'
+#' Whole runs have lost ~70 packages to this, always the shared heavy
+#' dependencies (arules, Boom, TMB), and the objects in the bucket were valid
+#' the whole time. uvr names the remedy in the error, so take it: retry once
+#' with `--ignore-cache`, which re-fetches rather than trusting the cache.
+#'
+#' Only that failure is retried. Anything else -- a genuine compile error, a
+#' missing system library -- fails immediately, since retrying it would just
+#' cost time and bury the real message.
+#'
+#' @inheritParams run_uvr_install
+#' @keywords internal
+#' @noRd
+sync_with_cache_retry <- function(clone_dir, library) {
+  args <- c("sync", "--install-system-deps", "--library", library)
+  tryCatch(
+    run_uvr(args, clone_dir, env = c(UVR_INSTALL_SYSREQS = "1")),
+    error = function(e) {
+      msg <- conditionMessage(e)
+      if (!grepl("is not a built binary package", msg, fixed = TRUE)) {
+        stop(e)
+      }
+      log_warn(
+        "{.fun run_uvr_install}: a cached archive was not a usable binary; retrying with {.code --ignore-cache}."
+      )
+      run_uvr(
+        c(args, "--ignore-cache"),
+        clone_dir,
+        env = c(UVR_INSTALL_SYSREQS = "1")
+      )
+    }
+  )
 }
