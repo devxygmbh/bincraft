@@ -260,7 +260,23 @@ union_index_records <- function(
     heuristic <- carried[, "Package"] %in%
       risky_packages &
       !(carried_object %in% safe_flat_objects)
+    # A package with no compiled code has no shared object, so nothing about it
+    # can fail at `dyn.load()` and no ABI verdict can apply. The heuristic arm
+    # reaches these anyway: the source classifier flags one, and the flat-safety
+    # backfill only inspects compiled objects, so no safe verdict ever exists to
+    # clear it and the record is dropped from every per-minor index forever.
+    # `timbr`, `NeedsCompilation: no`, was missing from all three rhel8 indexes
+    # for exactly this reason.
+    compiled <- if ("NeedsCompilation" %in% colnames(carried)) {
+      !is.na(carried[, "NeedsCompilation"]) &
+        tolower(carried[, "NeedsCompilation"]) == "yes"
+    } else {
+      # Without the field, fall back to the previous behaviour rather than
+      # keeping everything: a missing column must not silently disable the drop.
+      rep(TRUE, nrow(carried))
+    }
     unsafe <- (condemned | heuristic) &
+      compiled &
       !is.na(carried_built) &
       nzchar(carried_built)
     if (any(unsafe)) {

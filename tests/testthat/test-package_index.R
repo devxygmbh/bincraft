@@ -541,3 +541,32 @@ test_that("an object unsafe for another minor is kept for this one", {
 
   expect_true("Rcpp" %in% union[, "Package"])
 })
+
+test_that("union_index_records never drops a package with no compiled code", {
+  # `timbr` is `NeedsCompilation: no`: it has no shared object, so nothing about
+  # it can fail at `dyn.load()`. The source classifier flagged it anyway, and
+  # the flat-safety backfill only inspects compiled objects, so no safe verdict
+  # could ever exist to rescue it. It was missing from all three rhel8 indexes.
+  union <- union_index_records(
+    minor_records = records(c(Package = "curl", Version = "7.1.0")),
+    flat_records = records(
+      c(
+        Package = "timbr",
+        Version = "0.3.0",
+        NeedsCompilation = "no",
+        Built = "R 4.4.3; x86_64-pc-linux-gnu; 2026-07-31; unix"
+      ),
+      c(
+        Package = "mixedMem",
+        Version = "1.1.2",
+        NeedsCompilation = "yes",
+        Built = "R 4.4.3; x86_64-pc-linux-gnu; 2026-07-31; unix"
+      )
+    ),
+    r_minor = "4.6",
+    risky_packages = c("timbr", "mixedMem")
+  )
+
+  expect_true("timbr" %in% union[, "Package"])
+  expect_false("mixedMem" %in% union[, "Package"])
+})
