@@ -454,7 +454,7 @@ add_to_package_index <- function(
 #'   written/read under the per-minor slot `…/contrib/<r_minor>/` instead of the
 #'   generic `…/contrib/` slot.
 #'
-#' @importFrom s3fs s3_file_upload s3_dir_ls
+#' @importFrom s3fs s3_file_upload s3_dir_ls s3_dir_info
 #' @importFrom cranlike update_PACKAGES
 #' @export
 upload_package_index <- function(
@@ -499,7 +499,15 @@ upload_package_index <- function(
   )
 
   log_info("Started listing remote packages")
-  pkgs <- s3fs::s3_dir_ls(remote_bin_dir)
+  # `s3_dir_info()` rather than `s3_dir_ls()`: the same LIST call also returns
+  # each object's size, which is how an archived source fallback is recognised
+  # below. It costs no extra request.
+  listing <- s3fs::s3_dir_info(remote_bin_dir)
+  pkgs <- listing$uri
+  object_sizes <- stats::setNames(
+    as.numeric(listing$size),
+    basename(listing$key)
+  )
   log_success("Finished listing remote packages")
   # We remove 4 from the count as we don't want to count the PACKAGES* files + Archive/ dir
   pkg_count <- length(pkgs) - 5L
@@ -538,7 +546,7 @@ upload_package_index <- function(
   # every source fallback looking like a binary at merge time, and the union
   # would keep steering clients to sources.
   before <- sum(!is.na(records[, "Built"]))
-  records <- clear_built_for_sources(records)
+  records <- clear_built_for_sources(records, sizes = object_sizes)
   cleared <- before - sum(!is.na(records[, "Built"]))
   if (cleared > 0L) {
     log_info(sprintf(

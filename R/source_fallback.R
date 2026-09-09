@@ -67,6 +67,83 @@ cran_source_md5 <- function(
   table
 }
 
+# One archive index per session, for the same reason as the source index.
+.cran_archive_size_cache <- new.env(parent = emptyenv())
+
+#' Byte sizes of CRAN's archived source tarballs, keyed `<package>_<version>`
+#'
+#' `cran_source_md5()` only sees the versions CRAN currently ships, so a source
+#' fallback for an archived version cannot be recognised by its MD5 and keeps
+#' the `Built` stamp the slot applied to it. CRAN publishes no MD5 for archived
+#' files, but `Meta/archive.rds` carries their exact byte sizes, and a source
+#' tarball is served byte for byte as CRAN produced it.
+#'
+#' @param cran CRAN mirror to read `src/contrib/Meta/archive.rds` from.
+#' @param refresh Re-read the index even if it is already cached.
+#'
+#' @return A named numeric vector of sizes. Empty if CRAN is unreachable, so an
+#'   outage leaves every object looking like a build rather than mass-clearing
+#'   stamps.
+#' @keywords internal
+#' @noRd
+cran_archive_size <- function(
+  cran = "https://cloud.r-project.org",
+  refresh = FALSE
+) {
+  cached <- .cran_archive_size_cache[[cran]]
+  if (!refresh && !is.null(cached)) {
+    return(cached)
+  }
+
+  table <- tryCatch(
+    {
+      destination <- tempfile(fileext = ".rds")
+      on.exit(unlink(destination), add = TRUE)
+      utils::download.file(
+        sprintf("%s/src/contrib/Meta/archive.rds", sub("/$", "", cran)),
+        destination,
+        mode = "wb",
+        quiet = TRUE
+      )
+      archive <- readRDS(destination)
+      # Each element is a data frame whose row names are `<package>/<file>`.
+      files <- unlist(lapply(archive, rownames), use.names = FALSE)
+      sizes <- unlist(lapply(archive, function(x) x$size), use.names = FALSE)
+      keys <- sub("\\.tar\\.gz$", "", basename(files))
+      stats::setNames(as.numeric(sizes), keys)
+    },
+    error = function(e) {
+      log_warn(sprintf(
+        "{.fun cran_archive_size}: could not read CRAN's archive index (%s). Treating every archived object as a build.",
+        conditionMessage(e)
+      ))
+      stats::setNames(numeric(), character())
+    }
+  )
+
+  .cran_archive_size_cache[[cran]] <- table
+  table
+}
+
+#' Is this archived object CRAN's source tarball rather than a build of it?
+#'
+#' @param package,version,size Equal-length vectors describing the objects.
+#'   `size` is the published object's size in bytes, `NA` where unknown.
+#' @param size_table Lookup from [cran_archive_size()].
+#'
+#' @return Logical vector, `FALSE` wherever the answer is unknown.
+#' @keywords internal
+#' @noRd
+is_archived_source_tarball <- function(
+  package,
+  version,
+  size,
+  size_table = cran_archive_size()
+) {
+  expected <- unname(size_table[paste(package, version, sep = "_")])
+  !is.na(expected) & !is.na(size) & expected == size
+}
+
 #' Is this object CRAN's source tarball rather than a build of it?
 #'
 #' @param package,version,md5 Equal-length vectors describing the objects.
@@ -94,16 +171,28 @@ is_cran_source_tarball <- function(
 #' without the system `-dev` libraries a source build needs, and paquetier
 #' files it under a platform it was never built for.
 #'
-#' Older versions are left alone: CRAN's index carries only current releases, so
-#' an archived version cannot be checked and is assumed to be a build.
+#' A version CRAN still ships is recognised by its MD5. An archived version has
+#' no published MD5, so it is recognised by its exact byte size instead, which
+#' needs `sizes` from the caller: the index records carry no size of their own.
+#' Without `sizes` an archived source fallback keeps its stamp, which is what
+#' happened to `Deriv 4.3.0` on several slots -- served as source, advertised as
+#' a binary, and rejected outright by `uvr`.
 #'
 #' @param records Character matrix of index records.
 #' @param md5_table Lookup from [cran_source_md5()].
+#' @param sizes Named numeric of published object sizes in bytes, keyed by file
+#'   name. `NULL` skips the archived-version pass.
+#' @param size_table Lookup from [cran_archive_size()].
 #'
 #' @return `records`, with `Built` set to `NA` on the source fallbacks.
 #' @keywords internal
 #' @noRd
-clear_built_for_sources <- function(records, md5_table = cran_source_md5()) {
+clear_built_for_sources <- function(
+  records,
+  md5_table = cran_source_md5(),
+  sizes = NULL,
+  size_table = cran_archive_size()
+) {
   required <- c("Package", "Version", "MD5sum", "Built")
   if (nrow(records) == 0L || !all(required %in% colnames(records))) {
     return(records)
@@ -115,6 +204,18 @@ clear_built_for_sources <- function(records, md5_table = cran_source_md5()) {
     records[, "MD5sum"],
     md5_table
   )
+
+  if (!is.null(sizes) && "File" %in% colnames(records)) {
+    published <- unname(sizes[records[, "File"]])
+    sources <- sources |
+      is_archived_source_tarball(
+        records[, "Package"],
+        records[, "Version"],
+        published,
+        size_table
+      )
+  }
+
   records[sources, "Built"] <- NA_character_
   records
 }

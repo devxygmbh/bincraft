@@ -224,3 +224,73 @@ test_that("remote_object_state calls an unknown MD5 a binary", {
 
   expect_identical(remote_object_state("s3://b/k", "curl", "7.1.0"), "binary")
 })
+
+size_table <- c("Deriv_4.3.0" = 44850, "curl_6.0.0" = 1200)
+
+test_that("is_archived_source_tarball matches an archived tarball by exact size", {
+  expect_true(is_archived_source_tarball("Deriv", "4.3.0", 44850, size_table))
+  expect_false(is_archived_source_tarball("Deriv", "4.3.0", 44851, size_table))
+})
+
+test_that("is_archived_source_tarball answers FALSE whenever it cannot know", {
+  # A version CRAN still ships is not in the archive index, and an object whose
+  # size was not listed cannot be compared. Guessing either way would clear the
+  # stamp on a real binary and send every client to compile it from source.
+  expect_false(is_archived_source_tarball("Deriv", "4.4.0", 44850, size_table))
+  expect_false(is_archived_source_tarball(
+    "Deriv",
+    "4.3.0",
+    NA_real_,
+    size_table
+  ))
+})
+
+test_that("clear_built_for_sources clears an archived source fallback given sizes", {
+  # The case seen in production: `Deriv 4.3.0` published as CRAN's source under
+  # a per-minor path, stamped as a binary because CRAN's current index knows
+  # only 4.3.5, and rejected by uvr as "not a built binary package".
+  index <- records(
+    c(
+      Package = "Deriv",
+      Version = "4.3.0",
+      MD5sum = "379732250a50bde145f56415bda818f6",
+      File = "Deriv_4.3.0.tar.gz",
+      Built = "R 4.4.0; x86_64-pc-linux-gnu; 2026-07-30; unix"
+    ),
+    c(
+      Package = "curl",
+      Version = "7.1.0",
+      MD5sum = "0000deadbeef",
+      File = "curl_7.1.0.tar.gz",
+      Built = "R 4.4.0; x86_64-pc-linux-gnu; 2026-07-30; unix"
+    )
+  )
+
+  out <- clear_built_for_sources(
+    index,
+    md5_table = md5_table,
+    sizes = c("Deriv_4.3.0.tar.gz" = 44850, "curl_7.1.0.tar.gz" = 99999),
+    size_table = size_table
+  )
+
+  expect_true(is.na(out[1L, "Built"]))
+  expect_false(is.na(out[2L, "Built"]))
+})
+
+test_that("clear_built_for_sources leaves archived versions alone without sizes", {
+  index <- records(c(
+    Package = "Deriv",
+    Version = "4.3.0",
+    MD5sum = "379732250a50bde145f56415bda818f6",
+    File = "Deriv_4.3.0.tar.gz",
+    Built = "R 4.4.0; x86_64-pc-linux-gnu; 2026-07-30; unix"
+  ))
+
+  out <- clear_built_for_sources(
+    index,
+    md5_table = md5_table,
+    size_table = size_table
+  )
+
+  expect_false(is.na(out[1L, "Built"]))
+})
