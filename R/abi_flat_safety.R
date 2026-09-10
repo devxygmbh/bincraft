@@ -182,6 +182,77 @@ flat_safety_safe_set <- function(
   )
 }
 
+#' Flat-slot objects that have any recorded verdict
+#'
+#' Safe or unsafe, and whichever minors an unsafe one names. The distinction
+#' that matters here is only *inspected* versus *never looked at*: an object
+#' recorded unsafe under 4.4 has been judged, and the per-minor `condemned`
+#' test already removes it from the index it cannot load. Feeding it to the
+#' risky-package heuristic as well drops it from the indexes it loads under
+#' perfectly well.
+#'
+#' @return Character vector of `"<package>_<version>"`, possibly empty. Empty on
+#'   any failure, which leaves the caller with the conservative behaviour of
+#'   dropping every risky carried record without a safe verdict.
+#' @keywords internal
+#' @noRd
+flat_safety_known_set <- function(
+  codename,
+  arch,
+  metadata_db_type = "postgres",
+  metadata_db_host = "r-binaries.devxy.io",
+  metadata_db_name = "build_metadata",
+  metadata_db_port = 15432L,
+  metadata_db_user = "rpkgs",
+  metadata_db_password = Sys.getenv("PGPASS"),
+  metadata_db_sslmode = "require",
+  metadata_db_table = "abi_flat_safety"
+) {
+  con <- tryCatch(
+    abi_cache_connect(
+      metadata_db_type,
+      metadata_db_host,
+      metadata_db_name,
+      metadata_db_port,
+      metadata_db_user,
+      metadata_db_password,
+      metadata_db_sslmode
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(con)) {
+    return(character(0))
+  }
+  on.exit(try(DBI::dbDisconnect(con), silent = TRUE), add = TRUE)
+
+  tryCatch(
+    {
+      ensure_flat_safety_table(con, metadata_db_table)
+      tbl <- DBI::dbQuoteIdentifier(con, metadata_db_table)
+      rows <- DBI::dbGetQuery(
+        con,
+        paste0(
+          "SELECT package, version FROM ",
+          tbl,
+          " WHERE codename = $1 AND arch = $2"
+        ),
+        params = list(codename, arch)
+      )
+      if (nrow(rows) == 0L) {
+        return(character(0))
+      }
+      unique(sprintf("%s_%s", rows$package, rows$version))
+    },
+    error = function(e) {
+      log_info(sprintf(
+        "{.fun flat_safety_known_set}: unavailable (%s); every risky carried record without a safe verdict will be dropped.",
+        conditionMessage(e)
+      ))
+      character(0)
+    }
+  )
+}
+
 #' Flat-slot objects recorded as unable to load under one R minor
 #'
 #' The safe set spares records; this one condemns them, and it is the stronger

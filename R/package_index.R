@@ -117,7 +117,8 @@ union_index_records <- function(
   r_minor,
   risky_packages = character(),
   safe_flat_objects = character(),
-  unsafe_flat_objects = character()
+  unsafe_flat_objects = character(),
+  known_flat_objects = character()
 ) {
   usable_minor <- length(r_minor) == 1L &&
     !is.na(r_minor) &&
@@ -257,9 +258,20 @@ union_index_records <- function(
     # every 4.4 index and failed at dyn.load() there, while the backfill had
     # already recorded that very object as unable to load under 4.4.
     condemned <- carried_object %in% unsafe_flat_objects
+    # The heuristic is the fallback for an object nobody has looked at. An
+    # object that *has* a verdict is already handled by `condemned`, which is
+    # per-minor: `unsafe_flat_objects` names only the objects that cannot load
+    # under *this* minor. Testing membership of the safe set instead treats
+    # "recorded unsafe under 4.4" as "unknown" everywhere, so the object is
+    # dropped from the 4.5 and 4.6 indexes it loads under perfectly well.
+    #
+    # Rcpp on alpine323 and rhel10: built under 4.5.3, recorded unable to load
+    # under 4.4, given a per-minor 4.4 build by the repair, and then missing
+    # from 4.5 and 4.6 anyway -- taking most of CRAN with it, since almost
+    # everything LinkingTo Rcpp.
     heuristic <- carried[, "Package"] %in%
       risky_packages &
-      !(carried_object %in% safe_flat_objects)
+      !(carried_object %in% c(safe_flat_objects, known_flat_objects))
     # A package with no compiled code has no shared object, so nothing about it
     # can fail at `dyn.load()` and no ABI verdict can apply. The heuristic arm
     # reaches these anyway: the source classifier flags one, and the flat-safety
@@ -598,7 +610,8 @@ upload_package_index <- function(
         abi_cache_risky_packages()
       ),
       safe_flat_objects = flat_safety_safe_set(codename, arch),
-      unsafe_flat_objects = flat_safety_unsafe_set(codename, arch, r_minor)
+      unsafe_flat_objects = flat_safety_unsafe_set(codename, arch, r_minor),
+      known_flat_objects = flat_safety_known_set(codename, arch)
     )
     log_success(sprintf(
       "Merged the generic slot into the {.field %s} index: %s records.",

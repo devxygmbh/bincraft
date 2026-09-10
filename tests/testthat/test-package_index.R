@@ -570,3 +570,56 @@ test_that("union_index_records never drops a package with no compiled code", {
   expect_true("timbr" %in% union[, "Package"])
   expect_false("mixedMem" %in% union[, "Package"])
 })
+
+test_that("a verdict for another minor does not drop the record from this one", {
+  # `Rcpp` built under 4.5.3 is recorded unable to load under 4.4 and nothing
+  # else. In the 4.6 index it is not condemned, but it is also not in the *safe*
+  # set, so the risky-package heuristic used to drop it -- taking most of CRAN
+  # with it, since almost everything LinkingTo Rcpp. The verdict is per-minor;
+  # the heuristic is only for objects nobody has judged at all.
+  flat <- records(
+    c(
+      Package = "Rcpp",
+      Version = "1.1.2",
+      NeedsCompilation = "yes",
+      Built = "R 4.5.3; x86_64-pc-linux-musl; 2026-07-31; unix"
+    ),
+    c(
+      Package = "unjudged",
+      Version = "1.0.0",
+      NeedsCompilation = "yes",
+      Built = "R 4.5.3; x86_64-pc-linux-musl; 2026-07-31; unix"
+    )
+  )
+
+  union <- union_index_records(
+    minor_records = records(c(Package = "curl", Version = "7.1.0")),
+    flat_records = flat,
+    r_minor = "4.6",
+    risky_packages = c("Rcpp", "unjudged"),
+    unsafe_flat_objects = character(),
+    known_flat_objects = "Rcpp_1.1.2"
+  )
+
+  expect_true("Rcpp" %in% union[, "Package"])
+  # Still dropped: no verdict at all means nobody has checked it.
+  expect_false("unjudged" %in% union[, "Package"])
+})
+
+test_that("a verdict for this minor still drops the record", {
+  union <- union_index_records(
+    minor_records = records(c(Package = "curl", Version = "7.1.0")),
+    flat_records = records(c(
+      Package = "Rcpp",
+      Version = "1.1.2",
+      NeedsCompilation = "yes",
+      Built = "R 4.5.3; x86_64-pc-linux-musl; 2026-07-31; unix"
+    )),
+    r_minor = "4.4",
+    risky_packages = character(),
+    unsafe_flat_objects = "Rcpp_1.1.2",
+    known_flat_objects = "Rcpp_1.1.2"
+  )
+
+  expect_false("Rcpp" %in% union[, "Package"])
+})
