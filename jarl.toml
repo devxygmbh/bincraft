@@ -1,3 +1,0 @@
-[lint]
-ignore = ["duplicated_arguments"]
-default-exclude = true
