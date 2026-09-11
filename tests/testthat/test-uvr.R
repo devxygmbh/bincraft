@@ -100,8 +100,7 @@ test_that("run_uvr_install locks, then syncs with sysreqs into the target librar
     function(args, wd, env = character()) {
       calls[[length(calls) + 1L]] <<- list(args = args, wd = wd, env = env)
       invisible("ok")
-    },
-    depth = 2
+    }
   )
   run_uvr_install(clone, library = "/build/lib")
   expect_equal(calls[[1]]$args, "lock")
